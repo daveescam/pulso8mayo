@@ -1,10 +1,22 @@
+/**
+ * @deprecated This file is being modularized. Import from lib/db/schema/index.ts instead.
+ * This file is kept for backward compatibility during migration.
+ * All tables will be moved to domain-specific modules in lib/db/schema/
+ */
+
 import { pgTable, text, timestamp, boolean, uuid, jsonb, integer, uniqueIndex, foreignKey, pgEnum } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+
+// Import auth tables and enums for internal use within this file
+import { account, users, sessions, verifications, magicLinks, roleEnum } from './schema/auth';
+
+// Re-export modular schema
+export * from './schema/index';
 
 // Enums
 export const shiftTypeEnum = pgEnum("shift_type", ['MATUTINO', 'VESPERTINO', 'NOCTURNO', 'MIXTO']);
 export const dayOfWeekEnum = pgEnum("day_of_week", ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']);
-export const roleEnum = pgEnum("role", ['SUPER_ADMIN', 'ADMIN', 'GERENTE', 'SUPERVISOR', 'EMPLEADO', 'READONLY']);
+// roleEnum is re-exported from auth.ts via schema/index.ts
 export const incidentSeverityEnum = pgEnum("incident_severity", ['CRITICAL', 'WARNING', 'FATAL']);
 export const incidentStatusEnum = pgEnum("incident_status", ['DETECTED', 'IN_REMEDIATION', 'RESOLVED', 'ESCALATED']);
 
@@ -15,21 +27,8 @@ export const assignmentStatusEnum = pgEnum("assignment_status", ['PENDING', 'NOT
 export const priorityEnum = pgEnum("priority", ['LOW', 'MEDIUM', 'HIGH', 'URGENT']);
 export const notificationTypeEnum = pgEnum("notification_type", ['info', 'warning', 'error', 'success']);
 
-export const account = pgTable("account", {
-    id: text("id").primaryKey().notNull(),
-    accountId: text("account_id").notNull(),
-    providerId: text("provider_id").notNull(),
-    userId: text("user_id").notNull(),
-    accessToken: text("access_token"),
-    refreshToken: text("refresh_token"),
-    idToken: text("id_token"),
-    accessTokenExpiresAt: timestamp("access_token_expires_at"),
-    refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
-    scope: text("scope"),
-    password: text("password"),
-    createdAt: timestamp("created_at").notNull(),
-    updatedAt: timestamp("updated_at").notNull(),
-});
+// Note: account, users, sessions, verifications, magicLinks tables are re-exported from auth.ts
+// Keeping them here would cause duplicate identifier errors
 
 export const branches = pgTable("branches", {
     id: uuid("id").default(sql`gen_random_uuid()`).primaryKey().notNull(),
@@ -246,52 +245,7 @@ export const incidents = pgTable("incidents", {
     updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const magicLinks = pgTable("magic_links", {
-    token: text("token").primaryKey().notNull(),
-    sessionId: uuid("session_id").notNull(),
-    instanceId: uuid("instance_id").notNull(), // Changed from executionId
-    workflowTemplateId: text("workflow_template_id").notNull(),
-    status: text("status").default('PENDING'),
-    expiresAt: timestamp("expires_at").notNull(),
-    usedAt: timestamp("used_at"),
-    createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const users = pgTable("users", {
-    id: text("id").primaryKey().notNull(),
-    name: text("name"),
-    email: text("email").notNull(),
-    emailVerified: boolean("email_verified"),
-    image: text("image"),
-    createdAt: timestamp("created_at").notNull(),
-    updatedAt: timestamp("updated_at").notNull(),
-    role: roleEnum("role").default('EMPLEADO'),
-    companyId: uuid("company_id"),
-    branchId: uuid("branch_id"),
-    phone: text("phone"),
-    whatsappPhone: text("whatsapp_phone"), // WhatsApp phone number for notifications
-    deletedAt: timestamp("deleted_at"),
-});
-
-export const sessions = pgTable("sessions", {
-    id: text("id").primaryKey().notNull(),
-    expiresAt: timestamp("expires_at").notNull(),
-    token: text("token").unique(),
-    createdAt: timestamp("created_at").notNull(),
-    updatedAt: timestamp("updated_at").notNull(),
-    ipAddress: text("ip_address"),
-    userAgent: text("user_agent"),
-    userId: text("user_id").notNull().references(() => users.id),
-});
-
-export const verifications = pgTable("verifications", {
-    id: text("id").primaryKey().notNull(),
-    identifier: text("identifier").notNull(),
-    value: text("value").notNull(),
-    expiresAt: timestamp("expires_at").notNull(),
-    createdAt: timestamp("created_at"),
-    updatedAt: timestamp("updated_at"),
-});
+// Note: magicLinks, users, sessions, verifications tables re-exported from auth.ts
 
 // Plantillas de turnos recurrentes
 export const shiftTemplates = pgTable("shift_templates", {
@@ -1092,6 +1046,17 @@ export const offboardingReasonEnum = pgEnum("offboarding_reason", [
     'CONTRACT_EXPIRED', 'RETIREMENT', 'DEATH', 'MUTUAL_AGREEMENT', 'OTHER'
 ]);
 
+// Performance Review Enums
+export const reviewTypeEnum = pgEnum("review_type", ['SELF', 'MANAGER', 'PEER', '360']);
+export const reviewStatusEnum = pgEnum("review_status", ['DRAFT', 'IN_PROGRESS', 'COMPLETED', 'SUBMITTED']);
+export const goalStatusEnum = pgEnum("goal_status", ['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']);
+
+// Leave Management Enums
+export const leaveTypeEnum = pgEnum("leave_type", [
+    'VACATION', 'SICK_LEAVE', 'PERSONAL', 'MATERNITY', 'PATERNITY', 'BEREAVEMENT', 'TRAINING', 'JURY_DUTY', 'OTHER'
+]);
+export const leaveStatusEnum = pgEnum("leave_status", ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'COMPLETED']);
+
 // Employee Profile Extension (extends users table)
 export const employeeProfiles = pgTable("employee_profiles", {
     id: uuid("id").default(sql`gen_random_uuid()`).primaryKey().notNull(),
@@ -1161,6 +1126,8 @@ export const employeeProfiles = pgTable("employee_profiles", {
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+
 
 // Employee Contracts
 export const employeeContracts = pgTable("employee_contracts", {
@@ -1727,6 +1694,7 @@ export const employeeCommunications = pgTable("employee_communications", {
     // Targeting
     targetType: text("target_type").notNull(), // INDIVIDUAL, DEPARTMENT, BRANCH, COMPANY
     targetIds: jsonb("target_ids"), // Array of user IDs, department IDs, or branch IDs
+    targetRoles: jsonb("target_roles"), // Array of roles (e.g., ['GERENTE', 'EMPLEADO'])
     
     // Status
     status: text("status").default('DRAFT'), // DRAFT, SENT, READ
@@ -1872,6 +1840,79 @@ export const reportExecutionHistory = pgTable("report_execution_history", {
     errorMessage: text("error_message"),
 
     createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Psychosocial Surveys (NOM-035 Real Data)
+export const psychosocialRiskLevelEnum = pgEnum("psychosocial_risk_level", ['MINIMO', 'BAJO', 'MEDIO', 'ALTO', 'MUY_ALTO']);
+
+export const psychosocialSurveys = pgTable("psychosocial_surveys", {
+    id: uuid("id").default(sql`gen_random_uuid()`).primaryKey().notNull(),
+    userId: text("user_id").notNull(),
+    companyId: uuid("company_id").notNull(),
+    branchId: uuid("branch_id").notNull(),
+    
+    // NOM-035 Psychosocial Risk Factors (scores 0-100, higher = more risk)
+    entornoOrganizacional: integer("entorno_organizacional").notNull().default(0),
+    cargasTrabajo: integer("cargas_trabajo").notNull().default(0),
+    liderazgo: integer("liderazgo").notNull().default(0),
+    comunicacion: integer("comunicacion").notNull().default(0),
+    desarrolloProfesional: integer("desarrollo_profesional").notNull().default(0),
+    climaLaboral: integer("clima_laboral").notNull().default(0),
+    
+    // Calculated fields
+    overallScore: integer("overall_score").notNull().default(0),
+    riskLevel: psychosocialRiskLevelEnum("risk_level").notNull().default('MINIMO'),
+    
+    // Raw survey responses
+    responses: jsonb("responses").default(sql`'[]'::jsonb`), // Array of { question, score, category }
+    
+    // Metadata
+    surveyVersion: text("survey_version").default('v1'),
+    completedAt: timestamp("completed_at"),
+    isComplete: boolean("is_complete").default(false),
+    
+    // Audit
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Compliance Alerts (auto-generated)
+export const complianceAlertTypeEnum = pgEnum("compliance_alert_type", [
+    'LOW_SCORE', 'MISSED_DEADLINE', 'MISSING_WORKFLOW', 'EXPIRED_DOCUMENT', 'NON_COMPLIANCE'
+]);
+export const complianceAlertStatusEnum = pgEnum("compliance_alert_status", [
+    'ACTIVE', 'ACKNOWLEDGED', 'RESOLVED', 'DISMISSED'
+]);
+
+export const complianceAlerts = pgTable("compliance_alerts", {
+    id: uuid("id").default(sql`gen_random_uuid()`).primaryKey().notNull(),
+    companyId: uuid("company_id").notNull(),
+    branchId: uuid("branch_id"),
+    
+    // Alert details
+    alertType: complianceAlertTypeEnum("alert_type").notNull(),
+    severity: incidentSeverityEnum("severity").notNull(),
+    status: complianceAlertStatusEnum("status").default('ACTIVE').notNull(),
+    
+    title: text("title").notNull(),
+    description: text("description"),
+    
+    // Context
+    complianceType: text("compliance_type"), // NOM-251, NOM-035, LABOR_LAW
+    workflowTemplateId: uuid("workflow_template_id"),
+    currentScore: integer("current_score"),
+    threshold: integer("threshold"),
+    
+    // Resolution
+    acknowledgedBy: text("acknowledged_by"),
+    acknowledgedAt: timestamp("acknowledged_at"),
+    resolvedBy: text("resolved_by"),
+    resolvedAt: timestamp("resolved_at"),
+    resolutionNotes: text("resolution_notes"),
+    
+    // Audit
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // Adding manual reference definitions where appropriate for clarity or Drizzle query API
