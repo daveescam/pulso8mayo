@@ -1,0 +1,141 @@
+{
+    "id": "tpl-reporte-incidentes-v2",
+    "nombre": "🚨 Reporte de Incidente de Cliente",
+    "descripcion": "Formulario oficial para el registro y gestión de quejas, accidentes o incidentes relevantes con clientes.",
+    "tipo": "INCIDENTE",
+    "categoria": "ATENCION_CLIENTE",
+    "version": 2,
+    "activo": true,
+    "requiereIA": false,
+    "duracionEstimada": "5-10 min",
+    "cumplimientoNormativo": [
+        "INTERNAL"
+    ],
+    "tags": [
+        "cliente",
+        "queja",
+        "incidente",
+        "seguridad"
+    ],
+    "complianceConfig": {
+        "complianceType": "INTERNAL",
+        "regulationSection": "Protocolo de Atención a Clientes",
+        "requiredFrequency": "on_demand",
+        "auditable": true,
+        "evidenceRequired": true,
+        "criticalForCompliance": false
+    },
+    "pasos": [
+        {
+            "id": "hora_incidente",
+            "type": "TimeField",
+            "title": "Hora del Incidente",
+            "description": "Hora aproximada en que sucedió el evento.",
+            "required": true
+        },
+        {
+            "id": "tipo_incidente",
+            "type": "multiple_choice",
+            "title": "Tipo de Incidente",
+            "required": true,
+            "options": [
+                "Queja de Alimentos",
+                "Queja de Servicio",
+                "Accidente/Caída",
+                "Objeto Olvidado",
+                "Disputa de Cuenta",
+                "Otro"
+            ]
+        },
+        {
+            "id": "descripcion",
+            "type": "text",
+            "title": "Descripción Detallada",
+            "description": "Describa los hechos objetivamente (qué, quién, cómo).",
+            "placeholder": "El cliente indicó que...",
+            "required": true,
+            "validation": {
+                "message": "La descripción es fundamental para el seguimiento."
+            }
+        },
+        {
+            "id": "cliente_info",
+            "type": "text",
+            "title": "Contacto del Cliente",
+            "description": "Nombre y Teléfono/Email (Solo si el cliente acepta).",
+            "required": false
+        },
+        {
+            "id": "accion_tomada",
+            "type": "text",
+            "title": "Acción Inmediata Tomada",
+            "description": "¿Qué solución se ofreció en el momento? (Descuento, cortesía, ayuda médica).",
+            "required": true
+        },
+        {
+            "id": "requiere_seguimiento",
+            "type": "yes_no",
+            "title": "¿Requiere seguimiento posterior?",
+            "description": "Indique SÍ si el problema no se resolvió totalmente en el sitio.",
+            "required": true
+        },
+        {
+            "id": "evidencia",
+            "type": "photo",
+            "title": "Evidencia Fotográfica",
+            "description": "Foto del platillo, ticket, o lugar del incidente (si aplica).",
+            "required": false
+        },
+        {
+            "id": "firma_gerente",
+            "type": "SignatureField",
+            "title": "Firma del Gerente en Turno",
+            "required": true
+        }
+    ],
+    "logicRules": [
+        {
+            "id": "rule_accidente",
+            "condition": "steps.tipo_incidente.value == 'Accidente/Caída'",
+            "severity": "CRITICAL",
+            "message": "Accidente reportado en sucursal.",
+            "escalationChain": [
+                {
+                    "level": 1,
+                    "triggerAfterMinutes": 0,
+                    "notifyRoles": [
+                        "GERENTE",
+                        "OWNER",
+                        "LEGAL"
+                    ],
+                    "channel": "whatsapp",
+                    "message": "🚑 ALERTA: Accidente de cliente reportado. Revisar detalles inmediatamente."
+                }
+            ]
+        },
+        {
+            "id": "rule_seguimiento",
+            "condition": "steps.requiere_seguimiento.value == 'yes'",
+            "severity": "HIGH",
+            "message": "Incidente requiere seguimiento post-servicio.",
+            "actions": [
+                {
+                    "type": "CREATE_TICKET",
+                    "priority": "HIGH",
+                    "assignTo": "GERENTE_GENERAL",
+                    "description": "Seguimiento a incidente con cliente"
+                }
+            ]
+        }
+    ],
+    "completionActions": [
+        {
+            "type": "SEND_NOTIFICATION",
+            "target": [
+                "GERENTE"
+            ],
+            "channel": "email",
+            "message": "⚠️ Nuevo reporte de incidente generado"
+        }
+    ]
+}

@@ -1,0 +1,106 @@
+'use client';
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Pin, PinOff, Trash2, Edit, Megaphone, Bell, Mail } from 'lucide-react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+
+interface AnnouncementCardProps {
+  announcement: {
+    id: string;
+    title: string;
+    content: string;
+    communicationType: string;
+    targetType: string;
+    status: string;
+    isPinned: boolean;
+    sentAt: string | null;
+    createdAt: string;
+    authorName: string | null;
+    readCount: number;
+    totalRecipients: number;
+  };
+  onPin?: (id: string, pinned: boolean) => void;
+  onDelete?: (id: string) => void;
+  onEdit?: (id: string) => void;
+}
+
+export function AnnouncementCard({ announcement, onPin, onDelete, onEdit }: AnnouncementCardProps) {
+  const typeConfig: Record<string, { icon: any; label: string; color: string }> = {
+    ANNOUNCEMENT: { icon: Megaphone, label: 'Anuncio', color: 'bg-blue-100 text-blue-800' },
+    NOTIFICATION: { icon: Bell, label: 'Notificación', color: 'bg-amber-100 text-amber-800' },
+    MESSAGE: { icon: Mail, label: 'Mensaje', color: 'bg-green-100 text-green-800' },
+  };
+
+  const targetLabels: Record<string, string> = {
+    COMPANY: 'Toda la Empresa',
+    BRANCH: 'Sucursal',
+    DEPARTMENT: 'Departamento',
+    INDIVIDUAL: 'Individual',
+  };
+
+  const config = typeConfig[announcement.communicationType] || typeConfig.ANNOUNCEMENT;
+  const Icon = config.icon;
+
+  return (
+    <Card className={`transition-all hover:shadow-md ${announcement.isPinned ? 'border-primary border-2' : ''}`}>
+      <CardHeader className="pb-2">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-2">
+            {announcement.isPinned && <Pin className="h-4 w-4 text-primary" />}
+            <CardTitle className="text-lg">{announcement.title}</CardTitle>
+          </div>
+          <div className="flex items-center gap-1">
+            <Badge className={config.color} variant="secondary">
+              <Icon className="h-3 w-3 mr-1" />
+              {config.label}
+            </Badge>
+            <Badge variant="outline">{targetLabels[announcement.targetType]}</Badge>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground whitespace-pre-wrap mb-4 line-clamp-3">
+          {announcement.content}
+        </p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+            <span>Por: {announcement.authorName || 'Sistema'}</span>
+            <span>
+              {format(new Date(announcement.sentAt || announcement.createdAt), 'dd MMM yyyy HH:mm', { locale: es })}
+            </span>
+            {announcement.totalRecipients > 0 && (
+              <span>
+                Leído: {announcement.readCount}/{announcement.totalRecipients}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1">
+            {onPin && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onPin(announcement.id, !announcement.isPinned)}
+                title={announcement.isPinned ? 'Desfijar' : 'Fijar'}
+              >
+                {announcement.isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+              </Button>
+            )}
+            {onEdit && (
+              <Button variant="ghost" size="sm" onClick={() => onEdit(announcement.id)}>
+                <Edit className="h-4 w-4" />
+              </Button>
+            )}
+            {onDelete && (
+              <Button variant="ghost" size="sm" onClick={() => onDelete(announcement.id)}>
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

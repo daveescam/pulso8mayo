@@ -1,0 +1,101 @@
+{
+    "id": "daily-attendance-v1",
+    "nombre": "Registro Diario y Check de Salud",
+    "descripcion": "Registro de entrada diario con validación de uniforme y estado de salud básico.",
+    "tipo": "LABOR",
+    "categoria": "COMPLIANCE",
+    "version": 1,
+    "activo": true,
+    "requiereIA": true,
+    "duracionEstimada": "2 min",
+    "cumplimientoNormativo": [
+        "NOM-030-STPS-2009"
+    ],
+    "tags": [
+        "asistencia",
+        "salud",
+        "uniforme"
+    ],
+    "aiConfig": {
+        "provider": "moondream",
+        "fallbackProvider": "openai",
+        "maxRetries": 2
+    },
+    "complianceConfig": {
+        "complianceType": "LABOR_LAW",
+        "regulationSection": "NOM-030-STPS-2009 (4.1)",
+        "requiredFrequency": "daily",
+        "auditable": true,
+        "evidenceRequired": true,
+        "criticalForCompliance": true
+    },
+    "pasos": [
+        {
+            "id": "step_photo_uniform",
+            "type": "PhotoField",
+            "title": "Foto de Uniforme",
+            "description": "Sube una foto tuya con el uniforme completo y limpio.",
+            "required": true,
+            "aiVerification": {
+                "enabled": true,
+                "type": "UNIFORM_CHECK",
+                "prompt": "Check if the person is wearing the correct uniform, is well-groomed, and has no visible jewelry.",
+                "threshold": 0.8,
+                "expectedConditions": [
+                    "uniform_present",
+                    "clean_appearance"
+                ]
+            }
+        },
+        {
+            "id": "step_health_symptoms",
+            "type": "CheckboxField",
+            "title": "Estado de Salud",
+            "description": "Selecciona si presentas alguno de estos síntomas hoy:",
+            "required": true,
+            "options": [
+                "Fiebre",
+                "Tos",
+                "Escurrimiento Nasal",
+                "Dolor de cuerpo",
+                "Ninguno"
+            ],
+            "logicRules": [
+                {
+                    "id": "health_block",
+                    "condition": "value includes 'Fiebre' || value includes 'Tos'",
+                    "severity": "CRITICAL",
+                    "message": "No puedes ingresar con síntomas de enfermedad infecciosa."
+                }
+            ]
+        },
+        {
+            "id": "step_clock_location",
+            "type": "LocationField",
+            "title": "Ubicación de Entrada",
+            "description": "Confirma tu ubicación para registrar la entrada.",
+            "required": true,
+            "validation": {
+                "radiusMeters": 100,
+                "message": "Debes estar en la sucursal para registrar asistencia."
+            }
+        },
+        {
+            "id": "step_signature",
+            "type": "SignatureField",
+            "title": "Firma de Conformidad",
+            "description": "Firmo que estoy apto para trabajar hoy.",
+            "required": true
+        }
+    ],
+    "completionActions": [
+        {
+            "type": "SEND_NOTIFICATION",
+            "target": [
+                "GERENTE"
+            ],
+            "channel": "whatsapp",
+            "message": "✅ Asistencia registrada: {employee_name} - {completion_time}"
+        }
+    ]
+}

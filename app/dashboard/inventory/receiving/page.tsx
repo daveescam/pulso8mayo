@@ -1,0 +1,235 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { ReceivingWorkflow } from "@/components/inventory/receiving-workflow";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { PackagePlus, History, Loader2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+
+interface Supplier {
+    id: string;
+    name: string;
+}
+
+interface InventoryItem {
+    id: string;
+    name: string;
+    sku?: string;
+    unit?: string;
+    barcode?: string;
+    category?: string;
+}
+
+interface ReceivingRecord {
+    id: string;
+    receivedAt: Date;
+    supplierName?: string;
+    totalItems: number;
+    receivedBy?: string;
+    notes?: string;
+    items: Array<{
+        itemName: string;
+        quantity: number;
+        batchNumber: string;
+        expirationDate?: Date;
+    }>;
+}
+
+export default function ReceivingPage() {
+    const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+    const [items, setItems] = useState<InventoryItem[]>([]);
+    const [receivings, setReceivings] = useState<ReceivingRecord[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState("new");
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            // Fetch suppliers
+            const suppliersRes = await fetch("/api/inventory/suppliers");
+            if (suppliersRes.ok) {
+                const data = await suppliersRes.json();
+                setSuppliers(data.suppliers || []);
+            }
+
+            // Fetch inventory items
+            const itemsRes = await fetch("/api/inventory/products");
+            if (itemsRes.ok) {
+                const data = await itemsRes.json();
+                setItems(data);
+            }
+
+            // Fetch receiving history
+            const receivingRes = await fetch("/api/inventory/receiving?limit=20&days=30");
+            if (receivingRes.ok) {
+                const data = await receivingRes.json();
+                setReceivings(data.receivings || []);
+            }
+        } catch (error) {
+            console.error("Error fetching data:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleReceivingComplete = async (receivingData: any) => {
+        try {
+            const response = await fetch("/api/inventory/receiving", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(receivingData),
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                
+                // Refresh history
+                await fetchData();
+                
+                // Switch to history tab
+                setActiveTab("history");
+                
+                return { success: true, data: result.receiving };
+            } else {
+                const error = await response.json();
+                return { success: false, error: error.error };
+            }
+        } catch (error: any) {
+            return { success: false, error: error.message };
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        );
+    }
+
+    return (
+        <div className="container mx-auto py-8 space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <PackagePlus className="h-8 w-8 text-primary" />
+                    <div>
+                        <h1 className="text-3xl font-bold">Recepción de Inventario</h1>
+                        <p className="text-muted-foreground">
+                            Registra la entrada de mercancía de proveedores
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Tabs */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+                <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:grid-cols-2">
+                    <TabsTrigger value="new" className="gap-2">
+                        <PackagePlus className="h-4 w-4" />
+                        Nueva Recepción
+                    </TabsTrigger>
+                    <TabsTrigger value="history" className="gap-2">
+                        <History className="h-4 w-4" />
+                        Historial
+                    </TabsTrigger>
+                </TabsList>
+
+                {/* New Receiving Tab */}
+                <TabsContent value="new" className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Registrar Entrada de Inventario</CardTitle>
+                            <CardDescription>
+                                Escanea o selecciona los productos que estás recibiendo
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ReceivingWorkflow
+                                suppliers={suppliers}
+                                items={items}
+                                onComplete={handleReceivingComplete}
+                            />
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* History Tab */}
+                <TabsContent value="history" className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Historial de Recepciones</CardTitle>
+                            <CardDescription>
+                                Últimas recepciones de inventario
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {receivings.length === 0 ? (
+                                <div className="text-center py-12 text-muted-foreground">
+                                    <PackagePlus className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                    <p>No hay recepciones registradas</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {receivings.map((receiving) => (
+                                        <div
+                                            key={receiving.id}
+                                            className="border rounded-lg p-4 space-y-3"
+                                        >
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <h4 className="font-semibold">
+                                                        {receiving.supplierName || "Proveedor no especificado"}
+                                                    </h4>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {format(receiving.receivedAt, "dd 'de' MMMM 'de' yyyy, HH:mm", { locale: es })}
+                                                    </p>
+                                                </div>
+                                                <Badge variant="outline">
+                                                    {receiving.totalItems} {receiving.totalItems === 1 ? 'item' : 'items'}
+                                                </Badge>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                {receiving.items.slice(0, 3).map((item, index) => (
+                                                    <div key={index} className="flex justify-between text-sm">
+                                                        <span className="text-muted-foreground">
+                                                            {item.itemName}
+                                                        </span>
+                                                        <span className="font-medium">
+                                                            {item.quantity} {item.unit}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                                {receiving.items.length > 3 && (
+                                                    <p className="text-xs text-muted-foreground italic">
+                                                        + {receiving.items.length - 3} items más
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            {receiving.notes && (
+                                                <div className="bg-muted p-2 rounded text-xs">
+                                                    <span className="font-medium">Notas: </span>
+                                                    {receiving.notes}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
+        </div>
+    );
+}

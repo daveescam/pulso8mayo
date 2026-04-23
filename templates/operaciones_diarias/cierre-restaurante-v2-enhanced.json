@@ -1,0 +1,429 @@
+{
+    "id": "tpl-cierre-restaurante-v2",
+    "nombre": "🌙 Cierre de Restaurante - Completo",
+    "descripcion": "Protocolo completo de cierre con verificación IA, conteo de caja, y seguridad",
+    "tipo": "OPERACION_DIARIA",
+    "categoria": "OPERACIONES_DIARIAS",
+    "version": 2,
+    "activo": true,
+    "requiereIA": true,
+    "duracionEstimada": "20-30 min",
+    "cumplimientoNormativo": [
+        "NOM-251-SSA1-2009",
+        "Seguridad Patrimonial"
+    ],
+    "tags": [
+        "cierre",
+        "seguridad",
+        "caja",
+        "limpieza",
+        "ia-verificacion"
+    ],
+    "aiConfig": {
+        "provider": "moondream",
+        "fallbackProvider": "openai",
+        "maxRetries": 2
+    },
+    "complianceConfig": {
+        "complianceType": "NOM-251",
+        "regulationSection": "5.6 (Limpieza) y Seguridad",
+        "requiredFrequency": "daily",
+        "auditable": true,
+        "evidenceRequired": true,
+        "criticalForCompliance": true
+    },
+    "pasos": [
+        {
+            "id": "cierre-title",
+            "type": "Heading",
+            "title": "🌙 Cierre de Restaurante",
+            "required": false
+        },
+        {
+            "id": "cierre-hora-inicio",
+            "type": "TimerField",
+            "title": "⏰ Hora de Inicio de Cierre",
+            "required": true,
+            "validation": {
+                "minTime": "20:00",
+                "maxTime": "02:00",
+                "message": "El cierre debe iniciarse después de las 8:00 PM"
+            }
+        },
+        {
+            "id": "cierre-ultimo-cliente",
+            "type": "YesNo",
+            "title": "¿Ya salió el último cliente?",
+            "required": true,
+            "branches": [
+                {
+                    "condition": "value == 'no'",
+                    "targetStepId": "cierre-esperar-clientes"
+                }
+            ]
+        },
+        {
+            "id": "cierre-esperar-clientes",
+            "type": "TextField",
+            "title": "⏳ Esperando a que salgan los clientes",
+            "description": "No puedes continuar hasta que todos los clientes hayan salido",
+            "required": false,
+            "readOnly": true
+        },
+        {
+            "id": "cierre-conteo-caja",
+            "type": "NumberField",
+            "title": "💰 Total en Caja ($)",
+            "required": true,
+            "validation": {
+                "min": 0,
+                "max": 100000
+            },
+            "logicRules": [
+                {
+                    "id": "rule_caja_alta",
+                    "condition": "value > 20000",
+                    "severity": "WARNING",
+                    "message": "⚠️ Cantidad alta en caja (${value}). Considera hacer depósito.",
+                    "escalationChain": [
+                        {
+                            "level": 1,
+                            "triggerAfterMinutes": 0,
+                            "notifyRoles": [
+                                "GERENTE"
+                            ],
+                            "channel": "whatsapp",
+                            "message": "⚠️ Cierre con ${value} en caja. Revisar seguridad."
+                        }
+                    ]
+                },
+                {
+                    "id": "rule_caja_sospechosa",
+                    "condition": "value > 50000",
+                    "severity": "CRITICAL",
+                    "message": "🚨 Cantidad inusualmente alta. Verificar.",
+                    "escalationChain": [
+                        {
+                            "level": 1,
+                            "triggerAfterMinutes": 0,
+                            "notifyRoles": [
+                                "GERENTE",
+                                "OWNER"
+                            ],
+                            "channel": "whatsapp",
+                            "message": "🚨 ALERTA: Cierre reporta ${value} en caja"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "cierre-foto-corte-caja",
+            "type": "PhotoField",
+            "title": "📷 Foto del Corte de Caja",
+            "description": "Foto clara del reporte de ventas y efectivo",
+            "required": true,
+            "aiVerification": {
+                "enabled": true,
+                "prompt": "Analiza esta imagen de un corte de caja. Verifica que: 1) Se vea el total claramente, 2) Haya billetes y monedas organizados, 3) Se vea un reporte o ticket. Extrae el monto total si es posible.",
+                "threshold": 0.7
+            }
+        },
+        {
+            "id": "cierre-diferencia-caja",
+            "type": "NumberField",
+            "title": "📊 Diferencia vs Sistema ($)",
+            "description": "Positivo si sobra, negativo si falta",
+            "required": true,
+            "validation": {
+                "min": -1000,
+                "max": 1000
+            },
+            "logicRules": [
+                {
+                    "id": "rule_diferencia_alta",
+                    "condition": "Math.abs(value) > 100",
+                    "severity": "HIGH",
+                    "message": "⚠️ Diferencia significativa: ${value}",
+                    "escalationChain": [
+                        {
+                            "level": 1,
+                            "triggerAfterMinutes": 0,
+                            "notifyRoles": [
+                                "GERENTE"
+                            ],
+                            "channel": "whatsapp",
+                            "message": "⚠️ Diferencia en caja: ${value}. Revisar con {employee_name}"
+                        }
+                    ]
+                },
+                {
+                    "id": "rule_diferencia_critica",
+                    "condition": "Math.abs(value) > 500",
+                    "severity": "CRITICAL",
+                    "message": "🚨 Diferencia CRÍTICA: ${value}",
+                    "escalationChain": [
+                        {
+                            "level": 1,
+                            "triggerAfterMinutes": 0,
+                            "notifyRoles": [
+                                "GERENTE",
+                                "OWNER"
+                            ],
+                            "channel": "call_priority",
+                            "message": "🚨 URGENTE: Diferencia de ${value} en cierre"
+                        }
+                    ],
+                    "actions": [
+                        {
+                            "type": "CREATE_AUDIT_TICKET",
+                            "priority": "HIGH",
+                            "assignTo": "GERENTE"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "cierre-equipos-apagados",
+            "type": "Checkbox",
+            "title": "🔌 Equipos Apagados",
+            "required": true,
+            "options": [
+                {
+                    "value": "estufas",
+                    "label": "Estufas y hornos"
+                },
+                {
+                    "value": "freidoras",
+                    "label": "Freidoras"
+                },
+                {
+                    "value": "cafeteras",
+                    "label": "Cafeteras"
+                },
+                {
+                    "value": "computadoras",
+                    "label": "Computadoras/POS"
+                },
+                {
+                    "value": "luces_cocina",
+                    "label": "Luces de cocina"
+                }
+            ],
+            "logicRules": [
+                {
+                    "id": "rule_equipos_criticos",
+                    "condition": "!value.includes('estufas') || !value.includes('freidoras')",
+                    "severity": "CRITICAL",
+                    "message": "🚨 PELIGRO: Equipos críticos no apagados",
+                    "actions": [
+                        {
+                            "type": "BLOCK_WORKFLOW_COMPLETION",
+                            "message": "Debes apagar TODOS los equipos antes de continuar"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "cierre-foto-cocina-limpia",
+            "type": "PhotoField",
+            "title": "📷 Foto de Cocina Limpia",
+            "required": true,
+            "aiVerification": {
+                "enabled": true,
+                "prompt": "Analiza esta cocina. Verifica: 1) Superficies limpias, 2) Sin platos sucios, 3) Pisos limpios, 4) Equipos limpios. Responde 'APROBADO' si está lista para cerrar, o describe problemas.",
+                "threshold": 0.75,
+                "expectedConditions": [
+                    "limpio",
+                    "ordenado",
+                    "sin platos"
+                ]
+            },
+            "logicRules": [
+                {
+                    "id": "rule_cocina_sucia",
+                    "condition": "ai_result.passed == false",
+                    "severity": "HIGH",
+                    "message": "⚠️ Cocina no está lista: {ai_result.analysis}",
+                    "remediationProtocol": {
+                        "enabled": true,
+                        "type": "GUIDED_SELF_FIX",
+                        "maxAttempts": 2,
+                        "timeoutMinutes": 20,
+                        "steps": [
+                            {
+                                "instruction": "Limpiar áreas detectadas por IA",
+                                "waitSeconds": 900
+                            },
+                            {
+                                "instruction": "Tomar nueva foto de cocina",
+                                "verification": {
+                                    "type": "ai_photo_verification",
+                                    "targetCondition": "ai_result.passed == true"
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "id": "cierre-basura-sacada",
+            "type": "YesNo",
+            "title": "🗑️ ¿Se sacó toda la basura?",
+            "required": true,
+            "branches": [
+                {
+                    "condition": "value == 'no'",
+                    "targetStepId": "cierre-recordatorio-basura"
+                }
+            ]
+        },
+        {
+            "id": "cierre-recordatorio-basura",
+            "type": "TextField",
+            "title": "⚠️ Saca toda la basura antes de continuar",
+            "required": false,
+            "readOnly": true
+        },
+        {
+            "id": "cierre-refrigeradores-temp",
+            "type": "TemperatureField",
+            "title": "🌡️ Temperatura de Refrigeradores",
+            "required": true,
+            "validation": {
+                "min": -5,
+                "max": 10,
+                "unit": "°C"
+            },
+            "logicRules": [
+                {
+                    "id": "rule_temp_alta_cierre",
+                    "condition": "value > 5",
+                    "severity": "CRITICAL",
+                    "message": "🚨 Temperatura alta al cierre: {value}°C",
+                    "escalationChain": [
+                        {
+                            "level": 1,
+                            "triggerAfterMinutes": 0,
+                            "notifyRoles": [
+                                "GERENTE"
+                            ],
+                            "channel": "whatsapp",
+                            "message": "🚨 Refrigerador a {value}°C al cierre. Revisar urgente."
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "cierre-puertas-ventanas",
+            "type": "Checkbox",
+            "title": "🔒 Seguridad - Verificar",
+            "required": true,
+            "options": [
+                {
+                    "value": "puertas_cerradas",
+                    "label": "Todas las puertas cerradas con llave"
+                },
+                {
+                    "value": "ventanas_cerradas",
+                    "label": "Ventanas cerradas"
+                },
+                {
+                    "value": "alarma_activada",
+                    "label": "Alarma activada"
+                },
+                {
+                    "value": "luces_apagadas",
+                    "label": "Luces apagadas (excepto seguridad)"
+                }
+            ],
+            "logicRules": [
+                {
+                    "id": "rule_seguridad_incompleta",
+                    "condition": "value.length < 4",
+                    "severity": "CRITICAL",
+                    "message": "🚨 Protocolo de seguridad incompleto",
+                    "actions": [
+                        {
+                            "type": "BLOCK_WORKFLOW_COMPLETION",
+                            "message": "Debes completar TODOS los pasos de seguridad"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "cierre-foto-exterior-cerrado",
+            "type": "PhotoField",
+            "title": "📷 Foto del Local Cerrado",
+            "description": "Foto desde afuera mostrando el local cerrado",
+            "required": true,
+            "aiVerification": {
+                "enabled": true,
+                "prompt": "Analiza esta imagen del exterior de un local cerrado. Verifica: 1) Luces apagadas (excepto exteriores), 2) Puertas cerradas, 3) No hay personas dentro. Responde 'APROBADO' si está correctamente cerrado.",
+                "threshold": 0.7
+            }
+        },
+        {
+            "id": "cierre-gps-confirmacion",
+            "type": "GPSLocationField",
+            "title": "📍 Confirmar Salida de Sucursal",
+            "required": true,
+            "validation": {
+                "radiusMeters": 50,
+                "message": "Debes estar cerca de la sucursal para confirmar cierre"
+            }
+        },
+        {
+            "id": "cierre-incidentes",
+            "type": "TextField",
+            "title": "📝 ¿Hubo algún incidente durante el día?",
+            "required": false,
+            "placeholder": "Describe cualquier incidente, queja de cliente, o situación especial"
+        },
+        {
+            "id": "cierre-firma",
+            "type": "SignatureField",
+            "title": "✍️ Firma de Cierre",
+            "description": "Confirmo que el cierre fue realizado correctamente",
+            "required": true
+        }
+    ],
+    "completionActions": [
+        {
+            "type": "SEND_NOTIFICATION",
+            "target": [
+                "GERENTE",
+                "OWNER"
+            ],
+            "channel": "whatsapp",
+            "message": "✅ Cierre completado por {employee_name}. Total caja: ${cierre-conteo-caja}"
+        },
+        {
+            "type": "UPDATE_BRANCH_STATUS",
+            "status": "CLOSED",
+            "timestamp": "completion_time"
+        },
+        {
+            "type": "GENERATE_PDF_REPORT",
+            "template": "cierre_report",
+            "includePhotos": true,
+            "sendTo": [
+                "GERENTE",
+                "OWNER"
+            ]
+        },
+        {
+            "type": "SYNC_TO_ACCOUNTING",
+            "data": {
+                "total_cash": "cierre-conteo-caja",
+                "difference": "cierre-diferencia-caja",
+                "date": "completion_date"
+            }
+        }
+    ]
+}

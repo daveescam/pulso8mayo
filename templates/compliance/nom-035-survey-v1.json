@@ -1,0 +1,88 @@
+{
+    "id": "nom-035-survey-v1",
+    "nombre": "Cuestionario NOM-035 - Acontecimientos Traumáticos Severos",
+    "descripcion": "Cuestionario para identificar a los trabajadores que fueron sujetos a acontecimientos traumáticos severos durante o con motivo del trabajo.",
+    "tipo": "COMPLIANCE",
+    "categoria": "COMPLIANCE",
+    "version": 1,
+    "activo": true,
+    "requiereIA": false,
+    "duracionEstimada": "5 min",
+    "cumplimientoNormativo": [
+        "NOM-035-STPS-2018"
+    ],
+    "tags": [
+        "nom-035",
+        "psicosocial",
+        "seguridad"
+    ],
+    "complianceConfig": {
+        "complianceType": "NOM-035",
+        "regulationSection": "7.1 (Identificación de acontecimientos traumáticos)",
+        "requiredFrequency": "annual",
+        "auditable": true,
+        "evidenceRequired": false,
+        "criticalForCompliance": true
+    },
+    "pasos": [
+        {
+            "id": "step_intro",
+            "type": "ParagraphField",
+            "title": "Instrucciones",
+            "description": "Responda con sinceridad. Este cuestionario busca identificar si ha presenciado o sufrido acontecimientos traumáticos severos con motivo del trabajo.",
+            "required": true,
+            "text": "Presione Siguiente para comenzar."
+        },
+        {
+            "id": "step_1_witness",
+            "type": "YesNo",
+            "title": "I. Acontecimientos traumáticos",
+            "description": "¿Ha presenciado o sufrido algún acto de violencia, secuestro, amenaza, o accidente grave en el trabajo?",
+            "required": true,
+            "branches": [
+                {
+                    "condition": "value == false",
+                    "targetStepId": "step_3_dreams"
+                }
+            ]
+        },
+        {
+            "id": "step_2_memories",
+            "type": "YesNo",
+            "title": "II. Recuerdos persistentes",
+            "description": "¿Tiene recuerdos recurrentes sobre el acontecimiento que le provocan malestares?",
+            "required": true
+        },
+        {
+            "id": "step_3_dreams",
+            "type": "YesNo",
+            "title": "Sueños recurrentes",
+            "description": "¿Tiene sueños de carácter repetitivo sobre el acontecimiento, que le producen malestar?",
+            "required": true
+        },
+        {
+            "id": "step_4_avoidance",
+            "type": "YesNo",
+            "title": "III. Esfuerzo por evitar circunstancias",
+            "description": "¿Se esfuerza por evitar pensamientos o sentimientos asociados al acontecimiento?",
+            "required": true
+        },
+        {
+            "id": "step_5_interest",
+            "type": "YesNo",
+            "title": "IV. Afectación",
+            "description": "¿Ha disminuido su interés por actividades que antes le gustaban o se siente alejado de los demás?",
+            "required": true
+        }
+    ],
+    "completionActions": [
+        {
+            "type": "GENERATE_PDF_REPORT",
+            "template": "nom_035_individual_report",
+            "includePhotos": false,
+            "sendTo": [
+                "RRHH"
+            ]
+        }
+    ]
+}

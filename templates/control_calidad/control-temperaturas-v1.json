@@ -1,0 +1,485 @@
+{
+  "id": "tpl-control-temperaturas-v1",
+  "nombre": "🌡️ Control de Temperaturas",
+  "descripcion": "Control de temperaturas críticas en refrigeradores, congeladores y alimentos cocidos con verificación por IA",
+  "tipo": "CONTROL_CALIDAD",
+  "categoria": "CONTROL_CALIDAD",
+  "version": 2,
+  "activo": true,
+  "requiereIA": true,
+  "duracionEstimada": "10-15 min",
+  "cumplimientoNormativo": [
+    "NOM-251-SSA1-2009",
+    "HACCP"
+  ],
+  "tags": [
+    "temperatura",
+    "seguridad",
+    "alimentos",
+    "ia-verificacion",
+    "haccp"
+  ],
+  "aiConfig": {
+    "provider": "moondream",
+    "fallbackProvider": "openai",
+    "maxRetries": 2
+  },
+  "complianceConfig": {
+    "complianceType": "NOM-251",
+    "regulationSection": "5.5.3 (Control de temperatura)",
+    "requiredFrequency": "daily",
+    "auditable": true,
+    "evidenceRequired": true,
+    "criticalForCompliance": true
+  },
+  "pasos": [
+    {
+      "id": "ctrl-temp-title",
+      "fieldType": "Title",
+      "label": "🌡️ Control de Temperaturas",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "ctrl-temp-intro",
+      "fieldType": "Paragraph",
+      "label": "Verifique las temperaturas críticas de almacenamiento y preparación de alimentos. Registre las lecturas y capture fotos para verificación por IA.",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "ctrl-temp-turno",
+      "fieldType": "Select",
+      "label": "Turno de Control de Temperatura",
+      "required": true,
+      "options": [
+        {
+          "value": "matutino_1",
+          "label": "Matutino - 06:00"
+        },
+        {
+          "value": "matutino_2",
+          "label": "Matutino - 10:00"
+        },
+        {
+          "value": "vespertino_1",
+          "label": "Vespertino - 14:00"
+        },
+        {
+          "value": "vespertino_2",
+          "label": "Vespertino - 18:00"
+        },
+        {
+          "value": "nocturno",
+          "label": "Nocturno - 22:00"
+        }
+      ]
+    },
+    {
+      "id": "ctrl-temp-separator-1",
+      "fieldType": "Separator",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "ctrl-temp-section-refrigeradores",
+      "fieldType": "SubTitle",
+      "label": "1. ❄️ Refrigeradores (0-4°C)",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "ctrl-temp-foto-ref-1",
+      "fieldType": "Photo",
+      "label": "📷 Foto del Termómetro - Refrigerador 1",
+      "required": true,
+      "aiVerification": {
+        "enabled": true,
+        "type": "OCR",
+        "provider": "moondream",
+        "prompt": "Look at this digital thermometer display. Read the temperature value shown. The display shows a number followed by a degree symbol (°). Respond with ONLY the numeric value you see, including one decimal place (example: 3.5 or 5.0 or -18.5). If the display is unclear or you cannot read it, respond 'ILEGIBLE'. Important: Read carefully - a single digit like '5' is just 5.0, not 50.0.",
+        "confidenceThreshold": 0.85,
+        "autoFillField": "ctrl-temp-lectura-ref-1"
+      }
+    },
+    {
+      "id": "ctrl-temp-lectura-ref-1",
+      "fieldType": "Number",
+      "label": "Temperatura Refrigerador 1 (°C)",
+      "required": true,
+      "extraAttributes": {
+        "min": -10,
+        "max": 20,
+        "step": 0.1,
+        "suffix": "°C"
+      },
+      "logicRules": [
+        {
+          "id": "rule_temp_ok",
+          "condition": "value >= 0 && value <= 4",
+          "severity": "PASS",
+          "message": "✅ Temperatura en rango óptimo"
+        },
+        {
+          "id": "rule_temp_warning",
+          "condition": "value > 4 && value <= 7",
+          "severity": "WARNING",
+          "message": "⚠️ Temperatura elevada warning ({value}°C). Verificar cierre de puertas.",
+          "escalationChain": [
+            {
+              "level": 1,
+              "triggerAfterMinutes": 0,
+              "notifyRoles": [
+                "GERENTE"
+              ],
+              "channel": "whatsapp",
+              "message": "⚠️ Alerta Preventiva: Refrigerador 1 a {value}°C."
+            }
+          ]
+        },
+        {
+          "id": "rule_temp_critical",
+          "condition": "value > 7",
+          "severity": "CRITICAL",
+          "message": "🚨 Temperatura CRÍTICA ({value}°C). Riesgo de contaminación.",
+          "remediationProtocol": {
+            "enabled": true,
+            "type": "GUIDED_SELF_FIX",
+            "maxAttempts": 2,
+            "timeoutMinutes": 20,
+            "steps": [
+              {
+                "instruction": "Verifica que la puerta esté bien cerrada",
+                "waitSeconds": 0
+              },
+              {
+                "instruction": "Desconecta el equipo del enchufe",
+                "waitSeconds": 180
+              },
+              {
+                "instruction": "Vuelve a conectar el equipo",
+                "waitSeconds": 600
+              },
+              {
+                "instruction": "Toma nueva foto del termómetro",
+                "verification": {
+                  "type": "thermometer_ocr",
+                  "targetCondition": "value <= 4"
+                }
+              }
+            ]
+          },
+          "escalationChain": [
+            {
+              "level": 1,
+              "triggerAfterMinutes": 0,
+              "notifyRoles": [
+                "GERENTE"
+              ],
+              "channel": "whatsapp",
+              "message": "🚨 ALERTA CRÍTICA: Refrigerador 1 a {value}°C. {employee_name} iniciando protocolo."
+            },
+            {
+              "level": 2,
+              "triggerCondition": "remediation_failed",
+              "notifyRoles": [
+                "TECHNICAL_SERVICE",
+                "GERENTE"
+              ],
+              "channel": "whatsapp",
+              "message": "🔧 SOPORTE REQUERIDO: Auto-remediación falló. Temp actual: {value}°C.",
+              "includeData": {
+                "branch_address": true,
+                "equipment_id": "REF-01"
+              }
+            },
+            {
+              "level": 3,
+              "triggerAfterMinutes": 120,
+              "triggerCondition": "no_technician_response",
+              "notifyRoles": [
+                "OWNER"
+              ],
+              "channel": "call_priority",
+              "message": "🆘 ESCALACIÓN MÁXIMA: Incidente crítico sin atender por 2 horas."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ctrl-temp-foto-ref-2",
+      "fieldType": "Photo",
+      "label": "📷 Foto del Termómetro - Refrigerador 2",
+      "required": true,
+      "aiVerification": {
+        "enabled": true,
+        "type": "OCR",
+        "provider": "moondream",
+        "prompt": "Lee el valor de temperatura mostrado en este termómetro. Responde SOLO con el número en formato decimal (ejemplo: 3.5). Si no puedes leer claramente, responde 'ILEGIBLE'.",
+        "confidenceThreshold": 0.85,
+        "autoFillField": "ctrl-temp-lectura-ref-2"
+      }
+    },
+    {
+      "id": "ctrl-temp-lectura-ref-2",
+      "fieldType": "Number",
+      "label": "Temperatura Refrigerador 2 (°C)",
+      "required": true,
+      "extraAttributes": {
+        "min": -10,
+        "max": 20,
+        "step": 0.1,
+        "suffix": "°C"
+      },
+      "logicRules": [
+        {
+          "id": "rule_temp_ok",
+          "condition": "value >= 0 && value <= 4",
+          "severity": "PASS",
+          "message": "✅ Temperatura en rango óptimo"
+        },
+        {
+          "id": "rule_temp_warning",
+          "condition": "value > 4 && value <= 7",
+          "severity": "WARNING",
+          "message": "⚠️ Temperatura elevada warning ({value}°C).",
+          "escalationChain": [
+            {
+              "level": 1,
+              "triggerAfterMinutes": 0,
+              "notifyRoles": [
+                "GERENTE"
+              ],
+              "channel": "whatsapp",
+              "message": "⚠️ Alerta Preventiva: Refrigerador 2 a {value}°C."
+            }
+          ]
+        },
+        {
+          "id": "rule_temp_critical",
+          "condition": "value > 7",
+          "severity": "CRITICAL",
+          "message": "🚨 Temperatura CRÍTICA ({value}°C). Riesgo de contaminación.",
+          "remediationProtocol": {
+            "enabled": true,
+            "type": "GUIDED_SELF_FIX",
+            "maxAttempts": 2,
+            "timeoutMinutes": 20,
+            "steps": [
+              {
+                "instruction": "Check door seal",
+                "waitSeconds": 0
+              },
+              {
+                "instruction": "Power cycle unit (3 min off)",
+                "waitSeconds": 180
+              },
+              {
+                "instruction": "Cool down wait (10 min)",
+                "waitSeconds": 600
+              },
+              {
+                "instruction": "Verify temperature",
+                "verification": {
+                  "type": "thermometer_ocr",
+                  "targetCondition": "value <= 4"
+                }
+              }
+            ]
+          },
+          "escalationChain": [
+            {
+              "level": 1,
+              "notifyRoles": [
+                "GERENTE"
+              ],
+              "channel": "whatsapp",
+              "message": "🚨 ALERTA: Refri 2 a {value}°C."
+            },
+            {
+              "level": 2,
+              "triggerCondition": "remediation_failed",
+              "notifyRoles": [
+                "TECHNICAL_SERVICE"
+              ],
+              "message": "🔧 FALLA: Refri 2 requiere técnico."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ctrl-temp-foto-congelador",
+      "fieldType": "Photo",
+      "label": "📷 Foto del Termómetro - Congelador",
+      "required": true,
+      "aiVerification": {
+        "enabled": true,
+        "type": "OCR",
+        "provider": "moondream",
+        "prompt": "Lee el valor de temperatura mostrado en este termómetro de congelador. Responde SOLO con el número negativo en formato decimal (ejemplo: -20.5).",
+        "confidenceThreshold": 0.85,
+        "autoFillField": "ctrl-temp-lectura-congelador"
+      }
+    },
+    {
+      "id": "ctrl-temp-lectura-congelador",
+      "fieldType": "Number",
+      "label": "Temperatura Congelador (°C)",
+      "required": true,
+      "extraAttributes": {
+        "min": -30,
+        "max": 0,
+        "step": 0.1,
+        "suffix": "°C"
+      },
+      "logicRules": [
+        {
+          "id": "rule_freezer_ok",
+          "condition": "value <= -18",
+          "severity": "PASS",
+          "message": "✅ Congelación correcta"
+        },
+        {
+          "id": "rule_freezer_critical",
+          "condition": "value > -15",
+          "severity": "CRITICAL",
+          "message": "🚨 FALLA CONGELACIÓN ({value}°C). Producto en riesgo.",
+          "remediationProtocol": {
+            "enabled": true,
+            "type": "GUIDED_SELF_FIX",
+            "maxAttempts": 1,
+            "timeoutMinutes": 15,
+            "steps": [
+              {
+                "instruction": "Verificar cierre hermético de puerta",
+                "waitSeconds": 0
+              },
+              {
+                "instruction": "Verificar que no haya obstrucción en ventilas",
+                "waitSeconds": 0
+              },
+              {
+                "instruction": "Esperar 15 min",
+                "waitSeconds": 900
+              },
+              {
+                "instruction": "Verificar temperatura",
+                "verification": {
+                  "type": "thermometer_ocr",
+                  "targetCondition": "value <= -18"
+                }
+              }
+            ]
+          },
+          "escalationChain": [
+            {
+              "level": 1,
+              "notifyRoles": [
+                "GERENTE"
+              ],
+              "channel": "whatsapp",
+              "message": "🚨 ALERTA: Congelador a {value}°C."
+            },
+            {
+              "level": 2,
+              "triggerCondition": "remediation_failed",
+              "notifyRoles": [
+                "TECHNICAL_SERVICE"
+              ],
+              "message": "🔧 FALLA CONGELADOR URGENTE."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ctrl-temp-separator-2",
+      "fieldType": "Separator",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "ctrl-temp-section-alimentos",
+      "fieldType": "SubTitle",
+      "label": "2. 🍲 Alimentos Cocidos (≥60°C)",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "ctrl-temp-foto-comida-caliente",
+      "fieldType": "Photo",
+      "label": "📷 Foto del Termómetro - Alimentos Calientes",
+      "required": true,
+      "aiVerification": {
+        "enabled": true,
+        "type": "OCR",
+        "provider": "moondream",
+        "prompt": "Lee el valor de temperatura del termómetro en esta imagen. Responde SOLO con el número en formato decimal (ejemplo: 65.0).",
+        "confidenceThreshold": 0.85,
+        "autoFillField": "ctrl-temp-lectura-comida"
+      }
+    },
+    {
+      "id": "ctrl-temp-lectura-comida",
+      "fieldType": "Number",
+      "label": "Temperatura de Alimentos Calientes (°C)",
+      "required": true,
+      "extraAttributes": {
+        "min": 0,
+        "max": 100,
+        "step": 0.1,
+        "suffix": "°C"
+      },
+      "logicRules": [
+        {
+          "id": "rule_food_ok",
+          "condition": "value >= 60",
+          "severity": "PASS",
+          "message": "✅ Temperatura segura"
+        },
+        {
+          "id": "rule_food_low",
+          "condition": "value < 60",
+          "severity": "CRITICAL",
+          "message": "🚨 PELIGRO: Alimento en zona de temperatura peligrosa ({value}°C).",
+          "remediationProtocol": {
+            "enabled": true,
+            "type": "GUIDED_SELF_FIX",
+            "maxAttempts": 2,
+            "timeoutMinutes": 10,
+            "steps": [
+              {
+                "instruction": "Recalentar inmediatamente hasta alcanzar 74°C",
+                "waitSeconds": 300
+              },
+              {
+                "instruction": "Mantener caliente arriba de 60°C",
+                "waitSeconds": 0
+              },
+              {
+                "instruction": "Verificar temperatura nuevamente",
+                "verification": {
+                  "type": "thermometer_ocr",
+                  "targetCondition": "value >= 60"
+                }
+              }
+            ]
+          },
+          "escalationChain": [
+            {
+              "level": 1,
+              "notifyRoles": [
+                "GERENTE",
+                "CHEF"
+              ],
+              "channel": "whatsapp",
+              "message": "🚨 ALERTA ALIMENTOS: Temp baja detectada ({value}°C)."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

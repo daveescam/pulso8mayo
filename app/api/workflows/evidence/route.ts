@@ -1,0 +1,106 @@
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { db } from "@/lib/db";
+import { workflowInstanceSteps, workflowInstances, workflowTemplates, branches, users } from "@/lib/db/schema";
+import { eq, and, gte, lte, sql, desc } from "drizzle-orm";
+
+export async function GET(request: NextRequest) {
+    try {
+        const session = await auth.api.getSession({
+            headers: await headers()
+        });
+
+        if (!session?.user?.companyId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const searchParams = request.nextUrl.searchParams;
+        const dateFrom = searchParams.get("dateFrom");
+        const dateTo = searchParams.get("dateTo");
+        const search = searchParams.get("search");
+
+        // Build base conditions
+        const conditions = [
+            eq(workflowTemplates.companyId, session.user.companyId),
+            eq(workflowInstances.workflowTemplateId, sql`cast(${workflowTemplates.id} as text)`),
+            eq(workflowInstanceSteps.workflowInstanceId, workflowInstances.id),
+        ];
+
+        if (dateFrom) {
+            conditions.push(gte(workflowInstanceSteps.createdAt, new Date(dateFrom)));
+        }
+
+        if (dateTo) {
+            conditions.push(lte(workflowInstanceSteps.createdAt, new Date(dateTo)));
+        }
+
+        if (search) {
+            conditions.push(
+                sql`(${workflowTemplates.name} ILIKE ${`%${search}%`})`
+            );
+        }
+
+        // Filter out null/undefined conditions
+        const validConditions = conditions.filter(c => c != null);
+
+        // Fetch evidence with related data
+        const steps = await db.select({
+            id: workflowInstanceSteps.id,
+            evidenceUrl: workflowInstanceSteps.evidenceUrl,
+            workflowName: workflowTemplates.name,
+            stepId: workflowInstanceSteps.stepId,
+            assigneeName: users.name,
+            assigneeId: workflowInstances.assigneeId,
+            branchName: branches.name,
+            branchId: workflowInstances.branchId,
+            createdAt: workflowInstanceSteps.createdAt,
+            workflowInstanceId: workflowInstances.id,
+            aiAnalysis: workflowInstanceSteps.aiAnalysis,
+        })
+            .from(workflowInstanceSteps)
+            .leftJoin(workflowInstances, eq(workflowInstanceSteps.workflowInstanceId, workflowInstances.id))
+            .leftJoin(workflowTemplates, eq(workflowInstances.workflowTemplateId, sql`cast(${workflowTemplates.id} as text)`))
+            .leftJoin(users, eq(workflowInstances.assigneeId, users.id))
+            .leftJoin(branches, eq(workflowInstances.branchId, branches.id))
+            .where(validConditions.length > 0 ? and(...validConditions) : undefined)
+            .orderBy(desc(workflowInstanceSteps.createdAt))
+            .limit(200);
+
+        // Filter out steps without evidence
+        const evidences = steps.filter(s => s.evidenceUrl !== null && s.evidenceUrl !== "");
+
+        // Format evidences with AI verification status
+        const evidencesWithVerification = evidences.map((evidence) => {
+            const aiAnalysis = evidence.aiAnalysis as any;
+            const aiVerified = aiAnalysis?.passed === true;
+
+            return {
+                id: evidence.id,
+                type: "PHOTO" as "PHOTO" | "VIDEO" | "AUDIO" | "TEXT",
+                url: evidence.evidenceUrl || "",
+                workflowName: evidence.workflowName,
+                stepName: evidence.stepId,
+                assigneeName: evidence.assigneeName || "Sin asignar",
+                branchName: evidence.branchName || "Sin sucursal",
+                createdAt: evidence.createdAt,
+                aiVerified: aiVerified,
+                aiScore: aiAnalysis?.confidence ? Math.round(aiAnalysis.confidence * 100) : undefined,
+                aiReason: aiAnalysis?.reason,
+                workflowInstanceId: evidence.workflowInstanceId,
+                stepId: evidence.stepId,
+            };
+        });
+
+        return NextResponse.json({
+            success: true,
+            data: evidencesWithVerification,
+        });
+    } catch (error) {
+        console.error("Failed to fetch evidence:", error);
+        return NextResponse.json(
+            { error: "Failed to fetch evidence" },
+            { status: 500 }
+        );
+    }
+}

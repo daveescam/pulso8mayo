@@ -1,0 +1,149 @@
+{
+  "id": "tpl-inspeccion-alimentos-v1",
+  "nombre": "🥫 Inspección de Alimentos Recibidos",
+  "descripcion": "Protocolo de inspección para alimentos y materias primas recibidos en el establecimiento",
+  "tipo": "INSPECCION",
+  "categoria": "CONTROL_CALIDAD",
+  "version": 2,
+  "activo": true,
+  "requiereIA": true,
+  "duracionEstimada": "10-15 min por proveedor",
+  "cumplimientoNormativo": [
+    "NOM-251-SSA1-2009",
+    "HACCP"
+  ],
+  "tags": [
+    "inspeccion",
+    "alimentos",
+    "recepcion",
+    "proveedores",
+    "calidad"
+  ],
+  "aiConfig": {
+    "provider": "openai",
+    "maxRetries": 2
+  },
+  "pasos": [
+    {
+      "id": "insp-title",
+      "fieldType": "Title",
+      "label": "🥫 Inspección de Alimentos",
+      "static": true
+    },
+    {
+      "id": "insp-proveedor",
+      "fieldType": "Text",
+      "label": "Proveedor",
+      "required": true
+    },
+    {
+      "id": "insp-temp-transporte",
+      "fieldType": "Number",
+      "label": "Temperatura Transporte (°C)",
+      "required": true,
+      "extraAttributes": {
+        "min": -20,
+        "max": 20,
+        "suffix": "°C"
+      },
+      "logicRules": [
+        {
+          "id": "rule_insp_temp_bad",
+          "condition": "value > 4",
+          "severity": "CRITICAL",
+          "message": "🚨 Transporte inadecuado ({value}°C).",
+          "escalationChain": [
+            {
+              "level": 1,
+              "notifyRoles": [
+                "GERENTE"
+              ],
+              "channel": "whatsapp",
+              "message": "🚨 INSPECCIÓN: Temp alta en transporte ({value}°C)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "insp-foto-producto",
+      "fieldType": "Photo",
+      "label": "📷 Foto del Producto",
+      "required": true,
+      "aiVerification": {
+        "enabled": true,
+        "type": "QUALITY_ANALYSIS",
+        "provider": "openai",
+        "prompt": "Analiza calidad, frescura y empaque. Clasifica: EXCELENTE, BUENO, MALO.",
+        "confidenceThreshold": 0.8,
+        "autoFillField": "insp-calidad-ia"
+      }
+    },
+    {
+      "id": "insp-calidad-ia",
+      "fieldType": "Select",
+      "label": "Calidad Detectada (IA)",
+      "required": true,
+      "options": [
+        {
+          "value": "EXCELENTE",
+          "label": "Excelente"
+        },
+        {
+          "value": "BUENO",
+          "label": "Bueno"
+        },
+        {
+          "value": "MALO",
+          "label": "Malo/Dañado"
+        }
+      ],
+      "logicRules": [
+        {
+          "id": "rule_calidad_bad",
+          "condition": "value === 'MALO'",
+          "severity": "CRITICAL",
+          "message": "🚨 IA detectó producto en mal estado.",
+          "remediationProtocol": {
+            "enabled": true,
+            "type": "GUIDED_SELF_FIX",
+            "maxAttempts": 1,
+            "timeoutMinutes": 5,
+            "steps": [
+              {
+                "instruction": "Segregar producto dañado",
+                "waitSeconds": 0
+              },
+              {
+                "instruction": "Documentar rechazo",
+                "waitSeconds": 0
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "insp-decision",
+      "fieldType": "Radio",
+      "label": "Decisión Final",
+      "required": true,
+      "options": [
+        {
+          "value": "ACEPTAR",
+          "label": "Aceptar"
+        },
+        {
+          "value": "RECHAZAR",
+          "label": "Rechazar"
+        }
+      ]
+    },
+    {
+      "id": "insp-firma",
+      "fieldType": "Signature",
+      "label": "Firma Inspector",
+      "required": true
+    }
+  ]
+}

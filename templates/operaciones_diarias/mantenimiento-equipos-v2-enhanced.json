@@ -1,0 +1,170 @@
+{
+    "id": "tpl-mantenimiento-equipos-v2",
+    "nombre": "🛠️ Mantenimiento Preventivo de Equipos",
+    "descripcion": "Lista de verificación mensual para el mantenimiento preventivo y correctivo de equipos de cocina y refrigeración.",
+    "tipo": "MANTENIMIENTO",
+    "categoria": "OPERACIONES",
+    "version": 2,
+    "activo": true,
+    "requiereIA": true,
+    "duracionEstimada": "30-45 min",
+    "cumplimientoNormativo": [
+        "NOM-251"
+    ],
+    "tags": [
+        "mantenimiento",
+        "equipos",
+        "refrigeracion",
+        "cocina"
+    ],
+    "aiConfig": {
+        "provider": "moondream",
+        "fallbackProvider": "openai",
+        "maxRetries": 2
+    },
+    "complianceConfig": {
+        "complianceType": "NOM-251",
+        "regulationSection": "5.6 Mantenimiento de equipo",
+        "requiredFrequency": "monthly",
+        "auditable": true,
+        "evidenceRequired": true,
+        "criticalForCompliance": true
+    },
+    "pasos": [
+        {
+            "id": "intro",
+            "type": "text",
+            "title": "Instrucciones de Mantenimiento",
+            "description": "Realice la inspección detallada de los siguientes equipos. Reporte cualquier anomalía inmediata.",
+            "readOnly": true
+        },
+        {
+            "id": "eq_refrigeracion",
+            "type": "checklist",
+            "title": "Equipos de Refrigeración",
+            "description": "Verifique el estado de todos los refrigeradores y congeladores.",
+            "required": true,
+            "options": [
+                "Limpieza de condensadores (libre de polvo)",
+                "Verificación de empaques de puertas (herméticos)",
+                "Revisión de temperaturas (rango 0-4°C)",
+                "Desagües libres de obstrucciones",
+                "Iluminación interna funcional"
+            ],
+            "validation": {
+                "message": "Debe verificar todos los puntos críticos de refrigeración."
+            }
+        },
+        {
+            "id": "foto_condensadores",
+            "type": "photo",
+            "title": "Evidencia: Condensadores Limpios",
+            "description": "Tome una foto clara de los condensadores o rejillas de ventilación traseras.",
+            "required": true,
+            "aiVerification": {
+                "enabled": true,
+                "prompt": "Verifica que las rejillas de ventilación o el condensador estén libres de polvo excesivo y suciedad.",
+                "threshold": 0.75,
+                "expectedConditions": [
+                    "clean_vents",
+                    "no_dust_accumulation"
+                ]
+            }
+        },
+        {
+            "id": "eq_coccion",
+            "type": "checklist",
+            "title": "Equipos de Cocción (Estufas/Hornos)",
+            "required": true,
+            "options": [
+                "Limpieza de quemadores (flama azul)",
+                "Verificación de pilotos encendidos",
+                "Revisión de fugas de gas (agua jabonosa)",
+                "Calibración de termostatos",
+                "Engrasado de bisagras de hornos"
+            ]
+        },
+        {
+            "id": "falla_detectada",
+            "type": "yes_no",
+            "title": "¿Se detectó alguna falla crítica o riesgo?",
+            "description": "Fugas de gas, cables expuestos, temperaturas fuera de rango no corregibles.",
+            "required": true
+        },
+        {
+            "id": "descripcion_falla",
+            "type": "text",
+            "title": "Descripción de la Falla",
+            "description": "Detalle la falla encontrada y el equipo afectado.",
+            "required": true,
+            "conditionalLogic": {
+                "dependentOn": "falla_detectada",
+                "value": "yes"
+            },
+            "validation": {
+                "message": "Es obligatorio describir la falla si indicó que existe una."
+            }
+        },
+        {
+            "id": "foto_falla",
+            "type": "photo",
+            "title": "Evidencia de la Falla",
+            "required": true,
+            "conditionalLogic": {
+                "dependentOn": "falla_detectada",
+                "value": "yes"
+            }
+        },
+        {
+            "id": "firma_tecnico",
+            "type": "SignatureField",
+            "title": "Firma del Técnico/Responsable",
+            "required": true
+        }
+    ],
+    "logicRules": [
+        {
+            "id": "rule_falla_critica",
+            "condition": "steps.falla_detectada.value == 'yes'",
+            "severity": "HIGH",
+            "message": "Falla crítica detectada en equipos durante mantenimiento.",
+            "escalationChain": [
+                {
+                    "level": 1,
+                    "triggerAfterMinutes": 0,
+                    "notifyRoles": [
+                        "GERENTE",
+                        "OWNER"
+                    ],
+                    "channel": "whatsapp",
+                    "message": "⚠️ Falla crítica reportada en mantenimiento de equipos. Revisar reporte."
+                }
+            ],
+            "actions": [
+                {
+                    "type": "CREATE_MAINTENANCE_TICKET",
+                    "priority": "HIGH",
+                    "assignTo": "TECHNICAL_SERVICE"
+                }
+            ]
+        }
+    ],
+    "completionActions": [
+        {
+            "type": "SEND_NOTIFICATION",
+            "target": [
+                "GERENTE"
+            ],
+            "channel": "email",
+            "message": "✅ Mantenimiento mensual completado"
+        },
+        {
+            "type": "GENERATE_PDF_REPORT",
+            "template": "maintenance_report_v1",
+            "includePhotos": true,
+            "sendTo": [
+                "GERENTE"
+            ]
+        }
+    ]
+}

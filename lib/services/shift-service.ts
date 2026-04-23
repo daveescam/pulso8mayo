@@ -1,0 +1,407 @@
+
+import { db } from "@/lib/db";
+import { shiftSessions, breakLogs, branches, plannedShifts, breakComplianceRules } from "@/lib/db/schema";
+import { eq, and, isNull } from "drizzle-orm";
+import { ShiftApprovalService } from "./shift-approval-service";
+import { OvertimeAlertService } from "./overtime-alert-service";
+
+const DAILY_WORK_LIMIT_MINUTES = 480; // 8 hours
+
+export interface GeolocationData {
+    latitude: number;
+    longitude: number;
+    accuracy?: number;
+    timestamp?: number;
+}
+
+export interface ClockInResult {
+    success: boolean;
+    session?: any;
+    withinRadius: boolean;
+    distance: number;
+    message: string;
+    lateMinutes?: number;
+}
+
+export interface DiscrepancyFlags {
+    lateCheckIn: boolean;
+    earlyCheckOut: boolean;
+    missedBreak: boolean;
+    lateMinutes: number;
+    earlyDepartureMinutes: number;
+    requiresApproval: boolean;
+}
+
+/**
+ * Calculate distance between two coordinates using Haversine formula
+ * Returns distance in meters
+ */
+function calculateDistance(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number
+): number {
+    const R = 6371e3; // Earth's radius in meters
+    const φ1 = (lat1 * Math.PI) / 180;
+    const φ2 = (lat2 * Math.PI) / 180;
+    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a =
+        Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+        Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
+}
+
+export class ShiftService {
+
+    static async startSession(userId: string, branchId: string, geolocation?: GeolocationData) {
+        // Check if active session exists
+        const active = await db.query.shiftSessions.findFirst({
+            where: and(
+                eq(shiftSessions.userId, userId),
+                eq(shiftSessions.status, 'ACTIVE')
+            )
+        });
+
+        if (active) throw new Error("User already has an active session");
+
+        return await db.insert(shiftSessions).values({
+            userId,
+            branchId,
+            status: 'ACTIVE',
+            startedAt: new Date(),
+            checkInGeolocation: geolocation ? {
+                latitude: geolocation.latitude,
+                longitude: geolocation.longitude,
+                accuracy: geolocation.accuracy,
+                timestamp: geolocation.timestamp || Date.now()
+            } : null,
+            checkInTime: geolocation ? new Date() : new Date()
+        }).returning();
+    }
+
+    static async clockInWithGeolocation(
+        userId: string,
+        branchId: string,
+        geolocation: GeolocationData
+    ): Promise<ClockInResult> {
+        try {
+            // Get branch location
+            const branch = await db.query.branches.findFirst({
+                where: eq(branches.id, branchId)
+            });
+
+            if (!branch) {
+                return {
+                    success: false,
+                    withinRadius: false,
+                    distance: 0,
+                    message: "Sucursal no encontrada"
+                };
+            }
+
+            // Parse branch location
+            const branchLocation = branch.location as any;
+            if (!branchLocation?.latitude || !branchLocation?.longitude) {
+                return {
+                    success: false,
+                    withinRadius: false,
+                    distance: 0,
+                    message: "Ubicación de sucursal no configurada"
+                };
+            }
+
+            // Calculate distance
+            const distance = calculateDistance(
+                geolocation.latitude,
+                geolocation.longitude,
+                branchLocation.latitude,
+                branchLocation.longitude
+            );
+
+            // Default radius: 100 meters (can be configured per branch)
+            const allowedRadius = branchLocation.radius || 100;
+            const withinRadius = distance <= allowedRadius;
+
+            if (!withinRadius) {
+                return {
+                    success: false,
+                    withinRadius: false,
+                    distance: Math.round(distance),
+                    message: `Estás a ${Math.round(distance)}m de la sucursal. El radio permitido es de ${allowedRadius}m.`
+                };
+            }
+
+            // Check for scheduled shift and calculate lateness
+            const today = new Date().toISOString().split('T')[0];
+            const scheduledShift = await db.query.plannedShifts.findFirst({
+                where: and(
+                    eq(plannedShifts.userId, userId),
+                    eq(plannedShifts.shiftDate, today),
+                    eq(plannedShifts.branchId, branchId)
+                )
+            });
+
+            let lateMinutes = 0;
+            let message = `Check-in exitoso. Distancia: ${Math.round(distance)}m`;
+
+            if (scheduledShift) {
+                const scheduledTime = new Date(`${today}T${scheduledShift.startTime}`);
+                const actualTime = new Date();
+                const diffMs = actualTime.getTime() - scheduledTime.getTime();
+                lateMinutes = Math.max(0, Math.floor(diffMs / 60000));
+
+                if (lateMinutes > 0) {
+                    message += `. Llegada ${lateMinutes} min tarde`;
+                }
+            }
+
+            // Start session with geolocation
+            const [session] = await this.startSession(userId, branchId, geolocation);
+
+            // Update session with scheduled times and discrepancy flags
+            if (scheduledShift) {
+                await db.update(shiftSessions).set({
+                    plannedShiftId: scheduledShift.id,
+                    scheduledStartTime: scheduledShift.startTime,
+                    scheduledEndTime: scheduledShift.endTime,
+                    lateMinutes,
+                    complianceFlags: {
+                        lateCheckIn: lateMinutes > 0,
+                        earlyCheckOut: false,
+                        missedBreak: false
+                    }
+                }).where(eq(shiftSessions.id, session.id));
+            }
+
+            return {
+                success: true,
+                session,
+                withinRadius: true,
+                distance: Math.round(distance),
+                message,
+                lateMinutes
+            };
+        } catch (error) {
+            console.error("Error in clock-in with geolocation:", error);
+            return {
+                success: false,
+                withinRadius: false,
+                distance: 0,
+                message: "Error al realizar check-in"
+            };
+        }
+    }
+
+    static async clockInV2(userId: string, branchId: string, timestamp: Date) {
+        // Wrapper for legacy startSession, ensures timestamp is respected if needed
+        // For now, just call startSession
+        try {
+            const [session] = await this.startSession(userId, branchId);
+            return session;
+        } catch (e: any) {
+            // Return null if already active to handle gracefully in workflow
+            if (e.message?.includes("already has an active")) return null;
+            throw e;
+        }
+    }
+
+    static async endSession(userId: string, geolocation?: GeolocationData) {
+        const session = await db.query.shiftSessions.findFirst({
+            where: and(
+                eq(shiftSessions.userId, userId),
+                eq(shiftSessions.status, 'ACTIVE')
+            )
+        });
+
+        if (!session) throw new Error("No active session found");
+
+        const endTime = new Date();
+        const startTime = new Date(session.startedAt);
+        const durationMs = endTime.getTime() - startTime.getTime();
+        const totalDurationMinutes = Math.floor(durationMs / 60000);
+
+        // Calculate total break time
+        const breakTime = session.totalBreakMinutes || 0;
+
+        const workMinutes = totalDurationMinutes - breakTime;
+        
+        // Calculate overtime
+        const dailyLimit = DAILY_WORK_LIMIT_MINUTES;
+        const overtime = workMinutes > dailyLimit ? workMinutes - dailyLimit : 0;
+
+        // Check for early departure
+        let earlyDepartureMinutes = 0;
+        if (session.scheduledEndTime) {
+            const scheduledEnd = new Date(`${session.startedAt.toISOString().split('T')[0]}T${session.scheduledEndTime}`);
+            const diffMs = scheduledEnd.getTime() - endTime.getTime();
+            earlyDepartureMinutes = Math.max(0, Math.floor(diffMs / 60000));
+        }
+
+        // Build compliance flags
+        const complianceFlags = {
+            lateCheckIn: (session.lateMinutes || 0) > 0,
+            earlyCheckOut: earlyDepartureMinutes > 0,
+            missedBreak: breakTime === 0 && workMinutes > 300, // No break in 5+ hour shift
+            overtime: overtime > 0
+        };
+
+        // Determine if approval is required
+        const requiresApproval = overtime > 0 || earlyDepartureMinutes > 30 || (session.lateMinutes || 0) > 30;
+
+        const [updatedSession] = await db.update(shiftSessions).set({
+            status: 'COMPLETED',
+            endedAt: endTime,
+            checkOutTime: endTime,
+            checkOutGeolocation: geolocation ? {
+                latitude: geolocation.latitude,
+                longitude: geolocation.longitude,
+                accuracy: geolocation.accuracy,
+                timestamp: geolocation.timestamp || Date.now()
+            } : null,
+            totalWorkMinutes: workMinutes,
+            overtimeMinutes: overtime,
+            earlyDepartureMinutes,
+            complianceFlags,
+            requiresApproval,
+            approvedBy: requiresApproval ? null : session.approvedBy,
+            approvedAt: requiresApproval ? null : session.approvedAt
+        }).where(eq(shiftSessions.id, session.id)).returning();
+
+        // Create approval request if needed
+        if (requiresApproval && overtime > 0) {
+            try {
+                await ShiftApprovalService.detectOvertimeRequiringApproval(session.id, overtime);
+                // Send overtime alert to managers
+                await OvertimeAlertService.checkAndAlertOvertime(session.id);
+            } catch (error) {
+                console.error("Error creating overtime approval:", error);
+            }
+        }
+
+        return updatedSession;
+    }
+
+    static async startBreak(userId: string) {
+        const session = await db.query.shiftSessions.findFirst({
+            where: and(
+                eq(shiftSessions.userId, userId),
+                eq(shiftSessions.status, 'ACTIVE')
+            )
+        });
+
+        if (!session) throw new Error("No active session found");
+
+        // Check if already on break
+        const activeBreak = await db.query.breakLogs.findFirst({
+            where: and(
+                eq(breakLogs.sessionId, session.id),
+                isNull(breakLogs.endTime)
+            )
+        });
+
+        if (activeBreak) throw new Error("Already on break");
+
+        return await db.insert(breakLogs).values({
+            sessionId: session.id,
+            startTime: new Date(),
+            type: 'MEAL'
+        }).returning();
+    }
+
+    static async endBreak(userId: string) {
+        const session = await db.query.shiftSessions.findFirst({
+            where: and(
+                eq(shiftSessions.userId, userId),
+                eq(shiftSessions.status, 'ACTIVE')
+            )
+        });
+
+        if (!session) throw new Error("No active session found");
+
+        const activeBreak = await db.query.breakLogs.findFirst({
+            where: and(
+                eq(breakLogs.sessionId, session.id),
+                isNull(breakLogs.endTime)
+            )
+        });
+
+        if (!activeBreak) throw new Error("No active break found");
+
+        const endTime = new Date();
+        const durationMs = endTime.getTime() - activeBreak.startTime.getTime();
+        const durationMinutes = Math.floor(durationMs / 60000);
+
+        const [log] = await db.update(breakLogs).set({
+            endTime,
+            durationMinutes
+        }).where(eq(breakLogs.id, activeBreak.id)).returning();
+
+        // Update total break minutes in session
+        const currentBreakTotal = session.totalBreakMinutes || 0;
+        await db.update(shiftSessions).set({
+            totalBreakMinutes: currentBreakTotal + durationMinutes
+        }).where(eq(shiftSessions.id, session.id));
+
+        return log;
+    }
+
+    /**
+     * Check for breaks that should be taken but haven't been
+     */
+    static async checkMissedBreaks(userId: string) {
+        const activeSession = await db.query.shiftSessions.findFirst({
+            where: and(
+                eq(shiftSessions.userId, userId),
+                eq(shiftSessions.status, 'ACTIVE')
+            )
+        });
+
+        if (!activeSession) return null;
+
+        const startTime = new Date(activeSession.startedAt);
+        const now = new Date();
+        const workMinutes = Math.floor((now.getTime() - startTime.getTime()) / 60000);
+
+        // Get break rules
+        const rules = await db.query.breakComplianceRules.findFirst({
+            where: eq(breakComplianceRules.companyId, activeSession.branchId)
+        });
+
+        const maxContinuousWork = rules?.maxContinuousWork || 300; // 5 hours default
+
+        if (workMinutes > maxContinuousWork) {
+            // Get breaks taken
+            const breaks = await db.query.breakLogs.findMany({
+                where: and(
+                    eq(breakLogs.sessionId, activeSession.id),
+                    eq(breakLogs.endTime, null)
+                )
+            });
+
+            if (breaks.length === 0) {
+                // No breaks taken - flag as missed
+                const currentFlags = activeSession.complianceFlags as any || {};
+                await db.update(shiftSessions).set({
+                    complianceFlags: {
+                        ...currentFlags,
+                        missedBreak: true
+                    }
+                }).where(eq(shiftSessions.id, activeSession.id));
+
+                return {
+                    sessionId: activeSession.id,
+                    workMinutes,
+                    maxContinuousWork,
+                    missed: true
+                };
+            }
+        }
+
+        return null;
+    }
+}

@@ -1,36 +1,34 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Pulso HORECA 
 
-## Getting Started
+Pulso HORECA es el Software Integral MVP diseñado para cadenas de restaurantes, enfocado en resolver el control de calidad, reglas sanitarias gubernamentales (NOM-251, NOM-035), auditoría de inventarios y control de RH / Asistencia apalancado con automatizaciones vía WhatsApp.
 
-First, run the development server:
+## 🚀 Tecnologías Clave
+- **Framework Ocupacional**: Next.js 14+ (App Router) y React.
+- **Base de Datos y ORM**: Neon Database (Postgres) administrada con Drizzle ORM.
+- **Autenticación y Seguridad**: `better-auth` para permisos MultiTenant/Role-Based, integraciones tokenizadas, Rate Limiter custom.
+- **Colas y Tareas Cron**: Upstash (QStash + Redis) y cronjobs programables.
+- **UI & UX**: Componentes Radix UI, Dnd-kit, TailwindCSS, date-fns (locale MX), Recharts para KPIs.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🛠 Instalación Local en Desarrollo
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. Clona el repositorio e instala las dependencias mediante tu manejador:
+   ```bash
+   npm install
+   ```
+2. Inicializa las copias `.env`: 
+   Copia el archivo originario y renómbralo a `.env.local`. Deberás disponer de la cadena de conexión de Neon (`DATABASE_URL`) y tus variables de QStash / WhatsApp activas para una simulación íntegra de Notificaciones o Workflows remotos.
+   
+3. Aplica los esquemas generados por Drizzle y alinea el DB (¡Precaución! puede ejecutar drop a esquemas conflictivos):
+   ```bash
+   npx drizzle-kit push
+   ```
+4. Si requieres observar el Panel de Demostración del MVP repleto de métricas e historial de la semana pasada, ejecuta nuestro Seed de demostración (Añadido en Sprint 4):
+   ```bash
+   npx tsx scripts/seed-demo-data.ts
+   ```
+5. Corre la Interfaz Web:
+   ```bash
+   npm run dev
+   ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+El proyecto estará disponible iterando en [http://localhost:3000].

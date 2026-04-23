@@ -1,0 +1,575 @@
+import { db } from "@/lib/db";
+import { notifications, notificationPreferences, users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import { WasenderClient } from "@/lib/whatsapp/wasender-client";
+
+export type NotificationChannel = "whatsapp" | "email" | "in-app";
+export type NotificationEventType =
+    | "workflow_assignment"
+    | "workflow_due_soon"
+    | "workflow_overdue"
+    | "incident"
+    | "stock_alert"
+    | "shift_reminder"
+    | "schedule_change"
+    | "document_expiration";
+
+export interface NotificationPayload {
+    userId: string;
+    title: string;
+    message: string;
+    type: "info" | "warning" | "error" | "success";
+    eventType: NotificationEventType;
+    actionUrl?: string;
+    actionLabel?: string;
+    metadata?: Record<string, any>;
+}
+
+export interface NotificationTemplate {
+    id: string;
+    name: string;
+    eventType: NotificationEventType;
+    channels: NotificationChannel[];
+    whatsappTemplate?: string;
+    emailSubject?: string;
+    emailBody?: string;
+    inAppTitle?: string;
+    inAppMessage?: string;
+    variables?: string[];
+}
+
+// Template registry
+const notificationTemplates: Record<string, NotificationTemplate> = {
+    "workflow_assignment": {
+        id: "workflow_assignment",
+        name: "Asignación de Workflow",
+        eventType: "workflow_assignment",
+        channels: ["whatsapp", "email", "in-app"],
+        whatsappTemplate: "📋 *Nueva Tarea Asignada*\n\nHola {userName},\n\nSe te ha asignado una nueva tarea: {workflowName}\n\nFecha límite: {dueDate}\n\nPor favor, revisa tu dashboard para más detalles.",
+        emailSubject: "Nueva Tarea Asignada: {workflowName}",
+        emailBody: `<h2>Nueva Tarea Asignada</h2><p>Hola {userName},</p><p>Se te ha asignado una nueva tarea: <strong>{workflowName}</strong></p><p><strong>Fecha límite:</strong> {dueDate}</p><p>Por favor, revisa tu dashboard para más detalles.</p>`,
+        inAppTitle: "Nueva Tarea",
+        inAppMessage: "Se te ha asignado: {workflowName}",
+        variables: ["userName", "workflowName", "dueDate"]
+    },
+    "workflow_due_soon": {
+        id: "workflow_due_soon",
+        name: "Workflow Por Vencer",
+        eventType: "workflow_due_soon",
+        channels: ["whatsapp", "in-app"],
+        whatsappTemplate: "⏰ *Recordatorio: Tarea Por Vencer*\n\nHola {userName},\n\nTu tarea \"{workflowName}\" vence en {hoursUntilDue} horas.\n\n¡No la olvides!",
+        emailSubject: "⏰ Recordatorio: Tarea por vencer",
+        emailBody: `<h2>Recordatorio de Tarea</h2><p>Hola {userName},</p><p>Tu tarea <strong>{workflowName}</strong> vence en <strong>{hoursUntilDue} horas</strong>.</p>`,
+        inAppTitle: "Tarea Por Vencer",
+        inAppMessage: "{workflowName} vence en {hoursUntilDue} horas",
+        variables: ["userName", "workflowName", "hoursUntilDue"]
+    },
+    "workflow_overdue": {
+        id: "workflow_overdue",
+        name: "Workflow Vencido",
+        eventType: "workflow_overdue",
+        channels: ["whatsapp", "email", "in-app"],
+        whatsappTemplate: "🚨 *TAREA VENCIDA*\n\nHola {userName},\n\nLa tarea \"{workflowName}\" está VENCIDA desde {overdueTime}.\n\nPor favor, complétala lo antes posible.",
+        emailSubject: "🚨 TAREA VENCIDA: {workflowName}",
+        emailBody: `<h2 style="color: red;">Tarea Vencida</h2><p>Hola {userName},</p><p>La tarea <strong>{workflowName}</strong> está <strong style="color: red;">VENCIDA</strong> desde {overdueTime}.</p><p>Por favor, complétala lo antes posible.</p>`,
+        inAppTitle: "⚠️ Tarea Vencida",
+        inAppMessage: "{workflowName} está vencida",
+        variables: ["userName", "workflowName", "overdueTime"]
+    },
+    "incident": {
+        id: "incident",
+        name: "Incidente de Compliance",
+        eventType: "incident",
+        channels: ["whatsapp", "email", "in-app"],
+        whatsappTemplate: "⚠️ *Incidente de Compliance*\n\nHola {userName},\n\nSe detectó un incidente: {incidentTitle}\n\nSeveridad: {severity}\n\nPor favor, toma acción inmediata.",
+        emailSubject: "⚠️ Incidente de Compliance: {incidentTitle}",
+        emailBody: `<h2>Incidente de Compliance</h2><p>Hola {userName},</p><p>Se detectó un incidente: <strong>{incidentTitle}</strong></p><p><strong>Severidad:</strong> {severity}</p><p>Por favor, toma acción inmediata.</p>`,
+        inAppTitle: "Incidente de Compliance",
+        inAppMessage: "{incidentTitle} - {severity}",
+        variables: ["userName", "incidentTitle", "severity"]
+    },
+    "stock_alert": {
+        id: "stock_alert",
+        name: "Alerta de Stock",
+        eventType: "stock_alert",
+        channels: ["whatsapp", "email", "in-app"],
+        whatsappTemplate: "📦 *Alerta de Stock Bajo*\n\nHola {userName},\n\nEl item {itemName} tiene stock bajo.\n\nStock actual: {currentStock}/{minLevel}\n\nPor favor, reordenar.",
+        emailSubject: "📦 Alerta de Stock Bajo: {itemName}",
+        emailBody: `<h2>Alerta de Stock Bajo</h2><p>Hola {userName},</p><p>El item <strong>{itemName}</strong> tiene stock bajo.</p><p><strong>Stock actual:</strong> {currentStock}/{minLevel}</p><p>Por favor, reordenar.</p>`,
+        inAppTitle: "Stock Bajo",
+        inAppMessage: "{itemName} - Stock: {currentStock}/{minLevel}",
+        variables: ["userName", "itemName", "currentStock", "minLevel"]
+    },
+    "shift_reminder": {
+        id: "shift_reminder",
+        name: "Recordatorio de Turno",
+        eventType: "shift_reminder",
+        channels: ["whatsapp", "in-app"],
+        whatsappTemplate: "👷 *Recordatorio de Turno*\n\nHola {userName},\n\nTienes un turno programado:\n\n📅 {shiftDate}\n⏰ {shiftTime}\n📍 {branchName}\n\n¡Nos vemos!",
+        emailSubject: "👷 Recordatorio de Turno",
+        emailBody: `<h2>Recordatorio de Turno</h2><p>Hola {userName},</p><p>Tienes un turno programado:</p><ul><li><strong>Fecha:</strong> {shiftDate}</li><li><strong>Hora:</strong> {shiftTime}</li><li><strong>Sucursal:</strong> {branchName}</li></ul>`,
+        inAppTitle: "Turno Programado",
+        inAppMessage: "{shiftDate} a las {shiftTime}",
+        variables: ["userName", "shiftDate", "shiftTime", "branchName"]
+    },
+    "schedule_change": {
+        id: "schedule_change",
+        name: "Cambio de Horario",
+        eventType: "schedule_change",
+        channels: ["whatsapp", "email", "in-app"],
+        whatsappTemplate: "📅 *Cambio de Horario*\n\nHola {userName},\n\nTu horario ha sido modificado:\n\n{changeDescription}\n\nPor favor, revisa tu nuevo horario en la app.",
+        emailSubject: "📅 Cambio de Horario",
+        emailBody: `<h2>Cambio de Horario</h2><p>Hola {userName},</p><p>Tu horario ha sido modificado:</p><p>{changeDescription}</p><p>Por favor, revisa tu nuevo horario en la app.</p>`,
+        inAppTitle: "Cambio de Horario",
+        inAppMessage: "{changeDescription}",
+        variables: ["userName", "changeDescription"]
+    },
+    "document_expiration": {
+        id: "document_expiration",
+        name: "Documento por Vencer",
+        eventType: "document_expiration",
+        channels: ["whatsapp", "email", "in-app"],
+        whatsappTemplate: "⚠️ *Documento por Vencer*\n\nHola {userName},\n\nTu documento \"{documentName}\" vence en {daysUntilExpiration} días.\n\nPor favor, renuévalo lo antes posible.",
+        emailSubject: "⚠️ Documento por Vencer: {documentName}",
+        emailBody: `<h2>Documento por Vencer</h2><p>Hola {userName},</p><p>Tu documento <strong>{documentName}</strong> vence en <strong>{daysUntilExpiration} días</strong>.</p><p>Por favor, renuévalo lo antes posible.</p>`,
+        inAppTitle: "Documento por Vencer",
+        inAppMessage: "{documentName} vence en {daysUntilExpiration} días",
+        variables: ["userName", "documentName", "daysUntilExpiration"]
+    }
+};
+
+export class NotificationDispatcher {
+    /**
+     * Send notification through appropriate channels based on user preferences
+     */
+    static async sendNotification(payload: NotificationPayload): Promise<void> {
+        try {
+            // Get user preferences
+            const prefs = await this.getUserPreferences(payload.userId);
+            if (!prefs) {
+                console.log(`No preferences found for user ${payload.userId}`);
+                return;
+            }
+
+            // Check if user wants this type of notification
+            if (!this.shouldSendNotification(payload.eventType, prefs)) {
+                console.log(`User ${payload.userId} has disabled ${payload.eventType} notifications`);
+                return;
+            }
+
+            // Get template
+            const template = notificationTemplates[payload.eventType];
+            if (!template) {
+                console.warn(`No template found for event type: ${payload.eventType}`);
+                return;
+            }
+
+            // Get user data for template variables
+            const userData = await this.getUserData(payload.userId);
+
+            // Send through enabled channels
+            const promises = [];
+
+            if (prefs.whatsappEnabled && template.channels.includes("whatsapp")) {
+                promises.push(this.sendWhatsAppNotification(payload, template, userData));
+            }
+
+            if (prefs.emailEnabled && template.channels.includes("email")) {
+                promises.push(this.sendEmailNotification(payload, template, userData));
+            }
+
+            if (prefs.inAppEnabled && template.channels.includes("in-app")) {
+                promises.push(this.sendInAppNotification(payload, template, userData));
+            }
+
+            await Promise.allSettled(promises);
+        } catch (error) {
+            console.error("Error in sendNotification:", error);
+        }
+    }
+
+    /**
+     * Send batch notifications to multiple users
+     */
+    static async sendBatchNotifications(payloads: NotificationPayload[]): Promise<void> {
+        const promises = payloads.map(payload => this.sendNotification(payload));
+        await Promise.allSettled(promises);
+    }
+
+    /**
+     * Send WhatsApp notification
+     */
+    private static async sendWhatsAppNotification(
+        payload: NotificationPayload,
+        template: NotificationTemplate,
+        userData: any
+    ): Promise<void> {
+        try {
+            if (!template.whatsappTemplate) return;
+
+            // Get user's phone number
+            if (!userData?.whatsappPhone && !userData?.phone) {
+                console.log(`No WhatsApp phone for user ${payload.userId}`);
+                return;
+            }
+
+            const phoneNumber = userData.whatsappPhone || userData.phone;
+
+            // Replace template variables
+            const message = this.replaceTemplateVariables(
+                template.whatsappTemplate,
+                { ...payload.metadata, userName: userData.name }
+            );
+
+            // Send via WasenderAPI
+            // TODO: Implement actual WasenderAPI call
+            console.log(`[WhatsApp] To: ${phoneNumber}, Message: ${message}`);
+
+            // Example:
+            // const client = new WasenderClient(process.env.WASENDER_API_KEY!);
+            // await client.sendMessage({
+            //     phone: phoneNumber,
+            //     message: message
+            // });
+
+        } catch (error) {
+            console.error("Error sending WhatsApp notification:", error);
+        }
+    }
+
+    /**
+     * Send email notification
+     */
+    private static async sendEmailNotification(
+        payload: NotificationPayload,
+        template: NotificationTemplate,
+        userData: any
+    ): Promise<void> {
+        try {
+            if (!template.emailSubject || !template.emailBody) return;
+
+            // Get user's email
+            if (!userData?.email) {
+                console.log(`No email for user ${payload.userId}`);
+                return;
+            }
+
+            // Replace template variables
+            const subject = this.replaceTemplateVariables(
+                template.emailSubject,
+                { ...payload.metadata, userName: userData.name }
+            );
+
+            const body = this.replaceTemplateVariables(
+                template.emailBody,
+                { ...payload.metadata, userName: userData.name }
+            );
+
+            // Send via email service (Resend, SendGrid, etc.)
+            // TODO: Implement actual email service call
+            console.log(`[Email] To: ${userData.email}, Subject: ${subject}`);
+
+            // Example with Resend:
+            // const resend = new Resend(process.env.RESEND_API_KEY);
+            // await resend.emails.send({
+            //     from: 'Pulso <notifications@pulso.app>',
+            //     to: userData.email,
+            //     subject,
+            //     html: body
+            // });
+
+        } catch (error) {
+            console.error("Error sending email notification:", error);
+        }
+    }
+
+    /**
+     * Send in-app notification
+     */
+    private static async sendInAppNotification(
+        payload: NotificationPayload,
+        template: NotificationTemplate,
+        userData: any
+    ): Promise<void> {
+        try {
+            if (!template.inAppTitle || !template.inAppMessage) return;
+
+            // Replace template variables
+            const title = this.replaceTemplateVariables(
+                template.inAppTitle,
+                { ...payload.metadata, userName: userData.name }
+            );
+
+            const message = this.replaceTemplateVariables(
+                template.inAppMessage,
+                { ...payload.metadata, userName: userData.name }
+            );
+
+            // Store in database
+            await db.insert(notifications).values({
+                userId: payload.userId,
+                title,
+                message,
+                type: payload.type,
+                actionUrl: payload.actionUrl,
+                actionLabel: payload.actionLabel,
+                read: false
+            });
+
+            console.log(`[In-App] To: ${payload.userId}, Title: ${title}`);
+
+        } catch (error) {
+            console.error("Error sending in-app notification:", error);
+        }
+    }
+
+    /**
+     * Get user notification preferences
+     */
+    private static async getUserPreferences(userId: string) {
+        try {
+            const prefs = await db.query.notificationPreferences.findFirst({
+                where: eq(notificationPreferences.userId, userId)
+            });
+
+            return prefs || {
+                whatsappEnabled: true,
+                emailEnabled: true,
+                inAppEnabled: true,
+                workflowAssignments: true,
+                workflowDueSoon: true,
+                workflowOverdue: true,
+                incidents: true
+            };
+        } catch (error) {
+            console.error("Error getting user preferences:", error);
+            return null;
+        }
+    }
+
+    /**
+     * Check if notification should be sent based on event type and preferences
+     */
+    private static shouldSendNotification(
+        eventType: NotificationEventType,
+        prefs: any
+    ): boolean {
+        switch (eventType) {
+            case "workflow_assignment":
+                return prefs.workflowAssignments;
+            case "workflow_due_soon":
+                return prefs.workflowDueSoon;
+            case "workflow_overdue":
+                return prefs.workflowOverdue;
+            case "incident":
+                return prefs.incidents;
+            case "stock_alert":
+                return true; // Always send stock alerts
+            case "shift_reminder":
+                return true; // Always send shift reminders
+            case "schedule_change":
+                return true; // Always send schedule changes
+            default:
+                return true;
+        }
+    }
+
+    /**
+     * Get user data for template variables
+     */
+    private static async getUserData(userId: string) {
+        try {
+            const user = await db.query.users.findFirst({
+                where: eq(users.id, userId)
+            });
+
+            return user;
+        } catch (error) {
+            console.error("Error getting user data:", error);
+            return null;
+        }
+    }
+
+    /**
+     * Replace template variables with actual values
+     */
+    private static replaceTemplateVariables(
+        template: string,
+        variables: Record<string, any>
+    ): string {
+        let result = template;
+
+        Object.entries(variables).forEach(([key, value]) => {
+            const regex = new RegExp(`\\{${key}\\}`, "g");
+            result = result.replace(regex, String(value || ""));
+        });
+
+        return result;
+    }
+
+    /**
+     * Send inventory alert through appropriate channels
+     */
+    static async sendInventoryAlert(payload: {
+        userId: string;
+        eventType: string;
+        data: {
+            itemName: string;
+            currentStock: number;
+            minLevel: number;
+            severity: string;
+            branchId: string;
+        }
+    }): Promise<void> {
+        try {
+            // Get user preferences
+            const prefs = await this.getUserPreferences(payload.userId);
+            if (!prefs) {
+                console.log(`No preferences found for user ${payload.userId}`);
+                return;
+            }
+
+            // Check if user wants inventory alerts
+            if (!prefs.inventoryAlerts) {
+                console.log(`User ${payload.userId} has disabled inventory alert notifications`);
+                return;
+            }
+
+            // Get user data
+            const userData = await this.getUserData(payload.userId);
+            if (!userData) return;
+
+            // Format message
+            const severityEmoji = {
+                'CRITICA': '🔴',
+                'ALTA': '🟠',
+                'MEDIA': '🟡',
+                'BAJA': '🟢'
+            }[payload.data.severity] || '⚪';
+
+            const message = `${severityEmoji} *ALERTA DE INVENTARIO*\n\n` +
+                `Producto: ${payload.data.itemName}\n` +
+                `Stock Actual: ${payload.data.currentStock}\n` +
+                `Stock Mínimo: ${payload.data.minLevel}\n` +
+                `Severidad: ${payload.data.severity}\n\n` +
+                `Por favor revisa el inventario y toma las acciones necesarias.`;
+
+            // Send through enabled channels
+            const promises = [];
+
+            if (prefs.whatsappEnabled) {
+                promises.push(this.sendWhatsAppMessage(payload.userId, message));
+            }
+
+            if (prefs.inAppEnabled) {
+                promises.push(
+                    db.insert(notifications).values({
+                        userId: payload.userId,
+                        type: 'inventory_alert',
+                        title: `Alerta de Inventario: ${payload.data.itemName}`,
+                        message: `El stock de ${payload.data.itemName} está por debajo del mínimo (${payload.data.currentStock} < ${payload.data.minLevel})`,
+                        actionUrl: `/dashboard/inventory/alerts`,
+                    })
+                );
+            }
+
+            await Promise.allSettled(promises);
+        } catch (error) {
+            console.error("Error in sendInventoryAlert:", error);
+        }
+    }
+
+    /**
+     * Send WhatsApp message to user
+     */
+    private static async sendWhatsAppMessage(userId: string, message: string): Promise<void> {
+        try {
+            const userData = await this.getUserData(userId);
+            if (!userData?.whatsappPhone && !userData?.phone) {
+                console.log(`No WhatsApp phone for user ${userId}`);
+                return;
+            }
+
+            const phoneNumber = userData.whatsappPhone || userData.phone;
+
+            // TODO: Implement actual WasenderAPI call
+            console.log(`[WhatsApp] To: ${phoneNumber}, Message: ${message.substring(0, 100)}...`);
+
+            // Example with WasenderAPI:
+            // const client = new WasenderClient(process.env.WASENDER_API_KEY!);
+            // await client.sendMessage({
+            //     phone: phoneNumber,
+            //     message: message
+            // });
+
+        } catch (error) {
+            console.error("Error sending WhatsApp message:", error);
+        }
+    }
+
+    /**
+     * Get available templates
+     */
+    static getTemplates(): Record<string, NotificationTemplate> {
+        return notificationTemplates;
+    }
+
+    /**
+     * Get template by event type
+     */
+    static getTemplate(eventType: NotificationEventType): NotificationTemplate | undefined {
+        return notificationTemplates[eventType];
+    }
+
+    /**
+     * Send document expiration alert through appropriate channels
+     */
+    static async sendDocumentExpirationAlert(payload: {
+        userId: string;
+        userName: string;
+        documentName: string;
+        documentType: string;
+        expirationDate: Date;
+        daysUntilExpiration: number;
+    }): Promise<void> {
+        try {
+            // Get user preferences
+            const prefs = await this.getUserPreferences(payload.userId);
+            if (!prefs) {
+                console.log(`No preferences found for user ${payload.userId}`);
+                return;
+            }
+
+            // Format message
+            const message = `⚠️ *DOCUMENTO POR VENCER*\n\n` +
+                `Hola ${payload.userName},\n\n` +
+                `Tu documento "${payload.documentName}" vence en ${payload.daysUntilExpiration} días.\n\n` +
+                `Fecha de vencimiento: ${payload.expirationDate.toLocaleDateString('es-MX')}\n\n` +
+                `Por favor, renuévalo lo antes posible para mantener tu expediente completo.`;
+
+            // Send through enabled channels
+            const promises = [];
+
+            if (prefs.whatsappEnabled) {
+                promises.push(this.sendWhatsAppMessage(payload.userId, message));
+            }
+
+            if (prefs.inAppEnabled) {
+                promises.push(
+                    db.insert(notifications).values({
+                        userId: payload.userId,
+                        type: 'warning',
+                        title: `Documento por Vencer: ${payload.documentName}`,
+                        message: `Tu documento "${payload.documentName}" vence en ${payload.daysUntilExpiration} días`,
+                        actionUrl: `/dashboard/labor/documents`,
+                        actionLabel: 'Ver Expediente',
+                    })
+                );
+            }
+
+            await Promise.allSettled(promises);
+        } catch (error) {
+            console.error("Error in sendDocumentExpirationAlert:", error);
+        }
+    }
+}

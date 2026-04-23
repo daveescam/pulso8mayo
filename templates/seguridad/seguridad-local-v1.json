@@ -1,0 +1,221 @@
+{
+  "id": "tpl-seguridad-local-v1",
+  "nombre": "🔒 Seguridad del Local - Turno Nocturno",
+  "descripcion": "Protocolo de verificación de seguridad e instalaciones al finalizar el turno nocturno",
+  "tipo": "SEGURIDAD",
+  "categoria": "SEGURIDAD",
+  "version": 1,
+  "activo": true,
+  "requiereIA": false,
+  "duracionEstimada": "15-20 min",
+  "cumplimientoNormativo": [
+    "NOM-251-SSA1-2009"
+  ],
+  "tags": [
+    "seguridad",
+    "instalaciones",
+    "nocturno",
+    "verificaciones",
+    "prevención"
+  ],
+  "alertConfig": {
+    "criticalThreshold": {
+      "priority": "ALTA",
+      "notifyImmediately": true,
+      "notifyRoles": [
+        "GERENTE",
+        "SUPERVISOR"
+      ],
+      "channels": [
+        "whatsapp",
+        "email",
+        "dashboard"
+      ]
+    }
+  },
+  "complianceConfig": {
+    "complianceType": "NOM-251",
+    "regulationSection": "5.1 (Instalaciones)",
+    "requiredFrequency": "daily",
+    "auditable": true,
+    "evidenceRequired": true,
+    "criticalForCompliance": true
+  },
+  "pasos": [
+    {
+      "id": "seg-local-title",
+      "fieldType": "Title",
+      "label": "🔒 Seguridad del Local - Turno Nocturno",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "seg-local-intro",
+      "fieldType": "Paragraph",
+      "label": "Realice las verificaciones de seguridad e instalaciones antes de finalizar el turno nocturno.",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "seg-local-timestamp",
+      "fieldType": "DateTime",
+      "label": "Fecha y Hora de Verificación",
+      "required": true,
+      "extraAttributes": {
+        "defaultValue": "now",
+        "readonly": true
+      }
+    },
+    {
+      "id": "seg-local-responsable",
+      "fieldType": "Text",
+      "label": "Responsable de Seguridad",
+      "required": true,
+      "extraAttributes": {
+        "placeholder": "Nombre del encargado"
+      }
+    },
+    {
+      "id": "seg-local-separator-1",
+      "fieldType": "Separator",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "seg-local-section-instalaciones",
+      "fieldType": "SubTitle",
+      "label": "1. 🏢 Instalaciones y Accesos",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "seg-local-check-puertas",
+      "fieldType": "Checkbox",
+      "label": "Todas las puertas de acceso están cerradas y aseguradas",
+      "required": true
+    },
+    {
+      "id": "seg-local-check-ventanas",
+      "fieldType": "Checkbox",
+      "label": "Todas las ventanas están cerradas y aseguradas",
+      "required": true
+    },
+    {
+      "id": "seg-local-check-cerraduras",
+      "fieldType": "Checkbox",
+      "label": "Cerraduras en buen estado y funcionando correctamente",
+      "required": true
+    },
+    {
+      "id": "seg-local-check-iluminacion",
+      "fieldType": "Checkbox",
+      "label": "Iluminación exterior adecuada en áreas críticas",
+      "required": true
+    },
+    {
+      "id": "seg-local-separator-2",
+      "fieldType": "Separator",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "seg-local-section-sistemas",
+      "fieldType": "SubTitle",
+      "label": "2. ⚡ Sistemas y Equipos",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "seg-local-check-alarmas",
+      "fieldType": "Checkbox",
+      "label": "Sistema de alarma activado y funcionando",
+      "required": true
+    },
+    {
+      "id": "seg-local-check-camaras",
+      "fieldType": "Checkbox",
+      "label": "Sistema de vigilancia grabando adecuadamente",
+      "required": true
+    },
+    {
+      "id": "seg-local-check-electricidad",
+      "fieldType": "Select",
+      "label": "Sistema Eléctrico",
+      "required": true,
+      "options": [
+        {
+          "value": "normal",
+          "label": "Todo el sistema apagado excepto luces de emergencia"
+        },
+        {
+          "value": "parcial",
+          "label": "Equipos esenciales encendidos (refrigeradores, etc.)"
+        },
+        {
+          "value": "riesgo",
+          "label": "Detectado riesgo eléctrico"
+        }
+      ]
+    },
+    {
+      "id": "seg-local-check-gas",
+      "fieldType": "Select",
+      "label": "Sistema de Gas",
+      "required": true,
+      "options": [
+        {
+          "value": "cerrado",
+          "label": "Llaves de gas completamente cerradas"
+        },
+        {
+          "value": "parcial",
+          "label": "Control de gas verificado"
+        },
+        {
+          "value": "abierta",
+          "label": "RIESGO: Llaves de gas abiertas"
+        }
+      ]
+    },
+    {
+      "id": "seg-local-separator-3",
+      "fieldType": "Separator",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "seg-local-section-evidencias",
+      "fieldType": "SubTitle",
+      "label": "3. 📷 Evidencias de Seguridad",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "seg-local-foto-entrada",
+      "fieldType": "Photo",
+      "label": "📷 Foto de Entrada Principal",
+      "required": true
+    },
+    {
+      "id": "seg-local-foto-areas",
+      "fieldType": "Photo",
+      "label": "📷 Foto General del Área Principal",
+      "required": true
+    },
+    {
+      "id": "seg-local-observaciones",
+      "fieldType": "Textarea",
+      "label": "Observaciones de Seguridad",
+      "required": false,
+      "extraAttributes": {
+        "placeholder": "Registre cualquier observación o incidente relacionado con la seguridad..."
+      }
+    },
+    {
+      "id": "seg-local-firma",
+      "fieldType": "Signature",
+      "label": "Firma de Confirmación de Seguridad",
+      "required": true
+    }
+  ]
+}

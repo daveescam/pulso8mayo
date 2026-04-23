@@ -1,0 +1,506 @@
+import { db } from "@/lib/db";
+import { inventoryItems, inventoryBatches, inventoryMovements, suppliers, inventoryPriceHistory, inventoryTransfers, inventoryTransferItems } from "@/lib/db/schema";
+import { eq, and, sql, desc, inArray } from "drizzle-orm";
+
+export class InventoryService {
+
+    // --- Items ---
+
+    static async getItems(companyId: string, search?: string) {
+        // Basic list with search
+        // Ideally we would join with batches to get total stock, 
+        // but for now let's just return items
+        return db.select()
+            .from(inventoryItems)
+            .where(
+                and(
+                    eq(inventoryItems.companyId, companyId),
+                    eq(inventoryItems.active, true),
+                    // Add search logic if needed
+                )
+            );
+    }
+
+    static async getItem(id: string) {
+        return db.query.inventoryItems.findFirst({
+            where: eq(inventoryItems.id, id)
+        });
+    }
+
+    static async createItem(data: typeof inventoryItems.$inferInsert & { userId?: string }) {
+        const [item] = await db.insert(inventoryItems).values(data).returning();
+
+        // Initial Price History Logic if cost is provided
+        if (data.lastCost && data.userId) {
+            await db.insert(inventoryPriceHistory).values({
+                itemId: item.id,
+                newCost: data.lastCost,
+                changedBy: data.userId,
+            });
+        }
+
+        return item;
+    }
+
+    static async updateItem(id: string, data: Partial<typeof inventoryItems.$inferInsert>, userId?: string) {
+        // 1. Check if cost changed
+        if (data.lastCost !== undefined && userId) {
+            const currentItem = await this.getItem(id);
+            if (currentItem && currentItem.lastCost !== data.lastCost) {
+                await db.insert(inventoryPriceHistory).values({
+                    itemId: id,
+                    previousCost: currentItem.lastCost,
+                    newCost: data.lastCost,
+                    supplierId: data.supplierId || currentItem.supplierId,
+                    changedBy: userId,
+                });
+            }
+        }
+
+        const [item] = await db.update(inventoryItems)
+            .set({ ...data, updatedAt: new Date() })
+            .where(eq(inventoryItems.id, id))
+            .returning();
+        return item;
+    }
+
+    // --- Batches ---
+
+    static async getBatches(itemId: string, branchId: string) {
+        return db.select()
+            .from(inventoryBatches)
+            .where(
+                and(
+                    eq(inventoryBatches.itemId, itemId),
+                    eq(inventoryBatches.branchId, branchId),
+                    desc(inventoryBatches.expirationDate)
+                )
+            );
+    }
+
+    static async createBatch(data: typeof inventoryBatches.$inferInsert) {
+        const [batch] = await db.insert(inventoryBatches).values(data).returning();
+        return batch;
+    }
+
+    // --- Transactions (Movements) ---
+
+    static async recordMovement(data: {
+        branchId: string;
+        itemId: string;
+        batchId?: string;
+        type: 'RECEIVING' | 'USAGE' | 'ADJUSTMENT' | 'TRANSFER' | 'WASTE' | 'RETURN';
+        quantityChange: number;
+        reason?: string;
+        performedBy: string;
+    }) {
+        return await db.transaction(async (tx) => {
+            // 1. Record Movement
+            const [movement] = await tx.insert(inventoryMovements).values({
+                branchId: data.branchId,
+                itemId: data.itemId,
+                batchId: data.batchId,
+                type: data.type,
+                quantityChange: data.quantityChange,
+                reason: data.reason,
+                performedBy: data.performedBy,
+            }).returning();
+
+            // 2. Update Batch if exists
+            if (data.batchId) {
+                await tx.update(inventoryBatches)
+                    .set({
+                        currentQuantity: sql`${inventoryBatches.currentQuantity} + ${data.quantityChange}`,
+                        updatedAt: new Date()
+                    })
+                    .where(eq(inventoryBatches.id, data.batchId));
+            }
+
+            // 3. Update Item total (if we stored it, but we calculate it dynamically or just rely on batches)
+            // For now, we rely on batches for specific stock, but maybe we want a cache on the item or a separate inventory_stock table?
+            // "Inventory tracking by branch" -> We might need a table `inventory_stock` (itemId, branchId, quantity)
+            // for non-batch items or aggregated view.
+
+            // NOTE: For MVP, if everything has a batch, we sum batches. 
+            // If we allow non-batched items, we need `inventory_stock`.
+            // Let's assume for now we might need `inventory_stock` or just sum batches.
+            // Requirement says "Batch/lot tracking". 
+
+            return movement;
+        });
+    }
+
+    static async getStockLevel(itemId: string, branchId: string) {
+        // Sum of all generic available batches
+        const result = await db.select({
+            total: sql<number>`sum(${inventoryBatches.currentQuantity})`
+        })
+            .from(inventoryBatches)
+            .where(
+                and(
+                    eq(inventoryBatches.itemId, itemId),
+                    eq(inventoryBatches.branchId, branchId),
+                    eq(inventoryBatches.status, 'AVAILABLE')
+                )
+            );
+
+        return result[0]?.total || 0;
+    }
+
+    static async getMovements(itemId: string, branchId: string) {
+        return db.select()
+            .from(inventoryMovements)
+            .where(
+                and(
+                    eq(inventoryMovements.itemId, itemId),
+                    eq(inventoryMovements.branchId, branchId)
+                )
+            )
+            .orderBy(desc(inventoryMovements.timestamp));
+    }
+
+    // --- Suppliers ---
+
+    static async getSuppliers(companyId: string) {
+        return db.select()
+            .from(suppliers)
+            .where(
+                and(
+                    eq(suppliers.companyId, companyId),
+                    eq(suppliers.active, true)
+                )
+            )
+            .orderBy(desc(suppliers.createdAt));
+    }
+
+    static async getSupplier(id: string) {
+        return db.query.suppliers.findFirst({
+            where: eq(suppliers.id, id)
+        });
+    }
+
+    // --- Stock Management ---
+
+    static async getAllStockLevels(branchId: string) {
+        // Get all items with their total stock levels for a branch
+        const result = await db.select({
+            itemId: inventoryBatches.itemId,
+            totalStock: sql<number>`sum(${inventoryBatches.currentQuantity})`,
+            batchCount: sql<number>`count(${inventoryBatches.id})`,
+        })
+        .from(inventoryBatches)
+        .where(
+            and(
+                eq(inventoryBatches.branchId, branchId),
+                eq(inventoryBatches.status, 'AVAILABLE')
+            )
+        )
+        .groupBy(inventoryBatches.itemId);
+
+        return result;
+    }
+
+    static async getItemsWithLowStock(branchId: string, minLevel?: number) {
+        // Get items where total stock is below minimum level
+        const stockLevels = await db.select({
+            itemId: inventoryBatches.itemId,
+            totalStock: sql<number>`sum(${inventoryBatches.currentQuantity})`,
+        })
+        .from(inventoryBatches)
+        .where(
+            and(
+                eq(inventoryBatches.branchId, branchId),
+                eq(inventoryBatches.status, 'AVAILABLE')
+            )
+        )
+        .groupBy(inventoryBatches.itemId);
+
+        // Get item details with minLevel
+        const itemIds = stockLevels.map(s => s.itemId);
+        if (itemIds.length === 0) return [];
+
+        const items = await db.select({
+            id: inventoryItems.id,
+            name: inventoryItems.name,
+            sku: inventoryItems.sku,
+            minLevel: inventoryItems.minLevel,
+            unit: inventoryItems.unit,
+        })
+        .from(inventoryItems)
+        .where(inArray(inventoryItems.id, itemIds));
+
+        // Filter items below min level
+        const lowStockItems = items.filter(item => {
+            const stock = stockLevels.find(s => s.itemId === item.itemId);
+            const threshold = minLevel ?? item.minLevel ?? 0;
+            return stock && stock.totalStock < threshold;
+        });
+
+        return lowStockItems;
+    }
+
+    // --- Transfers ---
+
+    static async createTransfer(data: {
+        fromBranchId: string;
+        toBranchId: string;
+        requestedBy: string;
+        items: Array<{
+            itemId: string;
+            batchId?: string;
+            requestedQuantity: number;
+            notes?: string;
+        }>;
+        notes?: string;
+    }) {
+        return await db.transaction(async (tx) => {
+            // Generate transfer number
+            const transferNumber = `TRF-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+
+            // Create transfer header
+            const [transfer] = await tx.insert(inventoryTransfers).values({
+                transferNumber,
+                fromBranchId: data.fromBranchId,
+                toBranchId: data.toBranchId,
+                status: 'PENDING',
+                requestedBy: data.requestedBy,
+                notes: data.notes,
+            }).returning();
+
+            // Create transfer items
+            const transferItemsData = data.items.map(item => ({
+                transferId: transfer.id,
+                itemId: item.itemId,
+                batchId: item.batchId,
+                requestedQuantity: item.requestedQuantity,
+                notes: item.notes,
+            }));
+
+            const transferItems = await tx.insert(inventoryTransferItems).values(transferItemsData).returning();
+
+            return { transfer, items: transferItems };
+        });
+    }
+
+    static async getTransfer(id: string) {
+        return db.query.inventoryTransfers.findFirst({
+            where: eq(inventoryTransfers.id, id),
+            with: {
+                items: true,
+            }
+        });
+    }
+
+    static async getTransfersByBranch(branchId: string, role: 'from' | 'to' | 'both' = 'both') {
+        const conditions = [];
+        
+        if (role === 'from') {
+            conditions.push(eq(inventoryTransfers.fromBranchId, branchId));
+        } else if (role === 'to') {
+            conditions.push(eq(inventoryTransfers.toBranchId, branchId));
+        } else {
+            conditions.push(
+                sql`${inventoryTransfers.fromBranchId} = ${branchId} OR ${inventoryTransfers.toBranchId} = ${branchId}`
+            );
+        }
+
+        return db.select({
+            transfer: inventoryTransfers,
+            items: sql<Array<any>>`ARRAY_AGG(ROW(${inventoryTransferItems.id}, ${inventoryTransferItems.itemId}, ${inventoryTransferItems.requestedQuantity}, ${inventoryTransferItems.approvedQuantity}, ${inventoryTransferItems.shippedQuantity}, ${inventoryTransferItems.receivedQuantity})) FILTER (WHERE ${inventoryTransferItems.id} IS NOT NULL)`,
+        })
+        .from(inventoryTransfers)
+        .leftJoin(inventoryTransferItems, eq(inventoryTransfers.id, inventoryTransferItems.transferId))
+        .where(sql.join(...conditions))
+        .groupBy(inventoryTransfers.id)
+        .orderBy(desc(inventoryTransfers.requestedAt));
+    }
+
+    static async approveTransfer(transferId: string, approvedBy: string, items?: Array<{ id: string; approvedQuantity: number }>) {
+        return await db.transaction(async (tx) => {
+            // Update transfer status
+            const [transfer] = await tx.update(inventoryTransfers)
+                .set({
+                    status: 'APPROVED',
+                    approvedBy,
+                    approvedAt: new Date(),
+                })
+                .where(eq(inventoryTransfers.id, transferId))
+                .returning();
+
+            // Update item quantities if provided
+            if (items && items.length > 0) {
+                for (const item of items) {
+                    await tx.update(inventoryTransferItems)
+                        .set({ approvedQuantity: item.approvedQuantity })
+                        .where(
+                            and(
+                                eq(inventoryTransferItems.transferId, transferId),
+                                eq(inventoryTransferItems.id, item.id)
+                            )
+                        );
+                }
+            }
+
+            return transfer;
+        });
+    }
+
+    static async rejectTransfer(transferId: string, rejectedBy: string, reason: string) {
+        return await db.transaction(async (tx) => {
+            const [transfer] = await tx.update(inventoryTransfers)
+                .set({
+                    status: 'REJECTED',
+                    approvedBy: rejectedBy,
+                    rejectedAt: new Date(),
+                    rejectionReason: reason,
+                })
+                .where(eq(inventoryTransfers.id, transferId))
+                .returning();
+
+            return transfer;
+        });
+    }
+
+    static async shipTransfer(transferId: string, shippedBy: string) {
+        return await db.transaction(async (tx) => {
+            // Get transfer with items
+            const transfer = await db.query.inventoryTransfers.findFirst({
+                where: eq(inventoryTransfers.id, transferId),
+                with: {
+                    items: {
+                        with: {
+                            batch: true,
+                        }
+                    }
+                }
+            });
+
+            if (!transfer) {
+                throw new Error("Transfer not found");
+            }
+
+            if (transfer.status !== 'APPROVED') {
+                throw new Error("Transfer must be approved before shipping");
+            }
+
+            // Update transfer status
+            const [updatedTransfer] = await tx.update(inventoryTransfers)
+                .set({
+                    status: 'IN_TRANSIT',
+                    shippedBy,
+                    shippedAt: new Date(),
+                })
+                .where(eq(inventoryTransfers.id, transferId))
+                .returning();
+
+            // Decrease stock from origin branch
+            for (const item of transfer.items) {
+                if (item.batchId) {
+                    // Decrease from specific batch
+                    await tx.update(inventoryBatches)
+                        .set({
+                            currentQuantity: sql`${inventoryBatches.currentQuantity} - ${item.requestedQuantity}`,
+                            updatedAt: new Date(),
+                        })
+                        .where(eq(inventoryBatches.id, item.batchId));
+                }
+
+                // Record movement
+                await tx.insert(inventoryMovements).values({
+                    branchId: transfer.fromBranchId,
+                    itemId: item.itemId,
+                    batchId: item.batchId,
+                    type: 'TRANSFER',
+                    quantityChange: -item.requestedQuantity,
+                    reason: `Transfer to branch ${transfer.toBranchId}`,
+                    performedBy: shippedBy,
+                    referenceId: transferId,
+                });
+
+                // Update shipped quantity
+                await tx.update(inventoryTransferItems)
+                    .set({ shippedQuantity: item.requestedQuantity })
+                    .where(eq(inventoryTransferItems.id, item.id));
+            }
+
+            return updatedTransfer;
+        });
+    }
+
+    static async receiveTransfer(transferId: string, receivedBy: string, items?: Array<{ id: string; receivedQuantity: number }>) {
+        return await db.transaction(async (tx) => {
+            // Get transfer with items
+            const transfer = await db.query.inventoryTransfers.findFirst({
+                where: eq(inventoryTransfers.id, transferId),
+                with: {
+                    items: true,
+                }
+            });
+
+            if (!transfer) {
+                throw new Error("Transfer not found");
+            }
+
+            if (transfer.status !== 'IN_TRANSIT') {
+                throw new Error("Transfer must be in transit before receiving");
+            }
+
+            // Update transfer status
+            const [updatedTransfer] = await tx.update(inventoryTransfers)
+                .set({
+                    status: 'COMPLETED',
+                    receivedBy,
+                    receivedAt: new Date(),
+                })
+                .where(eq(inventoryTransfers.id, transferId))
+                .returning();
+
+            // Increase stock in destination branch
+            const itemsToProcess = items || transfer.items;
+            
+            for (const item of itemsToProcess) {
+                const quantity = items ? item.receivedQuantity : item.requestedQuantity;
+                
+                // Create new batch in destination branch
+                const sourceBatch = item.batchId ? await db.query.inventoryBatches.findFirst({
+                    where: eq(inventoryBatches.id, item.batchId)
+                }) : null;
+
+                const [newBatch] = await tx.insert(inventoryBatches).values({
+                    itemId: item.itemId,
+                    branchId: transfer.toBranchId,
+                    initialQuantity: quantity,
+                    currentQuantity: quantity,
+                    lotNumber: sourceBatch?.lotNumber || `TRF-BATCH-${Date.now()}`,
+                    expirationDate: sourceBatch?.expirationDate,
+                    productionDate: sourceBatch?.productionDate,
+                    status: 'AVAILABLE',
+                }).returning();
+
+                // Record movement
+                await tx.insert(inventoryMovements).values({
+                    branchId: transfer.toBranchId,
+                    itemId: item.itemId,
+                    batchId: newBatch.id,
+                    type: 'TRANSFER',
+                    quantityChange: quantity,
+                    reason: `Transfer from branch ${transfer.fromBranchId}`,
+                    performedBy: receivedBy,
+                    referenceId: transferId,
+                });
+
+                // Update received quantity
+                if (items) {
+                    const transferItem = items.find(i => i.id === item.id);
+                    if (transferItem) {
+                        await tx.update(inventoryTransferItems)
+                            .set({ receivedQuantity: transferItem.receivedQuantity })
+                            .where(eq(inventoryTransferItems.id, item.id));
+                    }
+                }
+            }
+
+            return updatedTransfer;
+        });
+    }
+}

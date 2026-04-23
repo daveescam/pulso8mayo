@@ -1,0 +1,203 @@
+import { db } from "@/lib/db";
+import { magicLinks, workflowInstances } from "@/lib/db/schema";
+import { eq, and, gt } from "drizzle-orm";
+import { nanoid } from "nanoid";
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = process.env.JWT_SECRET || nanoid(32);
+
+export interface SmartLinkContext {
+    token: string;
+    expiresAt: Date;
+    url: string;
+    instanceId: string;
+    workflowTemplateId: string;
+    sessionId: string;
+}
+
+export interface ValidatedSmartLink {
+    link: typeof magicLinks.$inferSelect;
+    instance: typeof workflowInstances.$inferSelect;
+}
+
+export class SmartLinkService {
+    /**
+     * Generate a new smart link with encrypted JWT token for a specific workflow instance
+     * @param instanceId The ID of the workflow instance
+     * @param templateId The ID of the workflow template
+     * @param sessionId Optional session ID if linked to a specific shift
+     * @param expiresInMinutes Duration in minutes before the link expires
+     */
+    static async createSmartLink(
+        instanceId: string,
+        templateId: string,
+        sessionId: string,
+        expiresInMinutes: number = 60 * 24 // Default 24 hours
+    ): Promise<SmartLinkContext> {
+        const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
+        
+        // Create JWT token with encrypted payload containing instance and session info
+        const token = jwt.sign(
+            {
+                instanceId,
+                templateId,
+                sessionId,
+                type: 'SMART_LINK',
+                iat: Math.floor(Date.now() / 1000),
+                exp: Math.floor(expiresAt.getTime() / 1000)
+            },
+            JWT_SECRET,
+            { algorithm: 'HS256' }
+        );
+
+        // Store the token in database for tracking
+        await db.insert(magicLinks).values({
+            token,
+            instanceId,
+            workflowTemplateId: templateId,
+            sessionId,
+            status: 'PENDING',
+            expiresAt,
+        });
+
+        return {
+            token,
+            expiresAt,
+            url: `${process.env.NEXT_PUBLIC_APP_URL}/workflow/public/${token}`,
+            instanceId,
+            workflowTemplateId: templateId,
+            sessionId
+        };
+    }
+
+    /**
+     * Validate a token and return the associated context
+     * @param token The smart link token (JWT)
+     */
+    static async validateSmartLink(token: string): Promise<ValidatedSmartLink | null> {
+        try {
+            // First verify the JWT token
+            const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as jwt.JwtPayload;
+            
+            // Check if it's a valid smart link token
+            if (decoded.type !== 'SMART_LINK') {
+                console.warn('[SmartLink] Invalid token type');
+                return null;
+            }
+
+            // Check database for the token status
+            const [link] = await db
+                .select()
+                .from(magicLinks)
+                .where(
+                    and(
+                        eq(magicLinks.token, token),
+                        eq(magicLinks.status, 'PENDING'),
+                        gt(magicLinks.expiresAt, new Date())
+                    )
+                )
+                .limit(1);
+
+            if (!link) {
+                console.warn('[SmartLink] Link not found, already used, or expired');
+                return null;
+            }
+
+            // Also fetch the instance to ensure it's still valid/pending
+            const [instance] = await db
+                .select()
+                .from(workflowInstances)
+                .where(eq(workflowInstances.id, link.instanceId))
+                .limit(1);
+
+            if (!instance) {
+                console.warn('[SmartLink] Associated instance not found');
+                return null;
+            }
+
+            return {
+                link,
+                instance
+            };
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            console.error('[SmartLink] Token validation failed:', errorMessage);
+            return null;
+        }
+    }
+
+    /**
+     * Mark a smart link as used (after successful workflow completion)
+     * @param token The smart link token
+     */
+    static async markSmartLinkUsed(token: string): Promise<void> {
+        await db
+            .update(magicLinks)
+            .set({
+                status: 'USED',
+                usedAt: new Date()
+            })
+            .where(eq(magicLinks.token, token));
+    }
+
+    /**
+     * Mark a smart link as failed (for escalation tracking)
+     * @param token The smart link token
+     */
+    static async markSmartLinkFailed(token: string): Promise<void> {
+        await db
+            .update(magicLinks)
+            .set({
+                status: 'FAILED',
+                usedAt: new Date()
+            })
+            .where(eq(magicLinks.token, token));
+    }
+
+    /**
+     * Get smart link statistics for a workflow instance
+     * @param instanceId The workflow instance ID
+     */
+    static async getSmartLinkStats(instanceId: string): Promise<{
+        total: number;
+        pending: number;
+        used: number;
+        failed: number;
+    }> {
+        const links = await db
+            .select()
+            .from(magicLinks)
+            .where(eq(magicLinks.instanceId, instanceId));
+
+        return {
+            total: links.length,
+            pending: links.filter(l => l.status === 'PENDING').length,
+            used: links.filter(l => l.status === 'USED').length,
+            failed: links.filter(l => l.status === 'FAILED').length
+        };
+    }
+
+    /**
+     * Refresh a smart link (invalidate old one and create new)
+     * @param oldToken The old token to invalidate
+     * @param expiresInMinutes New expiration time in minutes
+     */
+    static async refreshSmartLink(oldToken: string, expiresInMinutes?: number): Promise<SmartLinkContext | null> {
+        const oldLink = await this.validateSmartLink(oldToken);
+        
+        if (!oldLink) {
+            return null;
+        }
+
+        // Mark old token as used
+        await this.markSmartLinkUsed(oldToken);
+
+        // Create new link with same parameters
+        return await this.createSmartLink(
+            oldLink.instance.id,
+            oldLink.link.workflowTemplateId,
+            oldLink.link.sessionId,
+            expiresInMinutes
+        );
+    }
+}

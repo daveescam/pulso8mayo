@@ -1,0 +1,247 @@
+.next/dev/types/validator.ts(414,31): error TS2344: Type 'typeof import("C:/Users/david/pulso29/app/api/incidents/[id]/escalate/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/incidents/[id]/escalate">'.
+  Types of property 'POST' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ success: boolean; message: string; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/dev/types/validator.ts(423,31): error TS2344: Type 'typeof import("C:/Users/david/pulso29/app/api/incidents/[id]/remediate/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/incidents/[id]/remediate">'.
+  Types of property 'POST' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ success: { completed: boolean; message: string; step?: undefined; ... 6 more ...; attemptsRemaining?: undefined; } | { ...; } | { ...; } | { ...; }; message: string; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/dev/types/validator.ts(432,31): error TS2344: Type 'typeof import("C:/Users/david/pulso29/app/api/incidents/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/incidents/[id]">'.
+  Types of property 'GET' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ incident: { id: string; instanceId: string; stepId: string; ... 18 more ...; updatedAt: Date | null; }; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/dev/types/validator.ts(495,31): error TS2344: Type 'typeof import("C:/Users/david/pulso29/app/api/smart-links/execution/[token]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/smart-links/execution/[token]">'.
+  Types of property 'GET' are incompatible.
+    Type '(req: Request, { params }: { params: { token: string; }; }) => Promise<NextResponse<unknown>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ token: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ token: string; }>; }' is not assignable to type '{ params: { token: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'token' is missing in type 'Promise<{ token: string; }>' but required in type '{ token: string; }'.
+.next/dev/types/validator.ts(504,31): error TS2344: Type 'typeof import("C:/Users/david/pulso29/app/api/smart-links/execution/[token]/step/[stepId]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/smart-links/execution/[token]/step/[stepId]">'.
+  Types of property 'PATCH' are incompatible.
+    Type '(req: Request, { params }: { params: { token: string; stepId: string; }; }) => Promise<NextResponse<unknown>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ token: string; stepId: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ token: string; stepId: string; }>; }' is not assignable to type '{ params: { token: string; stepId: string; }; }'.
+          Types of property 'params' are incompatible.
+            Type 'Promise<{ token: string; stepId: string; }>' is missing the following properties from type '{ token: string; stepId: string; }': token, stepId
+.next/dev/types/validator.ts(630,31): error TS2344: Type 'typeof import("C:/Users/david/pulso29/app/api/workflows/assignments/[id]/reassign/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/workflows/assignments/[id]/reassign">'.
+  Types of property 'POST' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<ApiResponse<null>> | NextResponse<ApiResponse<{ id: string; instanceId: string; scheduleId: string | null; ... 12 more ...; updatedAt: Date | null; }>>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/dev/types/validator.ts(639,31): error TS2344: Type 'typeof import("C:/Users/david/pulso29/app/api/workflows/assignments/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/workflows/assignments/[id]">'.
+  Types of property 'GET' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<ApiResponse<null>> | NextResponse<ApiResponse<{ assignment: { id: string; instanceId: string; ... 13 more ...; updatedAt: Date | null; }; instance: { ...; } | null; }>>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/dev/types/validator.ts(648,31): error TS2344: Type 'typeof import("C:/Users/david/pulso29/app/api/workflows/assignments/[id]/status/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/workflows/assignments/[id]/status">'.
+  Types of property 'PATCH' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<ApiResponse<null>> | NextResponse<ApiResponse<{ id: string; instanceId: string; scheduleId: string | null; ... 12 more ...; updatedAt: Date | null; }>>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/dev/types/validator.ts(684,31): error TS2344: Type 'typeof import("C:/Users/david/pulso29/app/api/workflows/executions/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/workflows/executions/[id]">'.
+  Types of property 'GET' are incompatible.
+    Type '(req: Request, { params }: { params: { id: string; }; }) => Promise<NextResponse<unknown>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/dev/types/validator.ts(693,31): error TS2344: Type 'typeof import("C:/Users/david/pulso29/app/api/workflows/executions/[id]/steps/[stepId]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/workflows/executions/[id]/steps/[stepId]">'.
+  Types of property 'PATCH' are incompatible.
+    Type '(req: Request, { params }: { params: { id: string; stepId: string; }; }) => Promise<NextResponse<unknown>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; stepId: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; stepId: string; }>; }' is not assignable to type '{ params: { id: string; stepId: string; }; }'.
+          Types of property 'params' are incompatible.
+            Type 'Promise<{ id: string; stepId: string; }>' is missing the following properties from type '{ id: string; stepId: string; }': id, stepId
+.next/dev/types/validator.ts(720,31): error TS2344: Type 'typeof import("C:/Users/david/pulso29/app/api/workflows/schedules/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/workflows/schedules/[id]">'.
+  Types of property 'GET' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<ApiResponse<null>> | NextResponse<ApiResponse<{ id: string; templateId: string; branchId: string; ... 18 more ...; updatedAt: Date | null; }>>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/dev/types/validator.ts(729,31): error TS2344: Type 'typeof import("C:/Users/david/pulso29/app/api/workflows/schedules/[id]/toggle/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/workflows/schedules/[id]/toggle">'.
+  Types of property 'POST' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<ApiResponse<null>> | NextResponse<ApiResponse<{ id: string; templateId: string; branchId: string; ... 18 more ...; updatedAt: Date | null; }>>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/types/validator.ts(414,31): error TS2344: Type 'typeof import("C:/Users/david/pulso29/app/api/incidents/[id]/escalate/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/incidents/[id]/escalate">'.
+  Types of property 'POST' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ success: boolean; message: string; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/types/validator.ts(423,31): error TS2344: Type 'typeof import("C:/Users/david/pulso29/app/api/incidents/[id]/remediate/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/incidents/[id]/remediate">'.
+  Types of property 'POST' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ success: { completed: boolean; message: string; step?: undefined; ... 6 more ...; attemptsRemaining?: undefined; } | { ...; } | { ...; } | { ...; }; message: string; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/types/validator.ts(432,31): error TS2344: Type 'typeof import("C:/Users/david/pulso29/app/api/incidents/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/incidents/[id]">'.
+  Types of property 'GET' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ incident: { id: string; instanceId: string; stepId: string; ... 18 more ...; updatedAt: Date | null; }; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/types/validator.ts(495,31): error TS2344: Type 'typeof import("C:/Users/david/pulso29/app/api/smart-links/execution/[token]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/smart-links/execution/[token]">'.
+  Types of property 'GET' are incompatible.
+    Type '(req: Request, { params }: { params: { token: string; }; }) => Promise<NextResponse<unknown>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ token: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ token: string; }>; }' is not assignable to type '{ params: { token: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'token' is missing in type 'Promise<{ token: string; }>' but required in type '{ token: string; }'.
+.next/types/validator.ts(504,31): error TS2344: Type 'typeof import("C:/Users/david/pulso29/app/api/smart-links/execution/[token]/step/[stepId]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/smart-links/execution/[token]/step/[stepId]">'.
+  Types of property 'PATCH' are incompatible.
+    Type '(req: Request, { params }: { params: { token: string; stepId: string; }; }) => Promise<NextResponse<unknown>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ token: string; stepId: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ token: string; stepId: string; }>; }' is not assignable to type '{ params: { token: string; stepId: string; }; }'.
+          Types of property 'params' are incompatible.
+            Type 'Promise<{ token: string; stepId: string; }>' is missing the following properties from type '{ token: string; stepId: string; }': token, stepId
+.next/types/validator.ts(630,31): error TS2344: Type 'typeof import("C:/Users/david/pulso29/app/api/workflows/assignments/[id]/reassign/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/workflows/assignments/[id]/reassign">'.
+  Types of property 'POST' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<ApiResponse<null>> | NextResponse<ApiResponse<{ id: string; instanceId: string; scheduleId: string | null; ... 12 more ...; updatedAt: Date | null; }>>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/types/validator.ts(639,31): error TS2344: Type 'typeof import("C:/Users/david/pulso29/app/api/workflows/assignments/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/workflows/assignments/[id]">'.
+  Types of property 'GET' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<ApiResponse<null>> | NextResponse<ApiResponse<{ assignment: { id: string; instanceId: string; ... 13 more ...; updatedAt: Date | null; }; instance: { ...; } | null; }>>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/types/validator.ts(648,31): error TS2344: Type 'typeof import("C:/Users/david/pulso29/app/api/workflows/assignments/[id]/status/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/workflows/assignments/[id]/status">'.
+  Types of property 'PATCH' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<ApiResponse<null>> | NextResponse<ApiResponse<{ id: string; instanceId: string; scheduleId: string | null; ... 12 more ...; updatedAt: Date | null; }>>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/types/validator.ts(684,31): error TS2344: Type 'typeof import("C:/Users/david/pulso29/app/api/workflows/executions/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/workflows/executions/[id]">'.
+  Types of property 'GET' are incompatible.
+    Type '(req: Request, { params }: { params: { id: string; }; }) => Promise<NextResponse<unknown>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/types/validator.ts(693,31): error TS2344: Type 'typeof import("C:/Users/david/pulso29/app/api/workflows/executions/[id]/steps/[stepId]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/workflows/executions/[id]/steps/[stepId]">'.
+  Types of property 'PATCH' are incompatible.
+    Type '(req: Request, { params }: { params: { id: string; stepId: string; }; }) => Promise<NextResponse<unknown>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; stepId: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; stepId: string; }>; }' is not assignable to type '{ params: { id: string; stepId: string; }; }'.
+          Types of property 'params' are incompatible.
+            Type 'Promise<{ id: string; stepId: string; }>' is missing the following properties from type '{ id: string; stepId: string; }': id, stepId
+.next/types/validator.ts(720,31): error TS2344: Type 'typeof import("C:/Users/david/pulso29/app/api/workflows/schedules/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/workflows/schedules/[id]">'.
+  Types of property 'GET' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<ApiResponse<null>> | NextResponse<ApiResponse<{ id: string; templateId: string; branchId: string; ... 18 more ...; updatedAt: Date | null; }>>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/types/validator.ts(729,31): error TS2344: Type 'typeof import("C:/Users/david/pulso29/app/api/workflows/schedules/[id]/toggle/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/workflows/schedules/[id]/toggle">'.
+  Types of property 'POST' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<ApiResponse<null>> | NextResponse<ApiResponse<{ id: string; templateId: string; branchId: string; ... 18 more ...; updatedAt: Date | null; }>>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+app/api/incidents/route.ts(95,17): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { branchId: string | SQL<unknown> | Placeholder<string, any>; instanceId: string | SQL<unknown> | Placeholder<string, any>; stepId: string | SQL<unknown> | Placeholder<...>; ... 18 more ...; resolvedAt?: Date | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'workflowInstanceId' does not exist in type '{ branchId: string | SQL<unknown> | Placeholder<string, any>; instanceId: string | SQL<unknown> | Placeholder<string, any>; stepId: string | SQL<unknown> | Placeholder<...>; ... 18 more ...; resolvedAt?: Date | ... 3 more ... | undefined; }'.
+  Overload 2 of 2, '(values: { branchId: string | SQL<unknown> | Placeholder<string, any>; instanceId: string | SQL<unknown> | Placeholder<string, any>; stepId: string | SQL<unknown> | Placeholder<...>; ... 18 more ...; resolvedAt?: Date | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'workflowInstanceId' does not exist in type '{ branchId: string | SQL<unknown> | Placeholder<string, any>; instanceId: string | SQL<unknown> | Placeholder<string, any>; stepId: string | SQL<unknown> | Placeholder<...>; ... 18 more ...; resolvedAt?: Date | ... 3 more ... | undefined; }[]'.
+app/api/templates/[id]/settings/route.ts(19,23): error TS2554: Expected 2-3 arguments, but got 1.
+app/api/templates/[id]/settings/route.ts(177,17): error TS2345: Argument of type '{ eventName: string; conditions?: Record<any, unknown> | undefined; }[]' is not assignable to parameter of type '{ eventName: string; conditions: any; }[]'.
+  Type '{ eventName: string; conditions?: Record<any, unknown> | undefined; }' is not assignable to type '{ eventName: string; conditions: any; }'.
+    Property 'conditions' is optional in type '{ eventName: string; conditions?: Record<any, unknown> | undefined; }' but required in type '{ eventName: string; conditions: any; }'.
+app/api/users/profile/route.ts(17,31): error TS2339: Property 'unauthorized' does not exist on type 'typeof ApiHandler'.
+app/dashboard/incidents/page.tsx(121,29): error TS2322: Type '{ id: string; instanceId: string; stepId: string; branchId: string; severity: "CRITICAL" | "WARNING" | "FATAL"; status: "DETECTED" | "IN_REMEDIATION" | "RESOLVED" | "ESCALATED" | null; ... 15 more ...; updatedAt: Date | null; }[]' is not assignable to type 'Incident[]'.
+  Property 'workflowInstanceId' is missing in type '{ id: string; instanceId: string; stepId: string; branchId: string; severity: "CRITICAL" | "WARNING" | "FATAL"; status: "DETECTED" | "IN_REMEDIATION" | "RESOLVED" | "ESCALATED" | null; ... 15 more ...; updatedAt: Date | null; }' but required in type 'Incident'.
+app/dashboard/team/page.tsx(202,17): error TS2322: Type '(updatedUser: User) => void' is not assignable to type '(user: User) => void'.
+  Types of parameters 'updatedUser' and 'user' are incompatible.
+    Type 'User' is not assignable to type 'User'. Two different types with this name exist, but they are unrelated.
+      Types of property 'role' are incompatible.
+        Type 'string' is not assignable to type '"ADMIN" | "GERENTE" | "EMPLEADO"'.
+components/builder/builder-header.tsx(23,13): error TS2339: Property 'elements' does not exist on type 'BuilderContextType'.
+components/builder/builder-header.tsx(23,23): error TS2339: Property 'templateMeta' does not exist on type 'BuilderContextType'.
+components/builder/builder-header.tsx(23,37): error TS2339: Property 'updateTemplateMeta' does not exist on type 'BuilderContextType'.
+components/builder/builder-properties.tsx(12,13): error TS2339: Property 'elements' does not exist on type 'BuilderContextType'.
+components/builder/builder-properties.tsx(12,23): error TS2339: Property 'selectedElementId' does not exist on type 'BuilderContextType'.
+components/builder/builder-properties.tsx(12,42): error TS2339: Property 'updateElement' does not exist on type 'BuilderContextType'.
+components/builder/builder-properties.tsx(14,43): error TS7006: Parameter 'el' implicitly has an 'any' type.
+components/builder/builder-toolkit.tsx(3,22): error TS2305: Module '"@/components/builder/builder-context"' has no exported member 'availableFields'.
+components/builder/builder-toolkit.tsx(3,39): error TS2305: Module '"@/components/builder/builder-context"' has no exported member 'FieldType'.
+components/builder/builder-toolkit.tsx(58,13): error TS2339: Property 'addElement' does not exist on type 'BuilderContextType'.
+lib/cron/workflow-reminders.ts(38,48): error TS2339: Property 'lastReminderSent' does not exist on type 'PgTableWithColumns<{ name: "workflow_assignments"; schema: undefined; columns: { id: PgColumn<{ name: "id"; tableName: "workflow_assignments"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; ... 8 more ...; generated: undefined; }, {}, {}>; ... 14 more ...; updatedAt: PgColumn<...>; }; d...'.
+lib/cron/workflow-reminders.ts(38,99): error TS2339: Property 'lastReminderSent' does not exist on type 'PgTableWithColumns<{ name: "workflow_assignments"; schema: undefined; columns: { id: PgColumn<{ name: "id"; tableName: "workflow_assignments"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; ... 8 more ...; generated: undefined; }, {}, {}>; ... 14 more ...; updatedAt: PgColumn<...>; }; d...'.
+lib/cron/workflow-reminders.ts(58,28): error TS2353: Object literal may only specify known properties, and 'lastReminderSent' does not exist in type '{ instanceId?: string | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; assignmentType?: "ROLE" | ... 5 more ... | undefined; ... 13 more ...; notes?: string | ... 3 more ... | undefined; }'.
+lib/services/ComplianceReportService.ts(2,49): error TS2307: Cannot find module 'pdf-lib' or its corresponding type declarations.
+lib/services/holiday-service.ts(15,13): error TS2322: Type 'SQL<unknown> | undefined' is not assignable to type 'SQL<unknown>'.
+  Type 'undefined' is not assignable to type 'SQL<unknown>'.
+lib/services/inventory-service.ts(50,56): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { itemId: string | SQL<unknown> | Placeholder<string, any>; newCost: number | SQL<unknown> | Placeholder<string, any>; changedBy: string | SQL<unknown> | Placeholder<...>; id?: string | ... 2 more ... | undefined; supplierId?: string | ... 3 more ... | undefined; previousCost?: number | ... 3 more ... | undefined; changedAt?: Date | ... 2 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Type 'number | null' is not assignable to type 'number | SQL<unknown> | Placeholder<string, any>'.
+      Type 'null' is not assignable to type 'number | SQL<unknown> | Placeholder<string, any>'.
+  Overload 2 of 2, '(values: { itemId: string | SQL<unknown> | Placeholder<string, any>; newCost: number | SQL<unknown> | Placeholder<string, any>; changedBy: string | SQL<unknown> | Placeholder<...>; id?: string | ... 2 more ... | undefined; supplierId?: string | ... 3 more ... | undefined; previousCost?: number | ... 3 more ... | undefined; changedAt?: Date | ... 2 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'itemId' does not exist in type '{ itemId: string | SQL<unknown> | Placeholder<string, any>; newCost: number | SQL<unknown> | Placeholder<string, any>; changedBy: string | SQL<unknown> | Placeholder<...>; id?: string | ... 2 more ... | undefined; supplierId?: string | ... 3 more ... | undefined; previousCost?: number | ... 3 more ... | undefined; c...'.
+lib/services/user-service.ts(33,26): error TS2345: Argument of type 'SQL<unknown> | undefined' is not assignable to parameter of type 'SQL<unknown>'.
+  Type 'undefined' is not assignable to type 'SQL<unknown>'.
+lib/services/workflow-execution-service.ts(249,46): error TS2339: Property 'passed' does not exist on type '{}'.
+lib/services/workflow-template-service.ts(10,64): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { name: string | SQL<unknown> | Placeholder<string, any>; companyId: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<...> | undefined; ... 10 more ...; isCritical?: boolean | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'title' does not exist in type '{ name: string | SQL<unknown> | Placeholder<string, any>; companyId: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; ... 10 more ...; isCritical?: boolean | ... 3 more ... | undefined; }'.
+  Overload 2 of 2, '(values: { name: string | SQL<unknown> | Placeholder<string, any>; companyId: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<...> | undefined; ... 10 more ...; isCritical?: boolean | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'id' does not exist in type '{ name: string | SQL<unknown> | Placeholder<string, any>; companyId: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; ... 10 more ...; isCritical?: boolean | ... 3 more ... | undefined; }[]'.
+lib/whatsapp/handlers/labor-handler.ts(114,21): error TS2353: Object literal may only specify known properties, and 'updatedAt' does not exist in type '{ userId?: string | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; branchId?: string | SQL<...> | PgColumn<...> | undefined; ... 8 more ...; complianceFlags?: unknown; }'.
+lib/whatsapp/handlers/labor-handler.ts(182,37): error TS2339: Property 'endedAt' does not exist on type 'PgTableWithColumns<{ name: "break_logs"; schema: undefined; columns: { id: PgColumn<{ name: "id"; tableName: "break_logs"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; hasDefault: true; ... 6 more ...; generated: undefined; }, {}, {}>; ... 4 more ...; type: PgColumn<......'.
+lib/whatsapp/handlers/labor-handler.ts(189,92): error TS2339: Property 'startedAt' does not exist on type '{ id: string; sessionId: string; startTime: Date; endTime: Date | null; durationMinutes: number | null; type: string | null; }'.
+lib/whatsapp/handlers/labor-handler.ts(196,59): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { sessionId: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; startTime?: Date | SQL<...> | Placeholder<...> | undefined; endTime?: Date | ... 3 more ... | undefined; durationMinutes?: number | ... 3 more ... | undefined; type?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'userId' does not exist in type '{ sessionId: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; startTime?: Date | SQL<...> | Placeholder<...> | undefined; endTime?: Date | ... 3 more ... | undefined; durationMinutes?: number | ... 3 more ... | undefined; type?: string | ... 3 more ...'.
+  Overload 2 of 2, '(values: { sessionId: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; startTime?: Date | SQL<...> | Placeholder<...> | undefined; endTime?: Date | ... 3 more ... | undefined; durationMinutes?: number | ... 3 more ... | undefined; type?: string | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'sessionId' does not exist in type '{ sessionId: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; startTime?: Date | SQL<...> | Placeholder<...> | undefined; endTime?: Date | ... 3 more ... | undefined; durationMinutes?: number | ... 3 more ... | undefined; type?: string | ... 3 more ...'.
+lib/whatsapp/handlers/labor-handler.ts(207,36): error TS2339: Property 'startedAt' does not exist on type '{ id: string; sessionId: string; startTime: Date; endTime: Date | null; durationMinutes: number | null; type: string | null; }'.
+lib/whatsapp/handlers/labor-handler.ts(245,37): error TS2339: Property 'endedAt' does not exist on type 'PgTableWithColumns<{ name: "break_logs"; schema: undefined; columns: { id: PgColumn<{ name: "id"; tableName: "break_logs"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; hasDefault: true; ... 6 more ...; generated: undefined; }, {}, {}>; ... 4 more ...; type: PgColumn<......'.
+lib/whatsapp/handlers/labor-handler.ts(258,81): error TS2339: Property 'startedAt' does not exist on type '{ id: string; sessionId: string; startTime: Date; endTime: Date | null; durationMinutes: number | null; type: string | null; }'.
+lib/whatsapp/handlers/labor-handler.ts(262,21): error TS2353: Object literal may only specify known properties, and 'endedAt' does not exist in type '{ sessionId?: string | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; id?: string | SQL<unknown> | PgColumn<...> | undefined; startTime?: Date | ... 2 more ... | undefined; endTime?: Date | ... 3 more ... | undefined; durationMinutes?: number | ... 3 more ... | undefined; type...'.
+lib/whatsapp/handlers/labor-handler.ts(272,21): error TS2353: Object literal may only specify known properties, and 'updatedAt' does not exist in type '{ userId?: string | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; branchId?: string | SQL<...> | PgColumn<...> | undefined; ... 8 more ...; complianceFlags?: unknown; }'.
+lib/whatsapp/handlers/labor-handler.ts(328,37): error TS2339: Property 'endedAt' does not exist on type 'PgTableWithColumns<{ name: "break_logs"; schema: undefined; columns: { id: PgColumn<{ name: "id"; tableName: "break_logs"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; hasDefault: true; ... 6 more ...; generated: undefined; }, {}, {}>; ... 4 more ...; type: PgColumn<......'.
+lib/whatsapp/handlers/labor-handler.ts(339,78): error TS2339: Property 'startedAt' does not exist on type '{ id: string; sessionId: string; startTime: Date; endTime: Date | null; durationMinutes: number | null; type: string | null; }'.
+lib/whatsapp/handlers/labor-handler.ts(340,83): error TS2339: Property 'startedAt' does not exist on type '{ id: string; sessionId: string; startTime: Date; endTime: Date | null; durationMinutes: number | null; type: string | null; }'.
+lib/whatsapp/message-router.ts(172,24): error TS2304: Cannot find name 'workflowAssignments'.
+lib/whatsapp/message-router.ts(173,24): error TS2304: Cannot find name 'workflowAssignments'.
+lib/whatsapp/message-router.ts(199,55): error TS2339: Property 'template' does not exist on type 'never'.
+lib/whatsapp/session-manager.ts(187,38): error TS2339: Property 'errorCount' does not exist on type 'SessionInfo'.
+lib/whatsapp/session-manager.ts(193,22): error TS2339: Property 'errorCount' does not exist on type 'SessionInfo'.
+lib/whatsapp/session-manager.ts(220,13): error TS2353: Object literal may only specify known properties, and 'errorCount' does not exist in type 'SessionInfo'.
+scripts/seed.ts(3,53): error TS2305: Module '"@/lib/db/schema"' has no exported member 'shifts'.
+scripts/seed.ts(98,47): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { userId: string | SQL<unknown> | Placeholder<string, any>; startTime: string | SQL<unknown> | Placeholder<string, any>; endTime: string | SQL<unknown> | Placeholder<...>; ... 9 more ...; shiftName?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Argument of type '{ branchId: string; userId: string; role: any; startTime: Date; endTime: Date; status: string; }[]' is not assignable to parameter of type '{ userId: string | SQL<unknown> | Placeholder<string, any>; startTime: string | SQL<unknown> | Placeholder<string, any>; endTime: string | SQL<unknown> | Placeholder<...>; ... 9 more ...; shiftName?: string | ... 3 more ... | undefined; }'.
+      Type '{ branchId: string; userId: string; role: any; startTime: Date; endTime: Date; status: string; }[]' is missing the following properties from type '{ userId: string | SQL<unknown> | Placeholder<string, any>; startTime: string | SQL<unknown> | Placeholder<string, any>; endTime: string | SQL<unknown> | Placeholder<...>; ... 9 more ...; shiftName?: string | ... 3 more ... | undefined; }': userId, startTime, endTime, branchId
+  Overload 2 of 2, '(values: { userId: string | SQL<unknown> | Placeholder<string, any>; startTime: string | SQL<unknown> | Placeholder<string, any>; endTime: string | SQL<unknown> | Placeholder<...>; ... 9 more ...; shiftName?: string | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Argument of type '{ branchId: string; userId: string; role: any; startTime: Date; endTime: Date; status: string; }[]' is not assignable to parameter of type '{ userId: string | SQL<unknown> | Placeholder<string, any>; startTime: string | SQL<unknown> | Placeholder<string, any>; endTime: string | SQL<unknown> | Placeholder<...>; ... 9 more ...; shiftName?: string | ... 3 more ... | undefined; }[]'.
+      Type '{ branchId: string; userId: string; role: any; startTime: Date; endTime: Date; status: string; }' is not assignable to type '{ userId: string | SQL<unknown> | Placeholder<string, any>; startTime: string | SQL<unknown> | Placeholder<string, any>; endTime: string | SQL<unknown> | Placeholder<...>; ... 9 more ...; shiftName?: string | ... 3 more ... | undefined; }'.
+        Types of property 'startTime' are incompatible.
+          Type 'Date' is not assignable to type 'string | SQL<unknown> | Placeholder<string, any>'.

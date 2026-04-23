@@ -1,0 +1,291 @@
+{
+  "id": "tpl-mantenimiento-equipos-v1",
+  "nombre": "🔧 Mantenimiento de Equipos - Refrigeradores",
+  "descripcion": "Verificación y mantenimiento preventivo de equipos de refrigeración",
+  "tipo": "MANTENIMIENTO",
+  "categoria": "MANTENIMIENTO",
+  "version": 1,
+  "activo": true,
+  "requiereIA": true,
+  "duracionEstimada": "15-20 min",
+  "cumplimientoNormativo": [
+    "NOM-251-SSA1-2009"
+  ],
+  "tags": [
+    "mantenimiento",
+    "refrigerador",
+    "equipo",
+    "preventivo",
+    "seguridad"
+  ],
+  "aiConfig": {
+    "provider": "openai",
+    "maxRetries": 2
+  },
+  "alertConfig": {
+    "criticalThreshold": {
+      "priority": "ALTA",
+      "notifyImmediately": true,
+      "notifyRoles": [
+        "GERENTE",
+        "SUPERVISOR"
+      ],
+      "channels": [
+        "whatsapp",
+        "email",
+        "dashboard"
+      ]
+    }
+  },
+  "complianceConfig": {
+    "complianceType": "NOM-251",
+    "regulationSection": "5.2.2 (Mantenimiento de equipo)",
+    "requiredFrequency": "weekly",
+    "auditable": true,
+    "evidenceRequired": true,
+    "criticalForCompliance": true
+  },
+  "pasos": [
+    {
+      "id": "mant-equip-title",
+      "fieldType": "Title",
+      "label": "🔧 Mantenimiento de Equipos - Refrigeradores",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "mant-equip-intro",
+      "fieldType": "Paragraph",
+      "label": "Realice la verificación y mantenimiento preventivo de los equipos de refrigeración según el protocolo establecido.",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "mant-equip-timestamp",
+      "fieldType": "DateTime",
+      "label": "Fecha y Hora del Mantenimiento",
+      "required": true,
+      "extraAttributes": {
+        "defaultValue": "now",
+        "readonly": true
+      }
+    },
+    {
+      "id": "mant-equip-refrigerador-seleccion",
+      "fieldType": "Select",
+      "label": "Seleccione el Refrigerador a Revisar",
+      "required": true,
+      "options": [
+        {
+          "value": "ref_1",
+          "label": "Refrigerador Principal"
+        },
+        {
+          "value": "ref_2",
+          "label": "Refrigerador Secundario"
+        },
+        {
+          "value": "ref_3",
+          "label": "Congelador"
+        },
+        {
+          "value": "ref_4",
+          "label": "Mostrador Refrigerado"
+        }
+      ]
+    },
+    {
+      "id": "mant-equip-separator-1",
+      "fieldType": "Separator",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "mant-equip-section-visual",
+      "fieldType": "SubTitle",
+      "label": "1. 🔍 Inspección Visual",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "mant-equip-foto-general",
+      "fieldType": "Photo",
+      "label": "📷 Foto General del Equipo",
+      "required": true,
+      "aiVerification": {
+        "enabled": true,
+        "type": "QUALITY_ANALYSIS",
+        "provider": "openai",
+        "prompt": "Analiza esta imagen de un refrigerador industrial. Evalúa su estado general, presencia de daños visibles, corrosión, o cualquier problema estructural. Clasifica como: EXCELENTE, BUENO, ACEPTABLE, DEFICIENTE, INACEPTABLE. Proporciona una breve justificación.",
+        "confidenceThreshold": 0.8,
+        "autoApprove": false,
+        "requireManualReviewIfFailed": true
+      }
+    },
+    {
+      "id": "mant-equip-check-estado",
+      "fieldType": "Checkbox",
+      "label": "Equipo en buenas condiciones visibles",
+      "required": true
+    },
+    {
+      "id": "mant-equip-check-sellado",
+      "fieldType": "Checkbox",
+      "label": "Sellado y uniones en buen estado",
+      "required": true
+    },
+    {
+      "id": "mant-equip-separator-2",
+      "fieldType": "Separator",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "mant-equip-section-funcionamiento",
+      "fieldType": "SubTitle",
+      "label": "2. ⚙️ Funcionamiento del Equipo",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "mant-equip-foto-temperatura",
+      "fieldType": "Photo",
+      "label": "📷 Foto del Panel de Control/Termómetro",
+      "required": true,
+      "aiVerification": {
+        "enabled": true,
+        "type": "OCR",
+        "provider": "moondream",
+        "prompt": "Lee el valor de temperatura mostrado en este panel de control o termómetro. Responde SOLO con el número en formato decimal (ejemplo: 3.5).",
+        "confidenceThreshold": 0.85,
+        "autoFillField": "mant-equip-lectura-actual"
+      }
+    },
+    {
+      "id": "mant-equip-lectura-actual",
+      "fieldType": "Number",
+      "label": "Temperatura Actual del Equipo (°C)",
+      "required": true,
+      "extraAttributes": {
+        "min": -30,
+        "max": 30,
+        "step": 0.1,
+        "suffix": "°C"
+      },
+      "validation": {
+        "type": "number",
+        "min": -30,
+        "max": 30,
+        "rules": [
+          {
+            "id": "temp-rule-1",
+            "condition": "value >= 0 && value <= 4",
+            "result": "PASS",
+            "message": "✅ Temperatura en rango óptimo"
+          },
+          {
+            "id": "temp-rule-2",
+            "condition": "value > 4 && value <= 7",
+            "result": "WARNING",
+            "message": "⚠️ Temperatura elevada - Requiere atención",
+            "action": "LOG_WARNING"
+          },
+          {
+            "id": "temp-rule-3",
+            "condition": "value > 7",
+            "result": "CRITICAL",
+            "message": "🚨 CRÍTICO: Equipo no mantiene temperatura adecuada",
+            "action": "CREATE_ALERT",
+            "alertConfig": {
+              "priority": "ALTA",
+              "notifyImmediately": true,
+              "notifyRoles": [
+                "SUPERVISOR",
+                "MANTENIMIENTO"
+              ],
+              "channels": [
+                "whatsapp",
+                "dashboard"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "mant-equip-funcionamiento",
+      "fieldType": "Select",
+      "label": "Estado del Funcionamiento",
+      "required": true,
+      "options": [
+        {
+          "value": "normal",
+          "label": "Funcionamiento Normal"
+        },
+        {
+          "value": "ruido",
+          "label": "Presenta Ruido Anormal"
+        },
+        {
+          "value": "fuga",
+          "label": "Detectada Fuga de Refrigerante"
+        },
+        {
+          "value": "no_enfria",
+          "label": "No Enfría Adecuadamente"
+        },
+        {
+          "value": "otro",
+          "label": "Otro Problema (Especificar)"
+        }
+      ]
+    },
+    {
+      "id": "mant-equip-fuga-detalle",
+      "fieldType": "Textarea",
+      "label": "Detalles del Problema Detectado",
+      "required": false,
+      "extraAttributes": {
+        "placeholder": "Especifique el problema detectado...",
+        "helperText": "Describa cualquier problema específico encontrado"
+      }
+    },
+    {
+      "id": "mant-equip-separator-3",
+      "fieldType": "Separator",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "mant-equip-section-mantenimiento",
+      "fieldType": "SubTitle",
+      "label": "3. 🧽 Mantenimiento Realizado",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "mant-equip-limpieza-externa",
+      "fieldType": "Checkbox",
+      "label": "Limpieza externa del equipo realizada",
+      "required": true
+    },
+    {
+      "id": "mant-equip-limpieza-condensador",
+      "fieldType": "Checkbox",
+      "label": "Limpieza de condensador realizada",
+      "required": true
+    },
+    {
+      "id": "mant-equip-verificacion-ventilacion",
+      "fieldType": "Checkbox",
+      "label": "Verificación y limpieza de ventilación realizada",
+      "required": true
+    },
+    {
+      "id": "mant-equip-firma-mantenimiento",
+      "fieldType": "Signature",
+      "label": "Firma de Confirmación de Mantenimiento",
+      "required": true
+    }
+  ]
+}

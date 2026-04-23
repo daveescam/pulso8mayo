@@ -1,0 +1,267 @@
+{
+  "id": "tpl-control-accesos-v1",
+  "nombre": "🚪 Control de Accesos - Personal y Visitas",
+  "descripcion": "Control de acceso al establecimiento para personal, proveedores y visitas externas",
+  "tipo": "SEGURIDAD",
+  "categoria": "SEGURIDAD",
+  "version": 1,
+  "activo": true,
+  "requiereIA": false,
+  "duracionEstimada": "2-5 min por acceso",
+  "cumplimientoNormativo": [
+    "NOM-251-SSA1-2009"
+  ],
+  "tags": [
+    "acceso",
+    "personal",
+    "visitas",
+    "proveedores",
+    "registro"
+  ],
+  "alertConfig": {
+    "criticalThreshold": {
+      "priority": "ALTA",
+      "notifyImmediately": true,
+      "notifyRoles": [
+        "GERENTE",
+        "SUPERVISOR"
+      ],
+      "channels": [
+        "whatsapp",
+        "email",
+        "dashboard"
+      ]
+    }
+  },
+  "complianceConfig": {
+    "complianceType": "NOM-251",
+    "regulationSection": "5.11 (Control de visitas)",
+    "requiredFrequency": "daily",
+    "auditable": true,
+    "evidenceRequired": false,
+    "criticalForCompliance": true
+  },
+  "pasos": [
+    {
+      "id": "ctrl-accesos-title",
+      "fieldType": "Title",
+      "label": "🚪 Control de Accesos - Personal y Visitas",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "ctrl-accesos-intro",
+      "fieldType": "Paragraph",
+      "label": "Registre cada ingreso al establecimiento verificando identidad y propósito de la visita.",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "ctrl-accesos-timestamp",
+      "fieldType": "DateTime",
+      "label": "Fecha y Hora de Ingreso",
+      "required": true,
+      "extraAttributes": {
+        "defaultValue": "now",
+        "readonly": true
+      }
+    },
+    {
+      "id": "ctrl-accesos-tipo",
+      "fieldType": "Select",
+      "label": "Tipo de Ingreso",
+      "required": true,
+      "options": [
+        {
+          "value": "empleado",
+          "label": "Empleado"
+        },
+        {
+          "value": "proveedor",
+          "label": "Proveedor"
+        },
+        {
+          "value": "mantenimiento",
+          "label": "Personal de Mantenimiento"
+        },
+        {
+          "value": "inspector",
+          "label": "Inspector"
+        },
+        {
+          "value": "visita",
+          "label": "Otra Visita"
+        },
+        {
+          "value": "cliente",
+          "label": "Cliente (No operativo)"
+        }
+      ]
+    },
+    {
+      "id": "ctrl-accesos-separator-1",
+      "fieldType": "Separator",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "ctrl-accesos-section-datos",
+      "fieldType": "SubTitle",
+      "label": "1. 📋 Datos del Visitante",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "ctrl-accesos-nombre",
+      "fieldType": "Text",
+      "label": "Nombre Completo",
+      "required": true,
+      "extraAttributes": {
+        "placeholder": "Nombre completo del visitante"
+      }
+    },
+    {
+      "id": "ctrl-accesos-documento",
+      "fieldType": "Text",
+      "label": "Identificación Oficial",
+      "required": true,
+      "extraAttributes": {
+        "placeholder": "Número de identificación",
+        "helperText": "Número de identificación (INE, pasaporte, etc.)"
+      }
+    },
+    {
+      "id": "ctrl-accesos-empresa",
+      "fieldType": "Text",
+      "label": "Empresa o Razón Social",
+      "required": true,
+      "extraAttributes": {
+        "placeholder": "Nombre de la empresa o razón social"
+      }
+    },
+    {
+      "id": "ctrl-accesos-contacto",
+      "fieldType": "Text",
+      "label": "Teléfono de Contacto",
+      "required": true,
+      "extraAttributes": {
+        "placeholder": "Número de teléfono"
+      }
+    },
+    {
+      "id": "ctrl-accesos-separator-2",
+      "fieldType": "Separator",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "ctrl-accesos-section-motivo",
+      "fieldType": "SubTitle",
+      "label": "2. 🎯 Motivo del Acceso",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "ctrl-accesos-motivo",
+      "fieldType": "Text",
+      "label": "Motivo del Ingreso",
+      "required": true,
+      "extraAttributes": {
+        "placeholder": "Especifique el motivo de la visita o acceso"
+      }
+    },
+    {
+      "id": "ctrl-accesos-destino",
+      "fieldType": "Text",
+      "label": "Área o Departamento de Destino",
+      "required": true,
+      "extraAttributes": {
+        "placeholder": "Área a visitar o departamento"
+      }
+    },
+    {
+      "id": "ctrl-accesos-persona-visita",
+      "fieldType": "Text",
+      "label": "Persona que Recibe",
+      "required": false,
+      "extraAttributes": {
+        "placeholder": "Nombre de la persona que recibirá al visitante",
+        "helperText": "Nombre de la persona que espera al visitante"
+      }
+    },
+    {
+      "id": "ctrl-accesos-separator-3",
+      "fieldType": "Separator",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "ctrl-accesos-section-seguridad",
+      "fieldType": "SubTitle",
+      "label": "3. 🔒 Verificaciones de Seguridad",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "ctrl-accesos-check-identificacion",
+      "fieldType": "Checkbox",
+      "label": "Identificación verificada y válida",
+      "required": true
+    },
+    {
+      "id": "ctrl-accesos-check-autorizacion",
+      "fieldType": "Checkbox",
+      "label": "Cuenta con autorización para el acceso",
+      "required": true
+    },
+    {
+      "id": "ctrl-accesos-check-epp",
+      "fieldType": "Checkbox",
+      "label": "Equipo de protección personal adecuado (si aplica)",
+      "required": false
+    },
+    {
+      "id": "ctrl-accesos-observaciones",
+      "fieldType": "Textarea",
+      "label": "Observaciones de Seguridad",
+      "required": false,
+      "extraAttributes": {
+        "placeholder": "Registre cualquier observación relacionada con el acceso..."
+      }
+    },
+    {
+      "id": "ctrl-accesos-separator-4",
+      "fieldType": "Separator",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "ctrl-accesos-section-salida",
+      "fieldType": "SubTitle",
+      "label": "4. ⏰ Control de Salida",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "ctrl-accesos-salida-registrada",
+      "fieldType": "Checkbox",
+      "label": "Salida registrada cuando corresponda",
+      "required": false
+    },
+    {
+      "id": "ctrl-accesos-hora-salida",
+      "fieldType": "DateTime",
+      "label": "Hora de Salida (si aplica)",
+      "required": false,
+      "extraAttributes": {
+        "placeholder": "Seleccione la hora de salida"
+      }
+    },
+    {
+      "id": "ctrl-accesos-firma",
+      "fieldType": "Signature",
+      "label": "Firma de Confirmación de Registro",
+      "required": true
+    }
+  ]
+}

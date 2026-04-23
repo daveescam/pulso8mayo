@@ -1,0 +1,231 @@
+{
+  "id": "tpl-checklist-mantenimiento-v1",
+  "nombre": "📋 Checklist de Mantenimiento General",
+  "descripcion": "Verificación y mantenimiento preventivo de todos los equipos del establecimiento",
+  "tipo": "MANTENIMIENTO",
+  "categoria": "MANTENIMIENTO",
+  "version": 1,
+  "activo": true,
+  "requiereIA": false,
+  "duracionEstimada": "30-40 min",
+  "cumplimientoNormativo": [
+    "NOM-251-SSA1-2009"
+  ],
+  "tags": [
+    "mantenimiento",
+    "equipo",
+    "preventivo",
+    "general",
+    "seguridad"
+  ],
+  "alertConfig": {
+    "criticalThreshold": {
+      "priority": "ALTA",
+      "notifyImmediately": true,
+      "notifyRoles": [
+        "GERENTE",
+        "SUPERVISOR"
+      ],
+      "channels": [
+        "whatsapp",
+        "email",
+        "dashboard"
+      ]
+    }
+  },
+  "complianceConfig": {
+    "complianceType": "NOM-251",
+    "regulationSection": "5.2 (Equipo y utensilios)",
+    "requiredFrequency": "weekly",
+    "auditable": true,
+    "evidenceRequired": true,
+    "criticalForCompliance": true
+  },
+  "pasos": [
+    {
+      "id": "check-mant-title",
+      "fieldType": "Title",
+      "label": "📋 Checklist de Mantenimiento General",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "check-mant-intro",
+      "fieldType": "Paragraph",
+      "label": "Realice la verificación y mantenimiento preventivo de los equipos del establecimiento según el protocolo establecido.",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "check-mant-timestamp",
+      "fieldType": "DateTime",
+      "label": "Fecha y Hora del Mantenimiento",
+      "required": true,
+      "extraAttributes": {
+        "defaultValue": "now",
+        "readonly": true
+      }
+    },
+    {
+      "id": "check-mant-equipo-seleccion",
+      "fieldType": "Select",
+      "label": "Seleccione el Equipo a Revisar",
+      "required": true,
+      "options": [
+        {
+          "value": "estufa",
+          "label": "Estufa Industrial"
+        },
+        {
+          "value": "horno",
+          "label": "Horno Industrial"
+        },
+        {
+          "value": "freidora",
+          "label": "Freidora"
+        },
+        {
+          "value": "licuadora",
+          "label": "Licuadora Industrial"
+        },
+        {
+          "value": "cafetera",
+          "label": "Cafetera Comercial"
+        },
+        {
+          "value": "lavavajillas",
+          "label": "Lavavajillas Industrial"
+        },
+        {
+          "value": "otro",
+          "label": "Otro Equipo"
+        }
+      ]
+    },
+    {
+      "id": "check-mant-separator-1",
+      "fieldType": "Separator",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "check-mant-section-visual",
+      "fieldType": "SubTitle",
+      "label": "1. 🔍 Inspección Visual",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "check-mant-check-limpieza",
+      "fieldType": "Checkbox",
+      "label": "Equipo limpio y sin residuos visibles",
+      "required": true
+    },
+    {
+      "id": "check-mant-check-danos",
+      "fieldType": "Checkbox",
+      "label": "No presenta daños estructurales visibles",
+      "required": true
+    },
+    {
+      "id": "check-mant-check-electrico",
+      "fieldType": "Checkbox",
+      "label": "Cables y conexiones eléctricas en buen estado",
+      "required": true
+    },
+    {
+      "id": "check-mant-check-tuberia",
+      "fieldType": "Checkbox",
+      "label": "Tuberías y conexiones en buen estado (agua/gas)",
+      "required": true
+    },
+    {
+      "id": "check-mant-separator-2",
+      "fieldType": "Separator",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "check-mant-section-funcionamiento",
+      "fieldType": "SubTitle",
+      "label": "2. ⚙️ Funcionamiento del Equipo",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "check-mant-funcionamiento",
+      "fieldType": "Select",
+      "label": "Estado del Funcionamiento",
+      "required": true,
+      "options": [
+        {
+          "value": "normal",
+          "label": "Funcionamiento Normal"
+        },
+        {
+          "value": "ruido",
+          "label": "Presenta Ruido Anormal"
+        },
+        {
+          "value": "no_calienta",
+          "label": "No Alcanza Temperatura Adequada"
+        },
+        {
+          "value": "fuga",
+          "label": "Detectada Fuga"
+        },
+        {
+          "value": "otro",
+          "label": "Otro Problema (Especificar)"
+        }
+      ]
+    },
+    {
+      "id": "check-mant-funcionamiento-detalle",
+      "fieldType": "Textarea",
+      "label": "Detalles del Problema Detectado",
+      "required": false,
+      "extraAttributes": {
+        "placeholder": "Especifique el problema detectado...",
+        "helperText": "Describa cualquier problema específico encontrado"
+      }
+    },
+    {
+      "id": "check-mant-separator-3",
+      "fieldType": "Separator",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "check-mant-section-mantenimiento",
+      "fieldType": "SubTitle",
+      "label": "3. 🧽 Mantenimiento Realizado",
+      "required": false,
+      "static": true
+    },
+    {
+      "id": "check-mant-limpieza-interna",
+      "fieldType": "Checkbox",
+      "label": "Limpieza interna del equipo realizada",
+      "required": true
+    },
+    {
+      "id": "check-mant-revision-filtros",
+      "fieldType": "Checkbox",
+      "label": "Revisión y limpieza de filtros realizada",
+      "required": true
+    },
+    {
+      "id": "check-mant-verificacion-seguridad",
+      "fieldType": "Checkbox",
+      "label": "Verificación de sistemas de seguridad realizada",
+      "required": true
+    },
+    {
+      "id": "check-mant-firma-mantenimiento",
+      "fieldType": "Signature",
+      "label": "Firma de Confirmación de Mantenimiento",
+      "required": true
+    }
+  ]
+}
