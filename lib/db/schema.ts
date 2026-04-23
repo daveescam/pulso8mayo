@@ -10,6 +10,9 @@ import { sql } from "drizzle-orm";
 // Import auth tables and enums for internal use within this file
 import { account, users, sessions, verifications, magicLinks, roleEnum } from './schema/auth';
 
+// Import core tables for foreign key references
+import { companies, branches } from './schema/core';
+
 // Re-export modular schema
 export * from './schema/index';
 
@@ -30,28 +33,8 @@ export const notificationTypeEnum = pgEnum("notification_type", ['info', 'warnin
 // Note: account, users, sessions, verifications, magicLinks tables are re-exported from auth.ts
 // Keeping them here would cause duplicate identifier errors
 
-export const branches = pgTable("branches", {
-    id: uuid("id").default(sql`gen_random_uuid()`).primaryKey().notNull(),
-    companyId: uuid("company_id"),
-    name: text("name").notNull(),
-    address: text("address"),
-    timezone: text("timezone").default('America/Mexico_City'),
-    operatingHours: jsonb("operating_hours"),
-    location: jsonb("location"),
-    managerId: text("manager_id"), // Reference to user who is the branch manager (text to match users.id)
-    inviteToken: uuid("invite_token").default(sql`gen_random_uuid()`),
-    active: boolean("active").default(true),
-    createdAt: timestamp("created_at").defaultNow(),
-}, (table) => {
-    return {
-        branchesInviteTokenUnique: uniqueIndex("branches_invite_token_unique").on(table.inviteToken),
-        branchesManagerIdFk: foreignKey({
-            columns: [table.managerId],
-            foreignColumns: [users.id],
-            name: "branches_manager_id_fkey"
-        }),
-    };
-});
+// Note: companies, branches, holidays tables are re-exported from core.ts
+// These were migrated to lib/db/schema/core.ts
 
 export const breakLogs = pgTable("break_logs", {
     id: uuid("id").default(sql`gen_random_uuid()`).primaryKey().notNull(),
@@ -63,27 +46,6 @@ export const breakLogs = pgTable("break_logs", {
     isCompliant: boolean("is_compliant").default(true), // Whether break meets legal requirements
     complianceNotes: text("compliance_notes"), // Notes about compliance issues
     remindedAt: timestamp("reminded_at"), // When break reminder was sent
-});
-
-export const companies = pgTable("companies", {
-    id: uuid("id").default(sql`gen_random_uuid()`).primaryKey().notNull(),
-    name: text("name").notNull(),
-    taxId: text("tax_id"),
-    plan: text("plan").default('FREE'),
-    billingStatus: text("billing_status").default('ACTIVE'), // ACTIVE, PAST_DUE, CANCELLED
-    stripeCustomerId: text("stripe_customer_id"),
-    createdAt: timestamp("created_at").defaultNow(),
-    updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-export const holidays = pgTable("holidays", {
-    id: uuid("id").default(sql`gen_random_uuid()`).primaryKey().notNull(),
-    companyId: uuid("company_id").notNull(), // Holidays are usually company-wide or we might want branchId too? PRD says Company & Branch Management. Let's stick to Company for now, maybe add branchId optional later if needed.
-    name: text("name").notNull(),
-    date: timestamp("date").notNull(),
-    description: text("description"),
-    createdAt: timestamp("created_at").defaultNow(),
-    updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const workflowInstances = pgTable("workflow_instances", {
