@@ -289,20 +289,23 @@ export class WhatsAppNotificationDispatcher {
         }
     }
 
-    private static async checkUserPreferences(userId: string, notificationType: string): Promise<boolean> {
-        try {
-            const prefs = await db.query.notificationPreferences.findFirst({
-                where: and(
-                    eq(notificationPreferences.userId, userId),
-                    eq(notificationPreferences.channel, 'WHATSAPP')
-                )
-            });
+  private static async checkUserPreferences(userId: string, notificationType: string): Promise<boolean> {
+    try {
+      const prefs = await db.query.notificationPreferences.findFirst({
+        where: and(
+          eq(notificationPreferences.userId, userId),
+          eq(notificationPreferences.channel, 'WHATSAPP')
+        )
+      });
 
-            if (!prefs?.enabled) return false;
+      if (!prefs?.enabled) return false;
 
-            return true;
-        } catch {
-            return true;
-        }
+      return true;
+    } catch {
+      return true;
     }
+  }
 }
+
+// Export singleton instance for use in non-class contexts
+export const whatsappNotificationDispatcher = WhatsAppNotificationDispatcher;
