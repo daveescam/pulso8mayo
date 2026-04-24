@@ -45,7 +45,7 @@ export async function POST(req: Request) {
     if (error instanceof z.ZodError) {
       return new NextResponse(JSON.stringify({
         error: "Invalid request",
-        details: error.errors,
+        details: error.issues,
       }), { status: 400 });
     }
 

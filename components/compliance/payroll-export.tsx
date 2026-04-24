@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,11 +48,16 @@ interface PayrollSummary {
   totalLeaveDays: number;
 }
 
-export function PayrollExport({ companyId }: { companyId: string }) {
+interface PayrollExportProps {
+  companyId: string;
+}
+
+export function PayrollExport({ companyId }: PayrollExportProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [records, setRecords] = useState<PayrollRecord[]>([]);
+  const [records, setRecords] = useState<PayrollEmployeeRecord[]>([]);
   const [summary, setSummary] = useState<PayrollSummary | null>(null);
+  const [branches, setBranches] = useState<Array<{ id: string; name: string }>>([]);
 
   // Default to current bi-weekly period
   const now = new Date();
@@ -69,6 +74,26 @@ export function PayrollExport({ companyId }: { companyId: string }) {
   const [startDate, setStartDate] = useState(defaultStart);
   const [endDate, setEndDate] = useState(defaultEnd);
   const [format, setFormat] = useState<string>('generic');
+  const [selectedBranch, setSelectedBranch] = useState<string>('');
+
+  // Fetch branches on mount
+  useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        const res = await fetch('/api/branches');
+        if (res.ok) {
+          const data = await res.json();
+          setBranches(data.branches || []);
+        }
+      } catch (error) {
+        console.error('Error fetching branches:', error);
+      }
+    };
+
+    if (companyId) {
+      fetchBranches();
+    }
+  }, [companyId]);
 
   const handlePreview = async () => {
     setLoading(true);
@@ -76,14 +101,29 @@ export function PayrollExport({ companyId }: { companyId: string }) {
       const res = await fetch('/api/payroll/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ companyId, startDate, endDate, format }),
+        body: JSON.stringify({
+          companyId,
+          startDate,
+          endDate,
+          format,
+          ...(selectedBranch && { branchId: selectedBranch })
+        }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        setRecords(data.records || []);
+
+        // Validate that records are proper PayrollEmployeeRecord objects
+        const validRecords = (data.records || []).filter((record: any) => {
+          return record &&
+                 typeof record === 'object' &&
+                 typeof record.name === 'string' &&
+                 typeof record.employeeNumber === 'string';
+        });
+
+        setRecords(validRecords);
         setSummary(data.summary || null);
-        toast({ title: 'Datos cargados', description: `${data.records?.length || 0} empleados encontrados` });
+        toast({ title: 'Datos cargados', description: `${validRecords.length} empleados encontrados` });
       } else {
         const error = await res.json();
         toast({ title: 'Error', description: error.error, variant: 'destructive' });
@@ -101,7 +141,13 @@ export function PayrollExport({ companyId }: { companyId: string }) {
       const res = await fetch(`/api/payroll/export?output=csv`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ companyId, startDate, endDate, format }),
+        body: JSON.stringify({
+          companyId,
+          startDate,
+          endDate,
+          format,
+          ...(selectedBranch && { branchId: selectedBranch })
+        }),
       });
 
       if (res.ok) {
@@ -138,7 +184,7 @@ export function PayrollExport({ companyId }: { companyId: string }) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-2">
               <Label htmlFor="start-date">Fecha Inicio</Label>
               <Input
@@ -156,6 +202,21 @@ export function PayrollExport({ companyId }: { companyId: string }) {
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="branch">Sucursal (Opcional)</Label>
+              <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+                <SelectTrigger id="branch">
+                  <SelectValue placeholder="Seleccionar sucursal (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {branches.map(branch => (
+                    <SelectItem key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="format">Formato de Exportación</Label>
@@ -195,7 +256,7 @@ export function PayrollExport({ companyId }: { companyId: string }) {
             <CardContent>
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-muted-foreground" />
-                <span className="text-2xl font-bold">{summary.totalEmployees}</span>
+                <span className="text-2xl font-bold">{Number(summary.totalEmployees || 0)}</span>
               </div>
             </CardContent>
           </Card>
@@ -206,7 +267,7 @@ export function PayrollExport({ companyId }: { companyId: string }) {
             <CardContent>
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="text-2xl font-bold">{summary.totalDaysWorked}</span>
+                <span className="text-2xl font-bold">{Number(summary.totalDaysWorked || 0)}</span>
               </div>
             </CardContent>
           </Card>
@@ -217,7 +278,7 @@ export function PayrollExport({ companyId }: { companyId: string }) {
             <CardContent>
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-2xl font-bold">{summary.totalOvertimeHours.toFixed(1)}</span>
+                <span className="text-2xl font-bold">{Number(summary.totalOvertimeHours || 0).toFixed(1)}</span>
               </div>
             </CardContent>
           </Card>
@@ -226,7 +287,7 @@ export function PayrollExport({ companyId }: { companyId: string }) {
               <CardTitle className="text-sm font-medium">Días Vacaciones</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{summary.totalVacationDays}</div>
+              <div className="text-2xl font-bold">{Number(summary.totalVacationDays || 0)}</div>
             </CardContent>
           </Card>
           <Card>
@@ -234,7 +295,7 @@ export function PayrollExport({ companyId }: { companyId: string }) {
               <CardTitle className="text-sm font-medium">Días Permiso</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{summary.totalLeaveDays}</div>
+              <div className="text-2xl font-bold">{Number(summary.totalLeaveDays || 0)}</div>
             </CardContent>
           </Card>
         </div>
@@ -263,23 +324,30 @@ export function PayrollExport({ companyId }: { companyId: string }) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {records.map((r, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="font-mono">{r.employeeNumber || '-'}</TableCell>
-                      <TableCell className="font-medium">{r.name}</TableCell>
-                      <TableCell>{r.department || '-'}</TableCell>
-                      <TableCell className="text-right">${r.baseSalaryDaily.toFixed(2)}</TableCell>
-                      <TableCell className="text-right">{r.daysWorked}</TableCell>
-                      <TableCell className="text-right">
-                        {r.overtimeHours > 0 ? (
-                          <Badge variant="secondary">{r.overtimeHours.toFixed(1)}h</Badge>
-                        ) : '0'}
-                      </TableCell>
-                      <TableCell className="text-right">{r.vacationDays}</TableCell>
-                      <TableCell className="text-right">{r.sickDays + r.otherLeaveDays}</TableCell>
-                      <TableCell className="text-right font-bold">{r.netWorkDays}</TableCell>
-                    </TableRow>
-                  ))}
+                  {records.map((r, i) => {
+                    // Safety check - ensure r is an object with expected properties
+                    if (!r || typeof r !== 'object' || !r.name) {
+                      console.error('Invalid record:', r);
+                      return null;
+                    }
+                    return (
+                      <TableRow key={i}>
+                        <TableCell className="font-mono">{String(r.employeeNumber || '-')}</TableCell>
+                        <TableCell className="font-medium">{String(r.name)}</TableCell>
+                        <TableCell>{String(r.department || '-')}</TableCell>
+                        <TableCell className="text-right">${Number(r.baseSalaryDaily || 0).toFixed(2)}</TableCell>
+                        <TableCell className="text-right">{Number(r.daysWorked || 0)}</TableCell>
+                        <TableCell className="text-right">
+                          {Number(r.overtimeHours || 0) > 0 ? (
+                            <Badge variant="secondary">{Number(r.overtimeHours || 0).toFixed(1)}h</Badge>
+                          ) : '0'}
+                        </TableCell>
+                        <TableCell className="text-right">{Number(r.vacationDays || 0)}</TableCell>
+                        <TableCell className="text-right">{Number(r.sickDays || 0) + Number(r.otherLeaveDays || 0)}</TableCell>
+                        <TableCell className="text-right font-bold">{Number(r.netWorkDays || 0)}</TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

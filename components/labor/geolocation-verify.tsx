@@ -293,7 +293,7 @@ export function GeolocationVerify({
                             </div>
                             <Progress
                                 value={distancePercentage}
-                                indicatorClassName={isWithinRadius ? "bg-green-500" : "bg-red-500"}
+                                className={isWithinRadius ? "bg-green-500" : "bg-red-500"}
                             />
                             <div className="flex justify-between text-xs">
                                 <span>0m</span>

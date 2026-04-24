@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Trash2, Plus } from 'lucide-react';
 import { LogicRule } from './builder-context';
 import { LogicRuleCard } from './logic-rule-card';
@@ -43,12 +44,67 @@ export function PropertyEditor() {
                 </div>
 
                 <div className="space-y-2">
-                    <Label>Description</Label>
-                    <Textarea
-                        value={step.description || ''}
-                        onChange={(e) => updateStep(step.id, { description: e.target.value })}
-                        className="min-h-[80px]"
+                    <Label>Placeholder</Label>
+                    <Input
+                        value={step.placeholder || ''}
+                        onChange={(e) => updateStep(step.id, { placeholder: e.target.value })}
+                        placeholder="Placeholder text..."
                     />
+                </div>
+
+                <div className="space-y-2">
+                    <Label>Default Value</Label>
+                    <Input
+                        value={step.defaultValue || ''}
+                        onChange={(e) => updateStep(step.id, { defaultValue: e.target.value })}
+                        placeholder="Default value..."
+                    />
+                </div>
+
+                <div className="space-y-2">
+                    <Label>Category</Label>
+                    <Input
+                        value={step.category || ''}
+                        onChange={(e) => updateStep(step.id, { category: e.target.value })}
+                        placeholder="e.g. Safety, Quality, Training"
+                    />
+                </div>
+
+                <div className="space-y-2">
+                    <Label>Description</Label>
+                    {step.type === 'instruction' ? (
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <Label className="text-xs">Rich Text</Label>
+                                <Switch
+                                    checked={step.config?.richText || false}
+                                    onCheckedChange={(c) => updateStep(step.id, {
+                                        config: { ...step.config, richText: c }
+                                    })}
+                                />
+                            </div>
+                            {step.config?.richText ? (
+                                <Textarea
+                                    value={step.description || ''}
+                                    onChange={(e) => updateStep(step.id, { description: e.target.value })}
+                                    className="min-h-[120px] font-mono text-sm"
+                                    placeholder="Use HTML tags for rich formatting: <strong>bold</strong>, <em>italic</em>, <br> for line breaks, etc."
+                                />
+                            ) : (
+                                <Textarea
+                                    value={step.description || ''}
+                                    onChange={(e) => updateStep(step.id, { description: e.target.value })}
+                                    className="min-h-[80px]"
+                                />
+                            )}
+                        </div>
+                    ) : (
+                        <Textarea
+                            value={step.description || ''}
+                            onChange={(e) => updateStep(step.id, { description: e.target.value })}
+                            className="min-h-[80px]"
+                        />
+                    )}
                 </div>
 
                 <div className="flex items-center justify-between rounded-lg border p-3">
@@ -57,6 +113,15 @@ export function PropertyEditor() {
                         id="req-switch"
                         checked={step.required}
                         onCheckedChange={(c: boolean) => updateStep(step.id, { required: c })}
+                    />
+                </div>
+
+                <div className="flex items-center justify-between rounded-lg border p-3">
+                    <Label className="cursor-pointer" htmlFor="readonly-switch">Read Only</Label>
+                    <Switch
+                        id="readonly-switch"
+                        checked={step.readOnly || false}
+                        onCheckedChange={(c: boolean) => updateStep(step.id, { readOnly: c })}
                     />
                 </div>
             </div>
@@ -94,6 +159,63 @@ export function PropertyEditor() {
                             value={step.validation?.message || ''}
                             onChange={(e) => updateStep(step.id, {
                                 validation: { ...step.validation, message: e.target.value }
+                            })}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* Time Validation */}
+            {step.type === 'TimeField' && (
+                <div className="space-y-4 border-t pt-4">
+                    <h4 className="font-medium text-sm">Time Validation</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label className="text-xs">Min Time</Label>
+                            <Input
+                                type="time"
+                                value={step.validation?.minTime || ''}
+                                onChange={(e) => updateStep(step.id, {
+                                    validation: { ...step.validation, minTime: e.target.value }
+                                })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-xs">Max Time</Label>
+                            <Input
+                                type="time"
+                                value={step.validation?.maxTime || ''}
+                                onChange={(e) => updateStep(step.id, {
+                                    validation: { ...step.validation, maxTime: e.target.value }
+                                })}
+                            />
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label className="text-xs">Error Message</Label>
+                        <Input
+                            placeholder="Time out of range"
+                            value={step.validation?.message || ''}
+                            onChange={(e) => updateStep(step.id, {
+                                validation: { ...step.validation, message: e.target.value }
+                            })}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* GPS/Location Validation */}
+            {step.type === 'OPSLocationField' && (
+                <div className="space-y-4 border-t pt-4">
+                    <h4 className="font-medium text-sm">Location Validation</h4>
+                    <div className="space-y-2">
+                        <Label className="text-xs">Radius (meters)</Label>
+                        <Input
+                            type="number"
+                            placeholder="100"
+                            value={step.validation?.radiusMeters || ''}
+                            onChange={(e) => updateStep(step.id, {
+                                validation: { ...step.validation, radiusMeters: parseInt(e.target.value) }
                             })}
                         />
                     </div>
@@ -146,22 +268,107 @@ export function PropertyEditor() {
                                 />
                             </div>
 
-                            <div className="space-y-2">
-                                <Label className="text-xs">Confidence Threshold (0-1)</Label>
-                                <Input
-                                    type="number"
-                                    step="0.1"
-                                    min="0"
-                                    max="1"
-                                    className="text-sm"
-                                    value={step.aiVerification?.threshold || 0.8}
-                                    onChange={(e) => updateStep(step.id, {
-                                        aiVerification: { ...step.aiVerification, enabled: true, threshold: parseFloat(e.target.value) }
-                                    })}
-                                />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-xs">Confidence Threshold (0-1)</Label>
+                                    <Input
+                                        type="number"
+                                        step="0.1"
+                                        min="0"
+                                        max="1"
+                                        className="text-sm"
+                                        value={step.aiVerification?.threshold || 0.8}
+                                        onChange={(e) => updateStep(step.id, {
+                                            aiVerification: { ...step.aiVerification, enabled: true, threshold: parseFloat(e.target.value) }
+                                        })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-xs">Auto Fill Field ID</Label>
+                                    <Input
+                                        placeholder="Field ID to auto-fill"
+                                        className="text-sm"
+                                        value={step.aiVerification?.autoFillField || ''}
+                                        onChange={(e) => updateStep(step.id, {
+                                            aiVerification: { ...step.aiVerification, enabled: true, autoFillField: e.target.value }
+                                        })}
+                                    />
+                                </div>
                             </div>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Conditional Branches */}
+            {(step.type === 'yes_no' || step.type === 'Select' || step.type === 'Checklist' || step.type === 'multiple_choice') && (
+                <div className="space-y-4 border-t pt-4">
+                    <h4 className="font-medium text-sm">Conditional Branches</h4>
+                    <p className="text-xs text-muted-foreground">
+                        Skip to a different step based on the answer
+                    </p>
+
+                    {step.branches && step.branches.length > 0 ? (
+                        <div className="space-y-2">
+                            {step.branches.map((branch, idx) => (
+                                <div key={branch.id || idx} className="border rounded p-2 space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-medium">Branch {idx + 1}</span>
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() => {
+                                                const newBranches = step.branches!.filter((_, i) => i !== idx);
+                                                updateStep(step.id, { branches: newBranches });
+                                            }}
+                                            className="h-6 w-6 p-0 text-destructive"
+                                        >
+                                            <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                    </div>
+                                    <Input
+                                        placeholder="Condition (e.g., value == 'no')"
+                                        value={branch.condition}
+                                        onChange={(e) => {
+                                            const newBranches = [...step.branches!];
+                                            newBranches[idx] = { ...newBranches[idx], condition: e.target.value };
+                                            updateStep(step.id, { branches: newBranches });
+                                        }}
+                                        className="text-xs"
+                                    />
+                                    <Input
+                                        placeholder="Target Step ID"
+                                        value={branch.targetStepId}
+                                        onChange={(e) => {
+                                            const newBranches = [...step.branches!];
+                                            newBranches[idx] = { ...newBranches[idx], targetStepId: e.target.value };
+                                            updateStep(step.id, { branches: newBranches });
+                                        }}
+                                        className="text-xs"
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    ) : null}
+
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                            const currentBranches = step.branches || [];
+                            updateStep(step.id, {
+                                branches: [...currentBranches, {
+                                    id: crypto.randomUUID(),
+                                    condition: '',
+                                    targetStepId: ''
+                                }]
+                            });
+                        }}
+                        className="h-7 text-xs"
+                    >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Add Branch
+                    </Button>
                 </div>
             )}
 
@@ -278,6 +485,71 @@ export function PropertyEditor() {
                     )}
                 </div>
             )}
+            {/* Conditional Logic */}
+            <div className="space-y-4 border-t pt-4">
+                <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-sm">Conditional Visibility</h4>
+                    <Switch
+                        checked={!!step.conditionalLogic}
+                        onCheckedChange={(c) => updateStep(step.id, {
+                            conditionalLogic: c ? { fieldId: '', operator: 'equals', value: '' } : undefined
+                        })}
+                    />
+                </div>
+
+                {step.conditionalLogic && (
+                    <div className="space-y-3 pl-2">
+                        <p className="text-xs text-muted-foreground">
+                            This step will only show when the condition is met
+                        </p>
+                        <div className="space-y-2">
+                            <Label className="text-xs">Source Field ID</Label>
+                            <Input
+                                placeholder="Field ID to check"
+                                value={step.conditionalLogic.fieldId || ''}
+                                onChange={(e) => updateStep(step.id, {
+                                    conditionalLogic: { ...step.conditionalLogic, fieldId: e.target.value }
+                                })}
+                                className="text-sm"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-xs">Operator</Label>
+                            <Select
+                                value={step.conditionalLogic.operator || 'equals'}
+                                onValueChange={(v) => updateStep(step.id, {
+                                    conditionalLogic: { ...step.conditionalLogic, operator: v }
+                                })}
+                            >
+                                <SelectTrigger className="text-sm">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="equals">Equals</SelectItem>
+                                    <SelectItem value="not_equals">Not Equals</SelectItem>
+                                    <SelectItem value="contains">Contains</SelectItem>
+                                    <SelectItem value="greater_than">Greater Than</SelectItem>
+                                    <SelectItem value="less_than">Less Than</SelectItem>
+                                    <SelectItem value="is_empty">Is Empty</SelectItem>
+                                    <SelectItem value="is_not_empty">Is Not Empty</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-xs">Value</Label>
+                            <Input
+                                placeholder="Value to compare"
+                                value={step.conditionalLogic.value || ''}
+                                onChange={(e) => updateStep(step.id, {
+                                    conditionalLogic: { ...step.conditionalLogic, value: e.target.value }
+                                })}
+                                className="text-sm"
+                            />
+                        </div>
+                    </div>
+                )}
+            </div>
+
             {/* Timer Options */}
             {(step.type === 'timer') && (
                 <div className="space-y-4 border-t pt-4">

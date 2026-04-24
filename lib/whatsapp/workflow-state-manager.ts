@@ -186,7 +186,7 @@ export class ConversationStateManager {
         .where(
           and(
             eq(whatsappConversationStates.status, 'ACTIVE'),
-            gt(new Date(), whatsappConversationStates.expiresAt)
+            gt(whatsappConversationStates.expiresAt, new Date())
           )
         );
 

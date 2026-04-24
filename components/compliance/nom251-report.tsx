@@ -13,7 +13,8 @@ import {
     CheckCircle2, 
     AlertCircle,
     TrendingUp,
-    Building2
+    Building2,
+    FileSpreadsheet
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -154,6 +155,60 @@ export function NOM251Report({ branchId, defaultStartDate, defaultEndDate }: NOM
         return "destructive" as const; // red
     };
 
+    const downloadExcel = () => {
+        if (!reportData) return;
+        try {
+            // Generate CSV content client-side
+            const BOM = '\uFEFF';
+            const lines: string[] = [];
+
+            lines.push('REPORTE DE CUMPLIMIENTO NOM-251');
+            lines.push(`Sucursal,${reportData.companyInfo.branchName}`);
+            lines.push(`Período,${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`);
+            lines.push('');
+
+            lines.push('RESUMEN EJECUTIVO');
+            lines.push(`Total de Inspecciones,${reportData.summary.totalInspections}`);
+            lines.push(`Inspecciones Completadas,${reportData.summary.completedInspections}`);
+            lines.push(`Tasa de Cumplimiento,${reportData.summary.complianceRate}%`);
+            lines.push('');
+
+            lines.push('CUMPLIMIENTO POR CATEGORÍA');
+            lines.push('Categoría,Total,Completadas,Cumplimiento %');
+            Object.entries(reportData.summary.byCategory).forEach(([cat, data]) => {
+                lines.push(`"${cat}",${data.total},${data.completed},${data.rate}%`);
+            });
+            lines.push('');
+
+            lines.push('DETALLE DE INSPECCIONES');
+            lines.push('Workflow,Categoría,Estado,Responsable,Puntuación');
+            reportData.inspections.forEach(insp => {
+                lines.push([
+                    `"${insp.workflowName}"`,
+                    `"${insp.category}"`,
+                    insp.status,
+                    `"${insp.assigneeName || 'No asignado'}"`,
+                    insp.score !== null ? `${insp.score}/100` : 'N/A',
+                ].join(','));
+            });
+
+            const csvContent = BOM + lines.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `NOM-251-${branchId}-${startDate.toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+            toast.success("Reporte Excel descargado exitosamente");
+        } catch (error) {
+            toast.error("Error al descargar Excel");
+        }
+    };
+
     return (
         <div className="space-y-6">
             {/* Controls */}
@@ -231,6 +286,17 @@ export function NOM251Report({ branchId, defaultStartDate, defaultEndDate }: NOM
                                         Descargar PDF
                                     </>
                                 )}
+                            </Button>
+                        )}
+
+                        {reportData && (
+                            <Button 
+                                onClick={downloadExcel} 
+                                variant="outline"
+                                className="gap-2"
+                            >
+                                <FileSpreadsheet className="h-4 w-4" />
+                                Descargar Excel
                             </Button>
                         )}
                     </div>

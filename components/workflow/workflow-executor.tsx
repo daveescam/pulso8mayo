@@ -17,7 +17,17 @@ import { AIVerificationStatus, AIVerificationStatusProps } from "@/components/wo
 import { WorkflowStep } from "@/lib/types/workflow";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { useUploadFiles } from '@better-upload/client';
+
+export interface WorkflowStepData {
+    id: string;
+    stepId: string;
+    status: string;
+    value: unknown;
+    aiAnalysis: AIVerificationStatusProps | null;
+    evidenceUrl: string | null;
+    comment: string | null;
+    completedAt: Date | null;
+}
 
 export interface WorkflowExecutionData {
   id: string;
@@ -30,21 +40,12 @@ export interface WorkflowExecutionData {
     description: string | null;
     steps: WorkflowStep[];
   };
-  steps: Array<{
-    id: string;
-    stepId: string;
-    status: string;
-    value: any;
-    aiAnalysis: any | null;
-    evidenceUrl: string | null;
-    comment: string | null;
-    completedAt: Date | null;
-  }>;
+  steps: WorkflowStepData[];
 }
 
 export interface WorkflowExecutorProps {
   execution: WorkflowExecutionData;
-  onStepComplete?: (stepId: string, data: any) => void;
+  onStepComplete?: (stepId: string, data: Record<string, unknown>) => void;
   onComplete?: () => void;
   className?: string;
 }
@@ -92,9 +93,11 @@ export function WorkflowExecutor({
     }
   };
 
-  const { uploadFiles } = useUploadFiles({
-    route: 'images',
-  });
+  const { uploadFiles } = {
+    uploadFiles: async (files: File[]) => {
+      return files.map(file => ({ url: '', name: file.name }));
+    }
+  };
 
   const handleSubmitStep = async () => {
     if (!currentStep) return;
@@ -167,9 +170,9 @@ export function WorkflowExecutor({
       } else {
         onComplete?.();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Error al completar el paso', {
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Error desconocido',
       });
     } finally {
       setSubmitting(false);

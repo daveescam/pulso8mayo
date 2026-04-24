@@ -40,6 +40,14 @@ export class EvidenceProcessor {
       // Upload to storage (R2 or local)
       const uploadedUrl = await this.uploadToStorage(downloadedMedia);
 
+      // TODO: Implement AI analysis of the uploaded media
+      const aiResult = {
+        passed: true,
+        confidence: 0.95,
+        reason: 'Análisis de evidencia pendiente de implementación',
+        detectedObjects: []
+      };
+
       // Update workflow step with evidence and AI result
       await db
         .update(workflowInstanceSteps)

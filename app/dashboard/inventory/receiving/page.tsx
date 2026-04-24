@@ -26,17 +26,21 @@ interface InventoryItem {
 
 interface ReceivingRecord {
     id: string;
-    receivedAt: Date;
-    supplierName?: string;
-    totalItems: number;
-    receivedBy?: string;
-    notes?: string;
-    items: Array<{
-        itemName: string;
-        quantity: number;
-        batchNumber: string;
-        expirationDate?: Date;
-    }>;
+    lotNumber: string;
+    itemId: string;
+    branchId: string;
+    initialQuantity: number;
+    receivedAt: string;
+    expirationDate?: string;
+    supplierId: string;
+    supplierBatchInfo?: string;
+    item: {
+        name: string;
+        sku?: string;
+    };
+    supplier: {
+        name: string;
+    };
 }
 
 export default function ReceivingPage() {
@@ -179,51 +183,53 @@ export default function ReceivingPage() {
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    {receivings.map((receiving) => (
-                                        <div
-                                            key={receiving.id}
-                                            className="border rounded-lg p-4 space-y-3"
-                                        >
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <h4 className="font-semibold">
-                                                        {receiving.supplierName || "Proveedor no especificado"}
-                                                    </h4>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        {format(receiving.receivedAt, "dd 'de' MMMM 'de' yyyy, HH:mm", { locale: es })}
-                                                    </p>
-                                                </div>
-                                                <Badge variant="outline">
-                                                    {receiving.totalItems} {receiving.totalItems === 1 ? 'item' : 'items'}
-                                                </Badge>
-                                            </div>
+                                     {receivings.map((receiving, index) => {
+                                         // Safety check - ensure receiving is a valid object
+                                         if (!receiving || typeof receiving !== 'object' || !receiving.id) {
+                                             console.error('Invalid receiving record:', receiving);
+                                             return null;
+                                         }
 
-                                            <div className="space-y-2">
-                                                {receiving.items.slice(0, 3).map((item, index) => (
-                                                    <div key={index} className="flex justify-between text-sm">
-                                                        <span className="text-muted-foreground">
-                                                            {item.itemName}
-                                                        </span>
-                                                        <span className="font-medium">
-                                                            {item.quantity} {item.unit}
-                                                        </span>
-                                                    </div>
-                                                ))}
-                                                {receiving.items.length > 3 && (
-                                                    <p className="text-xs text-muted-foreground italic">
-                                                        + {receiving.items.length - 3} items más
-                                                    </p>
-                                                )}
-                                            </div>
+                                         return (
+                                             <div
+                                                 key={receiving.id || `receiving-${index}`}
+                                                 className="border rounded-lg p-4 space-y-3"
+                                             >
+                                                 <div className="flex justify-between items-start">
+                                                     <div>
+                                                         <h4 className="font-semibold">
+                                                             {receiving.item?.name || 'Producto desconocido'}
+                                                         </h4>
+                                                         <p className="text-sm text-muted-foreground">
+                                                             Lote: {String(receiving.lotNumber || 'N/A')} • Proveedor: {receiving.supplier?.name || "No especificado"}
+                                                         </p>
+                                                         <p className="text-sm text-muted-foreground">
+                                                             {receiving.receivedAt ? format(new Date(receiving.receivedAt), "dd 'de' MMMM 'de' yyyy, HH:mm", { locale: es }) : 'Fecha desconocida'}
+                                                         </p>
+                                                     </div>
+                                                     <Badge variant="outline">
+                                                         {Number(receiving.initialQuantity || 0)} unidades
+                                                     </Badge>
+                                                 </div>
 
-                                            {receiving.notes && (
-                                                <div className="bg-muted p-2 rounded text-xs">
-                                                    <span className="font-medium">Notas: </span>
-                                                    {receiving.notes}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
+                                                 {receiving.supplierBatchInfo && (
+                                                     <div className="space-y-2">
+                                                         <p className="text-sm">
+                                                             <span className="text-muted-foreground">Info del lote:</span> {String(receiving.supplierBatchInfo)}
+                                                         </p>
+                                                     </div>
+                                                 )}
+
+                                                 {receiving.expirationDate && (
+                                                     <div className="space-y-2">
+                                                         <p className="text-sm">
+                                                             <span className="text-muted-foreground">Vencimiento:</span> {format(new Date(receiving.expirationDate), "dd/MM/yyyy", { locale: es })}
+                                                         </p>
+                                                     </div>
+                                                 )}
+                                             </div>
+                                         );
+                                     })}
                                 </div>
                             )}
                         </CardContent>

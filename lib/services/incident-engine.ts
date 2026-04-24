@@ -2,6 +2,37 @@ import { db } from '@/lib/db';
 import { incidents, workflowInstanceSteps, workflowInstances } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 
+export interface LogicRule {
+    id?: string;
+    condition: string;
+    severity?: string;
+    action?: string;
+    description?: string;
+    remediationStepId?: string;
+}
+
+export interface WorkflowStep {
+    id: string;
+    type?: string;
+    title?: string;
+    logicRules?: LogicRule[];
+    [key: string]: unknown;
+}
+
+export interface EvaluationContext {
+    value?: unknown;
+    ai_result?: Record<string, unknown>;
+    gps_validation?: Record<string, unknown>;
+    [key: string]: unknown;
+}
+
+export interface AICheckResult {
+    passed?: boolean;
+    confidence?: number;
+    notes?: string;
+    [key: string]: unknown;
+}
+
 /**
  * IncidentEngine - Evaluates logicRules from workflow templates and creates incidents
  * 
@@ -96,11 +127,11 @@ export class IncidentEngine {
      * @returns Array of matched rules
      */
     static evaluateLogicRules(
-        step: any,
-        value: any,
-        aiResult?: any,
-        context?: Record<string, any>
-    ): any[] {
+        step: WorkflowStep,
+        value: unknown,
+        aiResult?: AICheckResult,
+        context?: Record<string, unknown>
+    ): LogicRule[] {
         if (!step.logicRules || !Array.isArray(step.logicRules)) {
             return [];
         }
@@ -111,7 +142,7 @@ export class IncidentEngine {
             ...context,
         };
 
-        const matchedRules = step.logicRules.filter((rule: any) => {
+        const matchedRules = step.logicRules?.filter((rule: LogicRule) => {
             if (!rule.condition) return false;
             return this.evaluateCondition(rule.condition, evaluationContext);
         });
@@ -131,10 +162,10 @@ export class IncidentEngine {
     static async createIncident(
         instanceId: string,
         stepId: string,
-        rule: any,
+        rule: LogicRule,
         context: {
-            value?: any;
-            aiResult?: any;
+            value?: unknown;
+            aiResult?: AICheckResult;
             userId?: string;
             branchId?: string;
         }
@@ -215,7 +246,7 @@ export class IncidentEngine {
     /**
      * Builds a detailed incident description
      */
-    private static buildIncidentDescription(rule: any, context: any): string {
+    private static buildIncidentDescription(rule: LogicRule, context: EvaluationContext): string {
         let description = rule.message || 'Incident detected';
 
         // Add context details
@@ -246,8 +277,8 @@ export class IncidentEngine {
     static async checkIncidentConditions(
         instanceId: string,
         currentStepId: string,
-        stepValue: any,
-        aiResult?: any,
+        stepValue: unknown,
+        aiResult?: AICheckResult,
         userId?: string
     ) {
         try {
@@ -267,7 +298,7 @@ export class IncidentEngine {
             // Note: In production, you'd load the template from your templates directory
             // For now, we'll assume the template is available in the instance data
             const templateSteps = (instance.data as any)?.templateSteps || [];
-            const currentStep = templateSteps.find((s: any) => s.id === currentStepId);
+            const currentStep = templateSteps.find((s: WorkflowStep) => s.id === currentStepId);
 
             if (!currentStep) {
                 console.log('[IncidentEngine] Step not found in template:', currentStepId);

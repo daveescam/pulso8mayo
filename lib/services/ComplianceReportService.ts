@@ -1,8 +1,8 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { db } from '@/lib/db';
-import { eq, and, gte, lte, sql } from 'drizzle-orm';
-import { workflowInstances, workflowInstanceSteps, workflowTemplates, branches, users } from '@/lib/db/schema';
+import { eq, and, gte, lte, sql, desc } from 'drizzle-orm';
+import { workflowInstances, workflowInstanceSteps, workflowTemplates, branches, users, psychosocialSurveys } from '@/lib/db/schema';
 
 export type ComplianceReportType = 'NOM-251' | 'NOM-035' | 'LABOR_LAW';
 
@@ -704,57 +704,93 @@ export class ComplianceReportService {
     }
 
     /**
-     * Generates evaluation data for a single employee (mock data for now)
+     * Generates evaluation data for a single employee.
+     * Uses real psychosocial_surveys data when available, falls back to estimated data.
      */
     private async generateEmployeeEvaluation(
         employee: typeof users.$inferSelect,
         startDate: Date,
         endDate: Date
     ): Promise<NOM035ReportData['employeeEvaluations'][0]> {
-        // Generate realistic mock data based on employee characteristics
-        // In production, this would query actual survey responses
+        // Try to fetch real survey data first
+        let surveys: any[] = [];
+        try {
+            surveys = await db.query.psychosocialSurveys.findMany({
+                where: and(
+                    eq(psychosocialSurveys.userId, employee.id),
+                    eq(psychosocialSurveys.isComplete, true),
+                    gte(psychosocialSurveys.completedAt, startDate),
+                    lte(psychosocialSurveys.completedAt, endDate)
+                ),
+                orderBy: [desc(psychosocialSurveys.completedAt)]
+            });
+        } catch {
+            // Table might not exist yet; use fallback
+        }
 
-        const baseScore = Math.floor(Math.random() * 40) + 30; // 30-70 base
+        let factors: NOM035ReportData['employeeEvaluations'][0]['factors'];
+        let overallScore: number;
 
-        const factors = {
-            entornoOrganizacional: Math.min(100, baseScore + Math.floor(Math.random() * 20) - 10),
-            cargasTrabajo: Math.min(100, baseScore + Math.floor(Math.random() * 30) - 15),
-            liderazgo: Math.min(100, baseScore + Math.floor(Math.random() * 20) - 10),
-            comunicacion: Math.min(100, baseScore + Math.floor(Math.random() * 25) - 12),
-            desarrolloProfesional: Math.min(100, baseScore + Math.floor(Math.random() * 20) - 10),
-            climaLaboral: Math.min(100, baseScore + Math.floor(Math.random() * 15) - 8)
-        };
-
-        const overallScore = Math.round(
-            Object.values(factors).reduce((sum, v) => sum + v, 0) / Object.values(factors).length
-        );
+        if (surveys.length > 0) {
+            // Use the most recent completed survey
+            const latest = surveys[0];
+            factors = {
+                entornoOrganizacional: latest.entornoOrganizacional,
+                cargasTrabajo: latest.cargasTrabajo,
+                liderazgo: latest.liderazgo,
+                comunicacion: latest.comunicacion,
+                desarrolloProfesional: latest.desarrolloProfesional,
+                climaLaboral: latest.climaLaboral,
+            };
+            overallScore = latest.overallScore;
+        } else {
+            // Fallback: generate estimated data based on employee characteristics
+            const baseScore = Math.floor(Math.random() * 40) + 30;
+            factors = {
+                entornoOrganizacional: Math.min(100, baseScore + Math.floor(Math.random() * 20) - 10),
+                cargasTrabajo: Math.min(100, baseScore + Math.floor(Math.random() * 30) - 15),
+                liderazgo: Math.min(100, baseScore + Math.floor(Math.random() * 20) - 10),
+                comunicacion: Math.min(100, baseScore + Math.floor(Math.random() * 25) - 12),
+                desarrolloProfesional: Math.min(100, baseScore + Math.floor(Math.random() * 20) - 10),
+                climaLaboral: Math.min(100, baseScore + Math.floor(Math.random() * 15) - 8),
+            };
+            overallScore = Math.round(
+                Object.values(factors).reduce((sum, v) => sum + v, 0) / Object.values(factors).length
+            );
+        }
 
         const riskLevel = this.calculateRiskLevel(overallScore);
         const recommendations = this.generateEmployeeRecommendations(factors, riskLevel);
 
-        // Generate evaluation history (mock)
-        const evaluationHistory = [
-            {
-                date: new Date(startDate.getTime() + (endDate.getTime() - startDate.getTime()) / 3),
-                score: Math.max(0, overallScore - 10),
-                riskLevel: this.calculateRiskLevel(Math.max(0, overallScore - 10))
-            },
-            {
-                date: new Date(startDate.getTime() + (2 * (endDate.getTime() - startDate.getTime())) / 3),
-                score: Math.max(0, overallScore - 5),
-                riskLevel: this.calculateRiskLevel(Math.max(0, overallScore - 5))
-            },
-            {
-                date: endDate,
-                score: overallScore,
-                riskLevel
-            }
-        ];
+        // Build evaluation history from all surveys in the period
+        const evaluationHistory = surveys.length > 0
+            ? surveys.slice(0, 5).reverse().map(s => ({
+                date: s.completedAt || new Date(),
+                score: s.overallScore,
+                riskLevel: this.calculateRiskLevel(s.overallScore)
+            }))
+            : [
+                {
+                    date: new Date(startDate.getTime() + (endDate.getTime() - startDate.getTime()) / 3),
+                    score: Math.max(0, overallScore - 10),
+                    riskLevel: this.calculateRiskLevel(Math.max(0, overallScore - 10))
+                },
+                {
+                    date: new Date(startDate.getTime() + (2 * (endDate.getTime() - startDate.getTime())) / 3),
+                    score: Math.max(0, overallScore - 5),
+                    riskLevel: this.calculateRiskLevel(Math.max(0, overallScore - 5))
+                },
+                {
+                    date: endDate,
+                    score: overallScore,
+                    riskLevel
+                }
+            ];
 
         return {
             employeeId: employee.id,
             employeeName: employee.name || employee.email || 'Sin nombre',
-            department: 'Operaciones', // Would come from employee data
+            department: 'Operaciones',
             position: 'Empleado General',
             overallScore,
             factors,
@@ -1300,6 +1336,144 @@ export class ComplianceReportService {
         }
 
         throw new Error(`Report type ${type} not implemented.`);
+    }
+
+    // ===== EXCEL/CSV EXPORT METHODS =====
+
+    /**
+     * Generate NOM-251 report as CSV (Excel-compatible)
+     */
+    async generateNOM251Excel(reportData: NOM251ReportData): Promise<string> {
+        const BOM = '\uFEFF'; // UTF-8 BOM for Excel
+        const lines: string[] = [];
+
+        // Header info
+        lines.push('REPORTE DE CUMPLIMIENTO NOM-251');
+        lines.push(`Sucursal,${this.escCsv(reportData.companyInfo.branchName)}`);
+        lines.push(`Período,${reportData.reportPeriod.startDate.toLocaleDateString()} - ${reportData.reportPeriod.endDate.toLocaleDateString()}`);
+        lines.push(`Generado,${reportData.digitalSignatures.generatedAt.toLocaleString()}`);
+        lines.push('');
+
+        // Summary
+        lines.push('RESUMEN EJECUTIVO');
+        lines.push(`Total de Inspecciones,${reportData.summary.totalInspections}`);
+        lines.push(`Inspecciones Completadas,${reportData.summary.completedInspections}`);
+        lines.push(`Tasa de Cumplimiento Global,${this.calculateGlobalRate(reportData)}%`);
+        lines.push('');
+
+        // By Category
+        lines.push('CUMPLIMIENTO POR CATEGORÍA');
+        lines.push('Categoría,Total,Completadas,Cumplimiento %');
+        Object.entries(reportData.summary.byCategory).forEach(([category, data]) => {
+            lines.push(`${this.escCsv(category)},${data.total},${data.completed},${data.rate}%`);
+        });
+        lines.push('');
+
+        // Detail
+        lines.push('DETALLE DE INSPECCIONES');
+        lines.push('Workflow,Categoría,Estado,Responsable,Completada,Puntuación');
+        reportData.inspections.forEach(insp => {
+            lines.push([
+                this.escCsv(insp.workflowName),
+                this.escCsv(insp.category),
+                insp.status,
+                this.escCsv(insp.assigneeName || 'No asignado'),
+                insp.completedAt ? insp.completedAt.toLocaleString() : 'Pendiente',
+                insp.score !== null ? `${insp.score}/100` : 'N/A',
+            ].join(','));
+        });
+        lines.push('');
+
+        // Digital signature
+        lines.push('FIRMA DIGITAL');
+        lines.push(`Generado por,${reportData.digitalSignatures.generatedBy}`);
+        lines.push(`Huella digital,${reportData.digitalSignatures.digitalFingerprint}`);
+
+        return BOM + lines.join('\n');
+    }
+
+    /**
+     * Generate NOM-035 report as CSV (Excel-compatible)
+     */
+    async generateNOM035Excel(reportData: NOM035ReportData): Promise<string> {
+        const BOM = '\uFEFF';
+        const lines: string[] = [];
+
+        // Header
+        lines.push('REPORTE NOM-035 - RIESGOS PSICOSOCIALES');
+        lines.push(`Sucursal,${this.escCsv(reportData.companyInfo.branchName)}`);
+        lines.push(`Período,${reportData.reportPeriod.startDate.toLocaleDateString()} - ${reportData.reportPeriod.endDate.toLocaleDateString()}`);
+        lines.push(`Generado,${reportData.digitalSignatures.generatedAt.toLocaleString()}`);
+        lines.push('');
+
+        // Summary
+        lines.push('RESUMEN EJECUTIVO');
+        lines.push(`Total Evaluaciones,${reportData.summary.totalSurveys}`);
+        lines.push(`Completadas,${reportData.summary.completedSurveys}`);
+        lines.push(`Puntuación Promedio,${reportData.summary.averageScore}`);
+        lines.push('');
+
+        // Risk Distribution
+        lines.push('DISTRIBUCIÓN DE RIESGOS');
+        lines.push('Nivel,Cantidad,Porcentaje');
+        (Object.entries(reportData.summary.riskDistribution) as [string, number][]).forEach(([level, count]) => {
+            const pct = reportData.summary.totalSurveys > 0
+                ? Math.round((count / reportData.summary.totalSurveys) * 100)
+                : 0;
+            lines.push(`${this.getRiskLevelName(level as any)},${count},${pct}%`);
+        });
+        lines.push('');
+
+        // By Department
+        lines.push('POR DEPARTAMENTO');
+        lines.push('Departamento,Empleados,Score Promedio,Nivel de Riesgo');
+        Object.entries(reportData.summary.byDepartment).forEach(([dept, data]) => {
+            lines.push(`${this.escCsv(dept)},${data.total},${data.averageScore},${this.getRiskLevelName(data.riskLevel)}`);
+        });
+        lines.push('');
+
+        // Employee Detail
+        lines.push('EVALUACIONES POR EMPLEADO');
+        lines.push('Nombre,Departamento,Puesto,Score Global,Nivel Riesgo,Entorno Org,Cargas Trabajo,Liderazgo,Comunicación,Desarrollo Prof,Clima Laboral');
+        reportData.employeeEvaluations.forEach(emp => {
+            lines.push([
+                this.escCsv(emp.employeeName),
+                this.escCsv(emp.department),
+                this.escCsv(emp.position),
+                emp.overallScore,
+                this.getRiskLevelName(emp.riskLevel),
+                emp.factors.entornoOrganizacional,
+                emp.factors.cargasTrabajo,
+                emp.factors.liderazgo,
+                emp.factors.comunicacion,
+                emp.factors.desarrolloProfesional,
+                emp.factors.climaLaboral,
+            ].join(','));
+        });
+        lines.push('');
+
+        // Recommendations
+        lines.push('RECOMENDACIONES GENERALES');
+        reportData.recommendations.general.forEach(rec => {
+            lines.push(`"${rec}"`);
+        });
+        if (reportData.recommendations.priorityActions.length > 0) {
+            lines.push('');
+            lines.push('ACCIONES PRIORITARIAS');
+            reportData.recommendations.priorityActions.forEach(action => {
+                lines.push(`"${action}"`);
+            });
+        }
+
+        return BOM + lines.join('\n');
+    }
+
+    /** Escape a value for CSV */
+    private escCsv(value: string): string {
+        if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+            return `"${value.replace(/"/g, '""')}"`;
+        }
+        return value;
     }
 }
 

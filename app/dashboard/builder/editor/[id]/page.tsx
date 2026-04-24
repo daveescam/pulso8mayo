@@ -80,6 +80,8 @@ export default async function EditorPage({ params }: { params: Promise<{ id: str
             placeholder: step.placeholder,
             defaultValue: step.defaultValue || step.valorPorDefecto,
             conditionalLogic: step.conditionalLogic || step.logicaCondicional,
+            branches: step.branches,
+            category: step.category || step.categoria,
             // Preserve any other fields
             ...step
         } as WorkflowStep;

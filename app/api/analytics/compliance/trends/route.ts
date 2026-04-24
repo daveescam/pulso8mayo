@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { workflowInstances, workflowTemplates, branches, incidents } from "@/lib/db/schema";
-import { eq, sql, and, gte, lte, desc } from "drizzle-orm";
+import { workflowInstances, workflowTemplates, branches, incidents, workflowSchedules, complianceAlerts } from "@/lib/db/schema";
+import { eq, sql, and, gte, lte, desc, inArray, or } from "drizzle-orm";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
@@ -53,14 +53,14 @@ export async function GET(req: Request) {
                 and(
                     eq(workflowTemplates.companyId, session.user.companyId),
                     eq(workflowInstances.status, 'COMPLETED'),
-                    gte(workflowInstances.completedAt, startDate),
-                    lte(workflowInstances.completedAt, endDate),
-                    filterBranchIds.length > 0 ? 
-                        sql`${workflowInstances.branchId} = ANY(${sql.array(filterBranchIds, 'uuid')})` : 
-                        undefined
-                )
-            )
-            .groupBy(sql`DATE(${workflowInstances.completedAt})`)
+                     gte(workflowInstances.completedAt, startDate),
+                     lte(workflowInstances.completedAt, endDate),
+                     filterBranchIds.length > 0 ?
+                         inArray(workflowInstances.branchId, filterBranchIds) :
+                         undefined
+                 )
+             )
+             .groupBy(sql`DATE(${workflowInstances.completedAt})`)
             .orderBy(sql`DATE(${workflowInstances.completedAt})`);
 
         // 2. Compliance Scorecards by Category
@@ -82,41 +82,68 @@ export async function GET(req: Request) {
                     eq(workflowTemplates.companyId, session.user.companyId),
                     eq(workflowInstances.status, 'COMPLETED'),
                     gte(workflowInstances.completedAt, startDate),
-                    lte(workflowInstances.completedAt, endDate),
-                    filterBranchIds.length > 0 ? 
-                        sql`${workflowInstances.branchId} = ANY(${sql.array(filterBranchIds, 'uuid')})` : 
-                        undefined
-                )
-            )
-            .groupBy(workflowTemplates.category, workflowTemplates.complianceType);
+                     lte(workflowInstances.completedAt, endDate),
+                     filterBranchIds.length > 0 ?
+                         inArray(workflowInstances.branchId, filterBranchIds) :
+                         undefined
+                 )
+             )
+             .groupBy(workflowTemplates.category, workflowTemplates.complianceType);
 
-        // 3. Upcoming Deadlines (scheduled workflows in next 30 days)
+        // 3. Upcoming Deadlines from workflow_schedules (real data)
         const thirtyDaysFromNow = new Date();
         thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
-        const deadlinesQuery = await db
-            .select({
-                id: workflowTemplates.id,
-                name: workflowTemplates.name,
-                branchName: branches.name,
-                branchId: branches.id,
-                nextExecutionAt: workflowTemplates.updatedAt, // Placeholder - would need workflow_schedules table
-                complianceType: workflowTemplates.complianceType,
-                isCritical: workflowTemplates.isCritical
-            })
-            .from(workflowTemplates)
-            .leftJoin(branches, eq(workflowTemplates.branchId, branches.id))
-            .where(
-                and(
-                    eq(workflowTemplates.companyId, session.user.companyId),
-                    eq(workflowTemplates.active, true)
+        let deadlinesQuery: any[] = [];
+        try {
+            deadlinesQuery = await db
+                .select({
+                    id: workflowSchedules.id,
+                    name: workflowSchedules.title,
+                    branchName: branches.name,
+                    branchId: workflowSchedules.branchId,
+                    nextExecutionAt: workflowSchedules.nextExecutionAt,
+                    templateId: workflowSchedules.templateId,
+                    frequency: workflowSchedules.frequency,
+                })
+                .from(workflowSchedules)
+                .leftJoin(branches, eq(workflowSchedules.branchId, branches.id))
+                .where(
+                    and(
+                        eq(workflowSchedules.isActive, true),
+                        inArray(workflowSchedules.branchId, branchIds),
+                        lte(workflowSchedules.nextExecutionAt, thirtyDaysFromNow)
+                    )
                 )
-            )
-            .orderBy(desc(workflowTemplates.isCritical))
-            .limit(10);
+                .orderBy(workflowSchedules.nextExecutionAt)
+                .limit(15);
+        } catch {
+            // Fallback to template-based list if schedules table is empty
+            deadlinesQuery = await db
+                .select({
+                    id: workflowTemplates.id,
+                    name: workflowTemplates.name,
+                    branchName: branches.name,
+                    branchId: branches.id,
+                    nextExecutionAt: workflowTemplates.updatedAt,
+                    templateId: sql`null`,
+                    frequency: workflowTemplates.requiredFrequency,
+                })
+                .from(workflowTemplates)
+                .leftJoin(branches, eq(workflowTemplates.branchId, branches.id))
+                .where(
+                    and(
+                        eq(workflowTemplates.companyId, session.user.companyId),
+                        eq(workflowTemplates.active, true),
+                        eq(workflowTemplates.isCritical, true)
+                    )
+                )
+                .orderBy(desc(workflowTemplates.isCritical))
+                .limit(10);
+        }
 
-        // 4. Compliance Alerts (low scores, critical items)
-        const alertsQuery = await db
+        // 4. Compliance Alerts - merge incidents + auto-generated complianceAlerts
+        const incidentAlerts = await db
             .select({
                 id: incidents.id,
                 title: incidents.title,
@@ -124,7 +151,8 @@ export async function GET(req: Request) {
                 status: incidents.status,
                 branchId: incidents.branchId,
                 createdAt: incidents.createdAt,
-                workflowName: workflowTemplates.name
+                workflowName: workflowTemplates.name,
+                source: sql<string>`'incident'`,
             })
             .from(incidents)
             .leftJoin(
@@ -134,11 +162,45 @@ export async function GET(req: Request) {
             .where(
                 and(
                     eq(incidents.status, 'DETECTED'),
-                    sql`${incidents.branchId} = ANY(${sql.array(branchIds, 'uuid')})`
+                    inArray(incidents.branchId, branchIds)
                 )
             )
             .orderBy(desc(incidents.severity))
             .limit(10);
+
+        let autoAlerts: any[] = [];
+        try {
+            autoAlerts = await db
+                .select({
+                    id: complianceAlerts.id,
+                    title: complianceAlerts.title,
+                    severity: complianceAlerts.severity,
+                    status: complianceAlerts.status,
+                    branchId: complianceAlerts.branchId,
+                    createdAt: complianceAlerts.createdAt,
+                    workflowName: sql<string>`${complianceAlerts.complianceType}`,
+                    source: sql<string>`'auto'`,
+                })
+                .from(complianceAlerts)
+                .where(
+                    and(
+                        eq(complianceAlerts.companyId, session.user.companyId),
+                        eq(complianceAlerts.status, 'ACTIVE')
+                    )
+                )
+                .orderBy(desc(complianceAlerts.createdAt))
+                .limit(10);
+        } catch {
+            // complianceAlerts table may not exist yet
+        }
+
+        // Merge both alert sources
+        const alertsQuery = [...incidentAlerts, ...autoAlerts]
+            .sort((a, b) => {
+                const severityOrder = { CRITICAL: 0, FATAL: 0, WARNING: 1 } as Record<string, number>;
+                return (severityOrder[a.severity || ''] || 2) - (severityOrder[b.severity || ''] || 2);
+            })
+            .slice(0, 15);
 
         // 5. Branch-level breakdown
         const branchBreakdownQuery = await db
@@ -186,8 +248,8 @@ export async function GET(req: Request) {
             branchName: row.branchName || 'General',
             branchId: row.branchId,
             dueDate: row.nextExecutionAt,
-            complianceType: row.complianceType,
-            isCritical: row.isCritical || false
+            complianceType: row.frequency || null,
+            isCritical: row.nextExecutionAt ? new Date(row.nextExecutionAt) < new Date() : false
         }));
 
         const alerts = alertsQuery.map(row => ({

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -49,7 +50,7 @@ const stepCategoryLabels: Record<string, string> = {
 };
 
 export function OnboardingTab({ onboarding, steps }: OnboardingTabProps) {
-  const [uploadingStepId, setUploadingStepId] = React.useState<string | null>(null);
+  const [uploadingStepId, setUploadingStepId] = useState<string | null>(null);
 
   if (!onboarding) {
     return (

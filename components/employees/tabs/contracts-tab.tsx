@@ -1,17 +1,25 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Edit, Plus, FileText, TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { FileText, TrendingUp, Plus, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { ContractDialog } from "@/components/employees/contract-dialog";
 
 interface ContractsTabProps {
   contracts: any[];
   salaryHistory: any[];
+  canEdit?: boolean;
+  employeeId?: string;
+  companyId?: string;
+  branchId?: string;
+  onContractCreated?: () => void;
+  onContractUpdated?: () => void;
 }
 
 const contractTypeLabels: Record<string, string> = {
@@ -71,14 +79,75 @@ function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
-export function ContractsTab({ contracts, salaryHistory }: ContractsTabProps) {
-  const activeContract = contracts?.find((c) => c.status === "ACTIVE");
-  const dailySalary = activeContract?.baseSalary || 0;
-  const weeklySalary = activeContract?.weeklySalary || dailySalary * 7;
-  const monthlySalary = activeContract?.monthlySalary || dailySalary * 30;
+export function ContractsTab({
+  contracts,
+  salaryHistory,
+  canEdit = false,
+  employeeId,
+  companyId,
+  branchId,
+  onContractCreated,
+  onContractUpdated
+}: ContractsTabProps) {
+  const [contractDialogOpen, setContractDialogOpen] = useState(false);
+  const [selectedContract, setSelectedContract] = useState<any>(null);
+
+  const activeContract = contracts.find((c) => c.status === "ACTIVE");
+  const latestSalaryChange = salaryHistory?.[0];
+
+  const handleCreateContract = () => {
+    setSelectedContract(null);
+    setContractDialogOpen(true);
+  };
+
+  const handleEditContract = (contract: any) => {
+    setSelectedContract(contract);
+    setContractDialogOpen(true);
+  };
+
+  const handleContractSuccess = () => {
+    setContractDialogOpen(false);
+    setSelectedContract(null);
+    if (onContractCreated) onContractCreated();
+    if (onContractUpdated) onContractUpdated();
+  };
+  
+  // Calcular salario actual: priorizar contrato activo, luego último registro de salario
+  let dailySalary = 0;
+  let weeklySalary = 0;
+  let monthlySalary = 0;
+  let salarySourceLabel = "Sin salario registrado";
+
+  if (activeContract) {
+    dailySalary = activeContract.baseSalary ?? 0;
+    weeklySalary = activeContract.weeklySalary ?? (dailySalary * 7);
+    monthlySalary = activeContract.monthlySalary ?? (dailySalary * 30);
+    salarySourceLabel = "Basado en el contrato activo";
+  } else if (latestSalaryChange) {
+    dailySalary = latestSalaryChange.newSalary ?? 0;
+    weeklySalary = dailySalary * 7;
+    monthlySalary = dailySalary * 30;
+    salarySourceLabel = "Basado en el último cambio salarial registrado";
+  }
 
   return (
     <div className="space-y-6">
+      {/* Header with Create Button */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Contracts</h2>
+          <p className="text-muted-foreground">
+            Manage employment contracts and salary information
+          </p>
+        </div>
+        {canEdit && employeeId && companyId && (
+          <Button onClick={handleCreateContract}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create Contract
+          </Button>
+        )}
+      </div>
+
       {/* Active Contract */}
       {activeContract && (
         <Card>
@@ -93,16 +162,16 @@ export function ContractsTab({ contracts, salaryHistory }: ContractsTabProps) {
                   Contract #{activeContract.contractNumber}
                 </CardDescription>
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm">
-                  <FileText className="mr-2 h-4 w-4" />
-                  View Document
-                </Button>
-                <Button variant="outline" size="sm">
+              {canEdit && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleEditContract(activeContract)}
+                >
                   <Edit className="mr-2 h-4 w-4" />
-                  Edit
+                  Edit Contract
                 </Button>
-              </div>
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -252,10 +321,9 @@ export function ContractsTab({ contracts, salaryHistory }: ContractsTabProps) {
               </CardTitle>
               <CardDescription>Current salary breakdown and history.</CardDescription>
             </div>
-            <Button variant="outline" size="sm">
-              <Edit className="mr-2 h-4 w-4" />
-              Adjust Salary
-            </Button>
+            {canEdit && (
+              <Badge variant="outline">Ajuste salarial pendiente</Badge>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -282,6 +350,8 @@ export function ContractsTab({ contracts, salaryHistory }: ContractsTabProps) {
               <div className="text-xs text-muted-foreground mt-1">per month</div>
             </div>
           </div>
+
+          <p className="text-sm text-muted-foreground">{salarySourceLabel}</p>
 
           {/* Salary History */}
           {salaryHistory && salaryHistory.length > 0 && (
@@ -347,10 +417,7 @@ export function ContractsTab({ contracts, salaryHistory }: ContractsTabProps) {
                 <CardTitle>Contract History</CardTitle>
                 <CardDescription>All contracts for this employee.</CardDescription>
               </div>
-              <Button variant="outline" size="sm">
-                <Plus className="mr-2 h-4 w-4" />
-                New Contract
-              </Button>
+              {canEdit && <Badge variant="outline">Alta de contrato pendiente</Badge>}
             </div>
           </CardHeader>
           <CardContent>
@@ -387,16 +454,40 @@ export function ContractsTab({ contracts, salaryHistory }: ContractsTabProps) {
                           : " - Present"}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="font-medium">
-                        {formatCurrency((contract.baseSalary || 0) / 100)}/day
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <div className="font-medium">
+                          {formatCurrency((contract.baseSalary || 0) / 100)}/day
+                        </div>
                       </div>
+                      {canEdit && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditContract(contract)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Contract Dialog */}
+      {employeeId && companyId && (
+        <ContractDialog
+          open={contractDialogOpen}
+          onOpenChange={setContractDialogOpen}
+          onSuccess={handleContractSuccess}
+          contract={selectedContract}
+          employeeId={employeeId}
+          companyId={companyId}
+          branchId={branchId}
+        />
       )}
     </div>
   );

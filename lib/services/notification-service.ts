@@ -21,11 +21,23 @@ export interface Notification {
     actionLabel?: string;
 }
 
+export interface WorkflowAssignmentData {
+    id: string;
+    assignedTo: string;
+    instance?: {
+        workflowTemplateId?: string;
+        workflowName?: string;
+    };
+    dueDate?: string;
+    priority?: string;
+    [key: string]: unknown;
+}
+
 export class NotificationService {
     /**
      * Notify user about workflow assignment
      */
-    static async notifyWorkflowAssignment(assignment: any) {
+    static async notifyWorkflowAssignment(assignment: WorkflowAssignmentData) {
         const userId = assignment.assignedTo;
         const prefs = await this.getUserNotificationPreferences(userId);
 
@@ -65,7 +77,7 @@ export class NotificationService {
     /**
      * Notify user about workflow due soon
      */
-    static async notifyWorkflowDueSoon(assignment: any) {
+    static async notifyWorkflowDueSoon(assignment: WorkflowAssignmentData) {
         const userId = assignment.assignedTo;
         const prefs = await this.getUserNotificationPreferences(userId);
 
@@ -102,7 +114,7 @@ export class NotificationService {
     /**
      * Notify user about overdue workflow
      */
-    static async notifyWorkflowOverdue(assignment: any) {
+    static async notifyWorkflowOverdue(assignment: WorkflowAssignmentData) {
         const userId = assignment.assignedTo;
         const prefs = await this.getUserNotificationPreferences(userId);
 
@@ -190,7 +202,7 @@ export class NotificationService {
                     promises.push(this.sendEmailNotification(
                         user.id,
                         '🚨 Alerta de Stock Crítico',
-                        `Los siguientes items están sin stock:\n${criticalItems.map(i => `- ${i.name}: 0/${i.minLevel} ${i.unit}`).join('\n')}\n\nPor favor, reordenar lo antes posible.`
+                        `Los siguientes items están sin stock:\n${criticalItems.map(i => `- ${i.name}: 0/${i.minLevel}`).join('\n')}\n\nPor favor, reordenar lo antes posible.`
                     ));
                 }
             }
@@ -202,7 +214,7 @@ export class NotificationService {
     /**
      * Send batch notifications to multiple users
      */
-    static async sendBatchNotifications(assignments: any[]) {
+    static async sendBatchNotifications(assignments: WorkflowAssignmentData[]) {
         const promises = assignments.map(assignment =>
             this.notifyWorkflowAssignment(assignment)
         );

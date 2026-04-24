@@ -7,6 +7,8 @@ import { db } from "@/lib/db"
 import { employeeDocuments, users } from "@/lib/db/schema"
 import { eq, and, sql, isNull } from "drizzle-orm"
 
+import { headers } from "next/headers"
+
 export default async function LaborDocumentsPage() {
     let summary = {
         totalDocuments: 0,
@@ -19,6 +21,17 @@ export default async function LaborDocumentsPage() {
     }
 
     try {
+        const session = await auth.api.getSession({ headers: await headers() });
+        if (!session || (session.user.role !== "ADMIN" && session.user.role !== "GERENTE")) {
+            return (
+                <div className="flex flex-col items-center justify-center p-12 text-center">
+                    <Shield className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h1 className="text-2xl font-bold">Acceso Denegado</h1>
+                    <p className="text-muted-foreground">No tienes los permisos necesarios para acceder a la gestión documental.</p>
+                </div>
+            );
+        }
+
         const tenant = await requireTenant()
         
         // Get document stats

@@ -10,7 +10,7 @@ import { eq, and } from 'drizzle-orm';
  */
 export async function POST(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await auth.api.getSession({ headers: req.headers });
@@ -28,6 +28,8 @@ export async function POST(
             );
         }
 
+        const requestId = (await params).id;
+
         // Update request to rejected
         const [updated] = await db
             .update(shiftApprovals)
@@ -40,7 +42,7 @@ export async function POST(
             })
             .where(
                 and(
-                    eq(shiftApprovals.id, params.id),
+                    eq(shiftApprovals.id, requestId),
                     eq(shiftApprovals.status, 'PENDING')
                 )
             )

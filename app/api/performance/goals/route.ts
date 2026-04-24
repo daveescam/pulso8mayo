@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { performanceGoals, users } from '@/lib/db/schema';
-import { eq, and, desc, or } from 'drizzle-orm';
+import { eq, and, desc, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 // Validation schemas
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     if (category) conditions.push(eq(performanceGoals.category, category));
 
     const [{ count }] = await db
-      .select({ count: db.sql<number>`count(*)::int` })
+      .select({ count: sql<number>`count(*)::int` })
       .from(performanceGoals)
       .where(and(...conditions));
 

@@ -21,6 +21,7 @@ export interface SessionInfo {
     connectedAt: Date | null;
     lastActivityAt: Date | null;
     isActive: boolean;
+    errorCount: number;
 }
 
 export class SessionManager {

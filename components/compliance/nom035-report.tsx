@@ -16,7 +16,8 @@ import {
     Building2,
     Users,
     AlertTriangle,
-    Brain
+    Brain,
+    FileSpreadsheet
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -209,6 +210,76 @@ export function NOM035Report({ branchId, defaultStartDate, defaultEndDate }: NOM
         return names[key] || key;
     };
 
+    const downloadExcel = () => {
+        if (!reportData) return;
+        try {
+            const BOM = '\uFEFF';
+            const lines: string[] = [];
+
+            lines.push('REPORTE NOM-035 - RIESGOS PSICOSOCIALES');
+            lines.push(`Sucursal,${reportData.companyInfo.branchName}`);
+            lines.push(`Período,${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`);
+            lines.push('');
+
+            lines.push('RESUMEN EJECUTIVO');
+            lines.push(`Total Evaluaciones,${reportData.summary.totalSurveys}`);
+            lines.push(`Completadas,${reportData.summary.completedSurveys}`);
+            lines.push(`Puntuación Promedio,${reportData.summary.averageScore}`);
+            lines.push('');
+
+            lines.push('DISTRIBUCIÓN DE RIESGOS');
+            lines.push('Nivel,Cantidad,Porcentaje');
+            (Object.entries(reportData.summary.riskDistribution) as [string, number][]).forEach(([level, count]) => {
+                const pct = reportData.summary.totalSurveys > 0
+                    ? Math.round((count / reportData.summary.totalSurveys) * 100)
+                    : 0;
+                lines.push(`${getRiskLevelName(level as any)},${count},${pct}%`);
+            });
+            lines.push('');
+
+            lines.push('EVALUACIONES POR EMPLEADO');
+            lines.push('Nombre,Departamento,Puesto,Score Global,Nivel Riesgo,Entorno Org,Cargas Trabajo,Liderazgo,Comunicación,Desarrollo Prof,Clima Laboral');
+            reportData.employeeEvaluations.forEach(emp => {
+                lines.push([
+                    `"${emp.employeeName}"`,
+                    `"${emp.department}"`,
+                    `"${emp.position}"`,
+                    emp.overallScore,
+                    getRiskLevelName(emp.riskLevel),
+                    emp.factors.entornoOrganizacional,
+                    emp.factors.cargasTrabajo,
+                    emp.factors.liderazgo,
+                    emp.factors.comunicacion,
+                    emp.factors.desarrolloProfesional,
+                    emp.factors.climaLaboral,
+                ].join(','));
+            });
+            lines.push('');
+
+            if (reportData.recommendations.priorityActions.length > 0) {
+                lines.push('ACCIONES PRIORITARIAS');
+                reportData.recommendations.priorityActions.forEach(action => {
+                    lines.push(`"${action}"`);
+                });
+            }
+
+            const csvContent = BOM + lines.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `NOM-035-${branchId}-${startDate.toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+            toast.success("Reporte Excel descargado exitosamente");
+        } catch (error) {
+            toast.error("Error al descargar Excel");
+        }
+    };
+
     return (
         <div className="space-y-6">
             {/* Controls */}
@@ -287,6 +358,17 @@ export function NOM035Report({ branchId, defaultStartDate, defaultEndDate }: NOM
                                         Descargar PDF
                                     </>
                                 )}
+                            </Button>
+                        )}
+
+                        {reportData && (
+                            <Button
+                                onClick={downloadExcel}
+                                variant="outline"
+                                className="gap-2"
+                            >
+                                <FileSpreadsheet className="h-4 w-4" />
+                                Descargar Excel
                             </Button>
                         )}
                     </div>

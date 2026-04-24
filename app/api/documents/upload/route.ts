@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { employeeDocuments } from '@/lib/db/schema';
 import { handleDocumentUpload } from '@/lib/storage/upload-handler';
-import { eq } from 'drizzle-orm';
+import { requireTenant } from '@/lib/tenant-context';
 
 /**
  * POST /api/documents/upload
@@ -16,17 +16,23 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        const tenant = await requireTenant();
         const formData = await req.formData();
         const file = formData.get('file') as File;
         const documentType = formData.get('documentType') as string;
         const documentName = formData.get('documentName') as string;
         const userId = formData.get('userId') as string || session.user.id;
-        const companyId = formData.get('companyId') as string || session.user.companyId;
+        const companyId = tenant.id;
         const branchId = formData.get('branchId') as string;
         const issueDate = formData.get('issueDate') as string;
         const expirationDate = formData.get('expirationDate') as string;
         const isRequired = formData.get('isRequired') === 'true';
         const notes = formData.get('notes') as string;
+
+        // RBAC Check: Only ADMIN/GERENTE can upload for others
+        if (userId !== session.user.id && session.user.role !== "ADMIN" && session.user.role !== "GERENTE") {
+            return NextResponse.json({ error: "No tienes permiso para subir documentos de otros empleados" }, { status: 403 });
+        }
 
         // Validate required fields
         if (!file || !documentType || !documentName) {

@@ -258,7 +258,7 @@ Por favor contacta a tu gerente para que te agregue al sistema Pulso.`,
             // Get pending workflow assignments
             const assignments = await db.query.workflowAssignments.findMany({
                 where: and(
-                    eq(workflowAssignments.assignedToUserId, userId),
+                    eq(workflowAssignments.assignedTo, userId),
                     eq(workflowAssignments.status, 'PENDING')
                 ),
                 with: {

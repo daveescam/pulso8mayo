@@ -6,7 +6,7 @@ import { headers } from "next/headers";
 
 export async function GET(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await auth.api.getSession({
@@ -16,9 +16,9 @@ export async function GET(
             return new NextResponse("Unauthorized", { status: 401 });
         }
 
-        const resolvedParams = await Promise.resolve(params);
+        const executionId = (await params).id;
 
-        const execution = await WorkflowExecutionService.getExecution(resolvedParams.id);
+        const execution = await WorkflowExecutionService.getExecution(executionId);
 
         if (!execution) {
             return new NextResponse("Execution not found", { status: 404 });

@@ -7,7 +7,7 @@ type ApiResponse<T> = {
     data?: T;
     error?: {
         message: string;
-        details?: any;
+        details?: unknown;
         code?: string;
     };
 };
@@ -71,7 +71,7 @@ export function apiResponse<T>(data: T, statusCode: number = 200) {
 /**
  * Helper function for error responses
  */
-export function apiError(message: string, statusCode: number = 500, details?: any) {
+export function apiError(message: string, statusCode: number = 500, details?: unknown) {
     return NextResponse.json(
         {
             success: false,

@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,12 +24,17 @@ import { Loader2, MoreHorizontal, User, Edit, MessageSquare, FileText } from "lu
 import { Employee } from "./employee-directory";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { useSession } from "@/hooks/use-session";
 
 interface EmployeeTableProps {
   employees: Employee[];
   loading: boolean;
   onViewEmployee: (employeeId: string) => void;
   onEditEmployee: (employeeId: string) => void;
+  onViewDocuments: (employeeId: string) => void;
+  selectedEmployees?: string[];
+  onSelectEmployee?: (employeeId: string, selected: boolean) => void;
+  onSelectAll?: (selected: boolean) => void;
 }
 
 const statusColors: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -49,7 +55,22 @@ const statusLabels: Record<string, string> = {
   RESIGNED: "Resigned",
 };
 
-export function EmployeeTable({ employees, loading, onViewEmployee, onEditEmployee }: EmployeeTableProps) {
+export function EmployeeTable({ 
+  employees, 
+  loading, 
+  onViewEmployee, 
+  onEditEmployee, 
+  onViewDocuments,
+  selectedEmployees = [],
+  onSelectEmployee,
+  onSelectAll,
+}: EmployeeTableProps) {
+  const { session } = useSession();
+  const userRole = session?.user?.role;
+  const canEdit = userRole === "ADMIN" || userRole === "GERENTE";
+  
+  const allSelected = employees.length > 0 && employees.every(e => selectedEmployees.includes(e.id));
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -75,6 +96,13 @@ export function EmployeeTable({ employees, loading, onViewEmployee, onEditEmploy
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-10">
+              <Checkbox 
+                checked={allSelected}
+                onCheckedChange={(checked) => onSelectAll?.(checked as boolean)}
+                aria-label="Select all employees"
+              />
+            </TableHead>
             <TableHead>Employee</TableHead>
             <TableHead>Employee #</TableHead>
             <TableHead>Position</TableHead>
@@ -88,6 +116,13 @@ export function EmployeeTable({ employees, loading, onViewEmployee, onEditEmploy
         <TableBody>
           {employees.map((employee) => (
             <TableRow key={employee.id}>
+              <TableCell>
+                <Checkbox
+                  checked={selectedEmployees.includes(employee.id)}
+                  onCheckedChange={(checked) => onSelectEmployee?.(employee.id, checked as boolean)}
+                  aria-label={`Select ${employee.userName || 'employee'}`}
+                />
+              </TableCell>
               <TableCell className="flex items-center gap-3">
                 <Avatar>
                   <AvatarImage src={employee.profilePhotoUrl || undefined} />
@@ -139,16 +174,18 @@ export function EmployeeTable({ employees, loading, onViewEmployee, onEditEmploy
                       <User className="mr-2 h-4 w-4" />
                       View Profile
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onEditEmployee(employee.id)}>
-                      <Edit className="mr-2 h-4 w-4" />
-                      Edit Profile
-                    </DropdownMenuItem>
+                    {canEdit && (
+                      <DropdownMenuItem onClick={() => onEditEmployee(employee.id)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit Profile
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem>
                       <MessageSquare className="mr-2 h-4 w-4" />
                       Send Message
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onViewDocuments(employee.id)}>
                       <FileText className="mr-2 h-4 w-4" />
                       View Documents
                     </DropdownMenuItem>

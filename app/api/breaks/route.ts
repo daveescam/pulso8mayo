@@ -1,142 +1,140 @@
-import { NextRequest, NextResponse } from "next/server";
-import { BreakManagementService } from "@/lib/services/break-management-service";
-import { auth } from "@/lib/auth";
+import { NextRequest } from "next/server";
+import { ApiHandler } from "@/lib/api/response";
+import { ApiError } from "@/lib/api/error";
+import { requireTenant } from "@/lib/tenant-context";
+import { db } from "@/lib/db";
+import { breakLogs, shiftSessions } from "@/lib/db/schema";
+import { eq, and } from "drizzle-orm";
+import { z } from "zod";
+import { differenceInMinutes } from "date-fns";
 
-/**
- * GET /api/breaks
- * Get breaks for current session or by session ID
- */
+const createBreakLogSchema = z.object({
+    sessionId: z.string().uuid(),
+    type: z.enum(["STANDARD", "MEAL", "REST", "EMERGENCY"]).default("STANDARD"),
+});
+
+const updateBreakLogSchema = z.object({
+    id: z.string().uuid(),
+    endTime: z.string().datetime(),
+});
+
 export async function GET(req: NextRequest) {
     try {
-        const session = await auth.api.getSession({ headers: req.headers });
-        if (!session?.user?.id) {
-            return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+        const tenant = await requireTenant();
+        
+        if (!tenant.id) {
+            return ApiHandler.success([]);
         }
-
+        
         const searchParams = req.nextUrl.searchParams;
-        const action = searchParams.get("action");
         const sessionId = searchParams.get("sessionId");
 
-        // Handle compliance check
-        if (action === 'compliance' || req.nextUrl.pathname.endsWith('/compliance')) {
-            if (!sessionId) {
-                return NextResponse.json({ error: "sessionId requerido" }, { status: 400 });
-            }
-
-            const compliance = await BreakManagementService.checkBreakCompliance(sessionId);
-            return NextResponse.json(compliance);
-        }
-
         if (!sessionId) {
-            // Get active session for user
-            const { db } = await import("@/lib/db");
-            const { shiftSessions } = await import("@/lib/db/schema");
-            const { eq, and } = await import("drizzle-orm");
-
-            const activeSession = await db.query.shiftSessions.findFirst({
-                where: and(
-                    eq(shiftSessions.userId, session.user.id),
-                    eq(shiftSessions.status, 'ACTIVE')
-                )
-            });
-
-            if (!activeSession) {
-                return NextResponse.json({ error: "No hay sesión activa" }, { status: 400 });
-            }
-
-            const breaks = await BreakManagementService.getSessionBreaks(activeSession.id);
-            return NextResponse.json({ breaks });
+            return ApiHandler.error(ApiError.badRequest("Session ID es requerido"));
         }
 
-        const breaks = await BreakManagementService.getSessionBreaks(sessionId);
-        return NextResponse.json({ breaks });
+        const breaks = await db.query.breakLogs.findMany({
+            where: eq(breakLogs.sessionId, sessionId),
+            orderBy: (breaks, { asc }) => asc(breaks.startTime),
+        });
+
+        return ApiHandler.success(breaks);
     } catch (error) {
-        console.error("Error fetching breaks:", error);
-        return NextResponse.json({ error: "Error interno" }, { status: 500 });
+        console.error("Error fetching break logs:", error);
+        return ApiHandler.error(error);
     }
 }
 
-/**
- * POST /api/breaks
- * Start or end a break based on action parameter
- */
 export async function POST(req: NextRequest) {
     try {
-        const session = await auth.api.getSession({ headers: req.headers });
-        if (!session?.user?.id) {
-            return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+        const tenant = await requireTenant();
+        
+        if (!tenant.id) {
+            return ApiHandler.error(ApiError.forbidden("Company not assigned to user"));
         }
 
         const body = await req.json();
-        const { sessionId, type = 'STANDARD', action } = body;
+        const data = createBreakLogSchema.parse(body);
 
-        // Determine action from body or URL
-        const actionType = action || (req.nextUrl.searchParams.get('action') || 'start');
+        const session = await db.query.shiftSessions.findFirst({
+            where: eq(shiftSessions.id, data.sessionId),
+        });
 
-        if (actionType === 'end') {
-            // End break
-            let targetSessionId = sessionId;
-
-            if (!targetSessionId) {
-                // Get active session
-                const { db } = await import("@/lib/db");
-                const { shiftSessions } = await import("@/lib/db/schema");
-                const { eq, and } = await import("drizzle-orm");
-
-                const activeSession = await db.query.shiftSessions.findFirst({
-                    where: and(
-                        eq(shiftSessions.userId, session.user.id),
-                        eq(shiftSessions.status, 'ACTIVE')
-                    )
-                });
-
-                if (!activeSession) {
-                    return NextResponse.json({ error: "No hay sesión activa" }, { status: 400 });
-                }
-
-                targetSessionId = activeSession.id;
-            }
-
-            const breakSession = await BreakManagementService.endBreak(
-                session.user.id,
-                targetSessionId
-            );
-
-            return NextResponse.json({ success: true, break: breakSession });
-        } else {
-            // Start break (default)
-            let targetSessionId = sessionId;
-
-            if (!targetSessionId) {
-                // Get active session
-                const { db } = await import("@/lib/db");
-                const { shiftSessions } = await import("@/lib/db/schema");
-                const { eq, and } = await import("drizzle-orm");
-
-                const activeSession = await db.query.shiftSessions.findFirst({
-                    where: and(
-                        eq(shiftSessions.userId, session.user.id),
-                        eq(shiftSessions.status, 'ACTIVE')
-                    )
-                });
-
-                if (!activeSession) {
-                    return NextResponse.json({ error: "No hay sesión activa" }, { status: 400 });
-                }
-
-                targetSessionId = activeSession.id;
-            }
-
-            const breakSession = await BreakManagementService.startBreak(
-                session.user.id,
-                targetSessionId,
-                type
-            );
-
-            return NextResponse.json({ success: true, break: breakSession });
+        if (!session) {
+            return ApiHandler.error(ApiError.notFound("Sesión no encontrada"));
         }
-    } catch (error: any) {
-        console.error("Error managing break:", error);
-        return NextResponse.json({ error: error.message || "Error al gestionar break" }, { status: 400 });
+
+        if (session.status !== "ACTIVE") {
+            return ApiHandler.error(ApiError.badRequest("La sesión debe estar activa para tomar un descanso"));
+        }
+
+        const newBreak = await db.insert(breakLogs).values({
+            sessionId: data.sessionId,
+            type: data.type,
+            startTime: new Date(),
+        }).returning();
+
+        return ApiHandler.success(newBreak[0]);
+    } catch (error) {
+        console.error("Error creating break log:", error);
+        if (error instanceof z.ZodError) {
+            return ApiHandler.error(ApiError.badRequest(`Validación fallida: ${error.issues.map(i => i.message).join(", ")}`));
+        }
+        return ApiHandler.error(error as Error);
+    }
+}
+
+export async function PUT(req: NextRequest) {
+    try {
+        const tenant = await requireTenant();
+        
+        if (!tenant.id) {
+            return ApiHandler.error(ApiError.forbidden("Company not assigned to user"));
+        }
+
+        const body = await req.json();
+        const data = updateBreakLogSchema.parse(body);
+
+        const existing = await db.query.breakLogs.findFirst({
+            where: eq(breakLogs.id, data.id),
+        });
+
+        if (!existing) {
+            return ApiHandler.error(ApiError.notFound("Break no encontrado"));
+        }
+
+        if (existing.endTime) {
+            return ApiHandler.error(ApiError.badRequest("Este break ya fue finalizado"));
+        }
+
+        const endTime = new Date(data.endTime);
+        const durationMinutes = differenceInMinutes(endTime, existing.startTime);
+
+        const minDurationMap: Record<string, number> = {
+            MEAL: 30,
+            REST: 15,
+            STANDARD: 15,
+            EMERGENCY: 0,
+        };
+        
+        const isCompliant = durationMinutes >= (minDurationMap[existing.type] || 15);
+
+        const [updated] = await db.update(breakLogs)
+            .set({
+                endTime,
+                durationMinutes,
+                isCompliant,
+                complianceNotes: isCompliant ? null : `Duración mínima requerida: ${minDurationMap[existing.type]} min`,
+            })
+            .where(eq(breakLogs.id, data.id))
+            .returning();
+
+        return ApiHandler.success(updated);
+    } catch (error) {
+        console.error("Error updating break log:", error);
+        if (error instanceof z.ZodError) {
+            return ApiHandler.error(ApiError.badRequest(`Validación fallida: ${error.issues.map(i => i.message).join(", ")}`));
+        }
+        return ApiHandler.error(error as Error);
     }
 }

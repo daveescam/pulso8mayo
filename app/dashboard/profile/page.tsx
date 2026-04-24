@@ -9,9 +9,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordChangeForm } from "@/components/profile/password-change-form";
 import { NotificationPreferences } from "@/components/profile/notification-preferences";
-import { User, Mail, Phone, Building, MapPin, Shield, Calendar, Edit2, Save, Loader2 } from "lucide-react";
+import { User, Mail, Phone, Building, MapPin, Shield, Calendar, Edit2, Save, Loader2, FileText, Calendar as CalendarIcon, Briefcase, Award, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
+import { EmployeeContractsView } from "@/components/profile/employee-contracts-view";
+import { EmployeeDocumentsView } from "@/components/profile/employee-documents-view";
+import { EmployeeScheduleView } from "@/components/profile/employee-schedule-view";
+import { VacationBalanceCard } from "@/components/profile/vacation-balance-card";
+import { EmployeeBenefitsView } from "@/components/profile/employee-benefits-view";
 
 interface ProfilePageProps {
     userPromise: Promise<{
@@ -76,6 +81,8 @@ export default function ProfilePage({ userPromise }: ProfilePageProps) {
         };
         return roles[role || ""] || role;
     };
+
+    const isEmployee = user.role === "EMPLEADO";
 
     return (
         <div className="space-y-6">
@@ -218,6 +225,23 @@ export default function ProfilePage({ userPromise }: ProfilePageProps) {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Employee Self-Service Sections */}
+            {isEmployee && (
+                <>
+                    <div className="grid gap-6 md:grid-cols-2">
+                        <VacationBalanceCard userId={user.id} companyId={user.companyId} />
+                        <EmployeeBenefitsView userId={user.id} companyId={user.companyId} />
+                    </div>
+
+                    <div className="grid gap-6 md:grid-cols-2">
+                        <EmployeeContractsView userId={user.id} companyId={user.companyId} />
+                        <EmployeeDocumentsView userId={user.id} companyId={user.companyId} />
+                    </div>
+
+                    <EmployeeScheduleView userId={user.id} companyId={user.companyId} />
+                </>
+            )}
 
             {/* Two Column Layout for Password and Notifications */}
             <div className="grid gap-6 md:grid-cols-2">

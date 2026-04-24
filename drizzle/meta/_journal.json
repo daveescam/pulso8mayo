@@ -15,6 +15,34 @@
       "when": 1769720734102,
       "tag": "0001_solid_blonde_phantom",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776698671833,
+      "tag": "0002_melodic_silverclaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1776722091474,
+      "tag": "0003_sudden_mister_fear",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1776969267742,
+      "tag": "0004_secret_vance_astro",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1777057547381,
+      "tag": "0005_cuddly_unus",
+      "breakpoints": true
     }
   ]
 }

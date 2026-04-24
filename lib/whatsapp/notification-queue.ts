@@ -51,11 +51,10 @@ export class NotificationQueue {
 
         // Create notification record in database
         await db.insert(notifications).values({
-            id: notificationId,
             userId: options.recipientId,
-            type: options.type,
+            type: 'info', // Map options.type to valid enum value
             title: options.template,
-            content: JSON.stringify(options.payload),
+            message: JSON.stringify(options.payload),
             read: false,
         });
 
@@ -70,7 +69,7 @@ export class NotificationQueue {
             try {
                 await qstashClient.publishJSON({
                     api: {
-                        name: 'notification-processor',
+                        name: 'llm',
                         url: this.QUEUE_URL,
                     },
                     body: {
@@ -83,7 +82,7 @@ export class NotificationQueue {
                         priority: options.priority || 'normal',
                         maxRetries: options.maxRetries || this.DEFAULT_MAX_RETRIES,
                         retryCount: 0,
-                        scheduledAt: scheduledAt?.toISOString(),
+                        scheduledAt: scheduledAt,
                     } as NotificationQueueItem,
                     headers: {
                         'x-notification-id': notificationId,
@@ -216,14 +215,7 @@ export class NotificationQueue {
     private static async sendInApp(options: QueueNotificationOptions): Promise<boolean> {
         try {
             // In-app notifications are already stored in the notifications table
-            // Just update the created record with additional data if needed
-            await db.update(notifications)
-                .set({
-                    actionUrl: options.payload.actionUrl,
-                    actionLabel: options.payload.actionLabel,
-                })
-                .where(eq(notifications.id, options.id || ''));
-
+            // The record was created in the queue method above
             console.log(`[NotificationQueue] In-app notification created for ${options.recipientId}`);
             return true;
         } catch (error) {

@@ -1,15 +1,15 @@
 export class ApiError extends Error {
     public statusCode: number;
-    public details?: any;
+    public details?: unknown;
 
-    constructor(message: string, statusCode: number = 500, details?: any) {
+    constructor(message: string, statusCode: number = 500, details?: unknown) {
         super(message);
         this.name = "ApiError";
         this.statusCode = statusCode;
         this.details = details;
     }
 
-    static badRequest(message: string, details?: any) {
+    static badRequest(message: string, details?: unknown) {
         return new ApiError(message, 400, details);
     }
 

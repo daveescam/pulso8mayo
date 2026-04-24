@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { performanceReviews, performanceReviewCriteria, performanceGoals, users, companies, branches } from '@/lib/db/schema';
-import { eq, and, desc, asc, or, ilike } from 'drizzle-orm';
+import { eq, and, desc, asc, or, ilike, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 // Validation schemas
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
 
     // Get total count
     const [{ count }] = await db
-      .select({ count: db.sql<number>`count(*)::int` })
+      .select({ count: sql<number>`count(*)::int` })
       .from(performanceReviews)
       .where(and(...conditions));
 

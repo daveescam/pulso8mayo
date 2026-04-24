@@ -14,7 +14,12 @@ export class WorkflowTemplateService {
             steps: data.steps, // JSONB
             companyId: tenantId,
             category: data.category || "OPERATIONAL",
-            active: true
+            active: true,
+            // Compliance fields
+            complianceType: data.complianceType || null,
+            regulationSection: data.regulationSection || null,
+            requiredFrequency: data.requiredFrequency || null,
+            isCritical: data.isCritical || false
         }).returning();
 
         return newTemplate[0];
@@ -54,5 +59,31 @@ export class WorkflowTemplateService {
 
         const match = allTemplates.find(t => t.name.includes(keyword));
         return match || null;
+    }
+
+    static async updateTemplate(id: string, data: any) {
+        const updateData: any = {
+            updatedAt: new Date().toISOString()
+        };
+
+        // Update basic fields
+        if (data.name !== undefined) updateData.name = data.name;
+        if (data.description !== undefined) updateData.description = data.description;
+        if (data.category !== undefined) updateData.category = data.category;
+        if (data.active !== undefined) updateData.active = data.active;
+        if (data.steps !== undefined) updateData.steps = data.steps;
+
+        // Update compliance fields
+        if (data.complianceType !== undefined) updateData.complianceType = data.complianceType;
+        if (data.regulationSection !== undefined) updateData.regulationSection = data.regulationSection;
+        if (data.requiredFrequency !== undefined) updateData.requiredFrequency = data.requiredFrequency;
+        if (data.isCritical !== undefined) updateData.isCritical = data.isCritical;
+
+        const updated = await db.update(workflowTemplates)
+            .set(updateData)
+            .where(eq(workflowTemplates.id, id))
+            .returning();
+
+        return updated[0];
     }
 }

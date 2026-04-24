@@ -1,42 +1,48 @@
-import { route, type Router } from '@better-upload/server';
-import { toRouteHandler } from '@better-upload/server/adapters/next';
-import { s3 } from '@better-upload/server/clients';
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { NextRequest, NextResponse } from "next/server";
+import { getSession } from "@/lib/auth";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-const router: Router = {
-  client: s3({
-     accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-     endpoint: process.env.R2_ENDPOINT!,
-     region: "auto",
-     // Cloudflare R2 signature optimization
-     signatureVersion: "v4"
-  }),
-  bucketName: process.env.R2_BUCKET_NAME!,
-  routes: {
-    // Endpoint for images uploaded during workflows
-    images: route({
-      fileTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
-      maxFileSize: '10MB',
-      multipleFiles: true,
-      maxFiles: 5,
-      // Authentication layer integrating BetterAuth
-      authorize: async () => {
-        const reqHeaders = await headers();
-        const session = await auth.api.getSession({
-          headers: reqHeaders
-        });
-        
-        if (!session?.user?.id) {
-          throw new Error('Unauthorized');
-        }
-        
-        // Context passes the userId to attach as prefix or metadata if needed
-        return { userId: session.user.id };
-      }
-    }),
+const s3Client = new S3Client({
+  region: process.env.R2_REGION || "auto",
+  endpoint: process.env.R2_ENDPOINT,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
   },
-};
+});
 
-export const { POST } = toRouteHandler(router);
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { fileName, fileType } = body;
+
+    if (!fileName || !fileType) {
+      return NextResponse.json({ error: "Missing fileName or fileType" }, { status: 400 });
+    }
+
+    const key = `uploads/${session.user.id}/${Date.now()}-${fileName}`;
+
+    const command = new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: key,
+      ContentType: fileType,
+    });
+
+    const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+
+    return NextResponse.json({
+      uploadUrl: signedUrl,
+      key,
+      fileUrl: `${process.env.R2_PUBLIC_URL}/${key}`,
+    });
+  } catch (error) {
+    console.error("Error generating upload URL:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}

@@ -159,7 +159,7 @@ export function ShiftScheduler() {
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setCurrentDate(d => addDays(d, -7))}>
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
-                        <div className="px-3 text-sm font-medium min-w-[200px] text-center flex items-center justify-center gap-2">
+                        <div className="px-3 text-sm font-medium min-w-50 text-center flex items-center justify-center gap-2">
                             <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                             {format(weekStart, "d MMM", { locale: es })} - {format(addDays(weekStart, 6), "d MMM, yyyy", { locale: es })}
                         </div>
@@ -207,7 +207,7 @@ export function ShiftScheduler() {
                             {weekDays.map(day => {
                                 const cellShifts = getShiftsForCell(user.id, day);
                                 return (
-                                    <div key={day.toString()} className="min-h-[70px] p-1.5 relative group/cell">
+                                    <div key={day.toString()} className="min-h-17.5 p-1.5 relative group/cell">
                                         <div className="absolute inset-0 group-hover/cell:bg-muted/20 transition-all pointer-events-none" />
 
                                         {cellShifts.map(shift => (

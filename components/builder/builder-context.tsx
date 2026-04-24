@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 export type StepType =
     | 'text' | 'number' | 'yes_no' | 'multiple_choice' | 'photo' | 'checklist'
     | 'TimeField' | 'TemperatureField' | 'SignatureField' | 'OPSLocationField' | 'PhotoField' | 'timer'
-    | 'video' | 'audio';
+    | 'video' | 'audio' | 'instruction';
 
 export interface AIVerificationConfig {
     enabled: boolean;
@@ -27,6 +27,30 @@ export interface ValidationConfig {
     message?: string;
 }
 
+export interface ValidationConfig {
+    min?: number;
+    max?: number;
+    minTime?: string;
+    maxTime?: string;
+    radiusMeters?: number;
+    message?: string;
+}
+
+export interface ConditionalBranch {
+    id: string;
+    condition: string;
+    targetStepId: string;
+}
+
+export interface RemediationStep {
+    instruction: string;
+    waitSeconds: number;
+    verification?: {
+        type: string;
+        targetCondition: string;
+    };
+}
+
 export interface EscalationStep {
     level: number;
     triggerAfterMinutes: number;
@@ -34,16 +58,7 @@ export interface EscalationStep {
     notifyRoles: string[];
     channel: string;
     message: string;
-    includeData?: Record<string, boolean>;
-}
-
-export interface RemediationStep {
-    instruction: string;
-    waitSeconds: number;
-    verification: {
-        type: string;
-        targetCondition: string;
-    };
+    includeData?: Record<string, any>;
 }
 
 export interface RemediationProtocol {
@@ -54,6 +69,16 @@ export interface RemediationProtocol {
     steps: RemediationStep[];
 }
 
+export interface RuleAction {
+    type: string;
+    delay?: number;
+    message?: string;
+    priority?: string;
+    assignTo?: string;
+    item?: string;
+    quantity?: number;
+}
+
 export interface LogicRule {
     id: string;
     name?: string;
@@ -62,7 +87,7 @@ export interface LogicRule {
     message: string;
     remediationProtocol?: RemediationProtocol;
     escalationChain?: EscalationStep[];
-    actions?: any[];
+    actions?: RuleAction[];
 }
 
 export interface WorkflowStep {
@@ -70,12 +95,18 @@ export interface WorkflowStep {
     type: StepType;
     title: string;
     description?: string;
+    category?: string;
     required: boolean;
     config?: any;
     aiVerification?: AIVerificationConfig;
     validation?: ValidationConfig;
     logicRules?: LogicRule[];
-    options?: string[]; // For checklist, select, multiple_choice
+    options?: string[];
+    placeholder?: string;
+    defaultValue?: string;
+    readOnly?: boolean;
+    branches?: ConditionalBranch[];
+    conditionalLogic?: Record<string, any>;
 }
 
 interface BuilderContextType {

@@ -49,9 +49,28 @@ export async function getCurrentTenant() {
 }
 
 export async function requireTenant() {
-    const tenant = await getCurrentTenant();
-    if (!tenant?.id && !tenant?.unassigned) {
-        throw ApiError.badRequest("Tenant header or selection is missing.");
-    }
-    return tenant;
+  const tenant = await getCurrentTenant();
+  if (!tenant?.id && !tenant?.unassigned) {
+    throw ApiError.badRequest("Tenant header or selection is missing.");
+  }
+  return tenant;
+}
+
+/**
+ * Get authenticated user with role information
+ * Throws if not authenticated
+ */
+export async function requireAuth() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session?.user) {
+    throw ApiError.unauthorized();
+  }
+
+  return {
+    user: session.user as { id: string; role: string; companyId?: string | null; branchId?: string | null; email: string; name?: string },
+    session: session.session,
+  };
 }

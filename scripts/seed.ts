@@ -1,6 +1,6 @@
 
 import { db } from "@/lib/db";
-import { companies, branches, users, plannedShifts, shifts, magicLinks } from "@/lib/db/schema";
+import { companies, branches, users, plannedShifts, magicLinks } from "@/lib/db/schema";
 import { sql } from "drizzle-orm";
 
 async function main() {

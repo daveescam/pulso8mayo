@@ -33,8 +33,8 @@ import { toast } from 'sonner';
 
 const leaveRequestSchema = z.object({
   leaveTypeId: z.string().uuid({ message: 'Select a leave type' }),
-  startDate: z.date({ required_error: 'Select a start date' }),
-  endDate: z.date({ required_error: 'Select an end date' }),
+  startDate: z.date({ message: 'Select a start date' }),
+  endDate: z.date({ message: 'Select an end date' }),
   totalDays: z.number().min(1, { message: 'At least 1 day required' }),
   reason: z.string().min(10, { message: 'Reason must be at least 10 characters' }),
 });

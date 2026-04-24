@@ -84,7 +84,8 @@ export class StockAlertService {
                         currentStock,
                         minLevel,
                         branchId: stock.branchId!,
-                        severity
+                        severity,
+                        type: "LOW_STOCK"
                     });
                 }
             }

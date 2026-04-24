@@ -3,10 +3,11 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Type, Hash, CheckSquare, Camera, List, ToggleLeft, Clock, Thermometer, PenTool, MapPin, Hourglass, Video, Mic } from 'lucide-react';
+import { Type, Hash, CheckSquare, Camera, List, ToggleLeft, Clock, Thermometer, PenTool, MapPin, Hourglass, Video, Mic, Info } from 'lucide-react';
 import { useBuilder, StepType } from './builder-context';
 
 const tools: { type: StepType; label: string; icon: React.ReactNode }[] = [
+    { type: 'instruction', label: 'Instruction', icon: <Info className="w-4 h-4 mr-2" /> },
     { type: 'text', label: 'Text Input', icon: <Type className="w-4 h-4 mr-2" /> },
     { type: 'number', label: 'Number', icon: <Hash className="w-4 h-4 mr-2" /> },
     { type: 'yes_no', label: 'Yes/No', icon: <ToggleLeft className="w-4 h-4 mr-2" /> },

@@ -49,6 +49,7 @@ interface ScheduleCalendarProps {
 export function ScheduleCalendar({
     viewMode,
     shifts,
+    vacations = [],
     onShiftClick,
     onDateClick,
     loading = false
@@ -183,7 +184,7 @@ export function ScheduleCalendar({
                                     <div
                                         key={day.toString()}
                                         className={cn(
-                                            "min-h-[100px] p-2 bg-card/50 hover:bg-muted/30 transition-colors",
+                                            "min-h-25 p-2 bg-card/50 hover:bg-muted/30 transition-colors",
                                             isToday(day) && "bg-primary/5",
                                             onVacation && "bg-blue-50"
                                         )}
@@ -272,7 +273,7 @@ export function ScheduleCalendar({
         return (
             <div className="border-x border-b rounded-b-lg overflow-hidden">
                 {weeks.map((week, weekIndex) => (
-                    <div key={weekIndex} className="grid grid-cols-7 gap-px border-t min-h-[120px]">
+                    <div key={weekIndex} className="grid grid-cols-7 gap-px border-t min-h-30">
                         {week.map(day => {
                             const dayShifts = getShiftsForDate(day)
                             const isCurrentMonth = day.getMonth() === currentDate.getMonth()
@@ -280,7 +281,7 @@ export function ScheduleCalendar({
                                 <div
                                     key={day.toString()}
                                     className={cn(
-                                        "p-2 bg-card/50 hover:bg-muted/30 transition-colors min-h-[100px]",
+                                        "p-2 bg-card/50 hover:bg-muted/30 transition-colors min-h-25",
                                         !isCurrentMonth && "bg-muted/20 text-muted-foreground",
                                         isToday(day) && "bg-primary/5"
                                     )}

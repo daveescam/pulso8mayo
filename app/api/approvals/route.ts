@@ -15,6 +15,12 @@ export async function GET(req: NextRequest) {
         }
 
         const tenant = await requireTenant();
+        const companyId = tenant.id;
+        
+        if (!companyId) {
+            return NextResponse.json({ error: "Company not configured" }, { status: 400 });
+        }
+        
         const searchParams = req.nextUrl.searchParams;
         const branchId = searchParams.get("branchId");
         const userId = searchParams.get("userId");
@@ -22,7 +28,7 @@ export async function GET(req: NextRequest) {
 
         // Get pending approvals for branch (managers)
         if (branchId && !userId) {
-            const approvals = await ShiftApprovalService.getPendingApprovals(branchId, tenant.companyId);
+            const approvals = await ShiftApprovalService.getPendingApprovals(branchId, companyId);
             return NextResponse.json({ approvals });
         }
 
@@ -30,7 +36,7 @@ export async function GET(req: NextRequest) {
         if (userId) {
             const approvals = await ShiftApprovalService.getUserApprovals(
                 userId,
-                tenant.companyId,
+                companyId,
                 status
             );
             return NextResponse.json({ approvals });
@@ -39,7 +45,7 @@ export async function GET(req: NextRequest) {
         // Default: get approvals for current user
         const approvals = await ShiftApprovalService.getUserApprovals(
             session.user.id,
-            tenant.companyId,
+            companyId,
             status
         );
         return NextResponse.json({ approvals });
@@ -61,10 +67,16 @@ export async function POST(req: NextRequest) {
         }
 
         const tenant = await requireTenant();
+        const companyId = tenant.id;
+        
+        if (!companyId) {
+            return NextResponse.json({ error: "Company not configured" }, { status: 400 });
+        }
+        
         const body = await req.json();
 
         const approval = await ShiftApprovalService.createApproval({
-            companyId: tenant.companyId,
+            companyId: companyId,
             branchId: body.branchId,
             approvalType: body.approvalType,
             requestedBy: session.user.id,
@@ -100,6 +112,12 @@ export async function PATCH(req: NextRequest) {
         }
 
         const tenant = await requireTenant();
+        const companyId = tenant.id;
+        
+        if (!companyId) {
+            return NextResponse.json({ error: "Company not configured" }, { status: 400 });
+        }
+        
         const searchParams = req.nextUrl.searchParams;
         const approvalId = searchParams.get("id");
 
@@ -123,7 +141,7 @@ export async function PATCH(req: NextRequest) {
 
         const approval = await ShiftApprovalService.decideApproval(
             approvalId,
-            tenant.companyId,
+            companyId,
             decision
         );
 
@@ -150,6 +168,12 @@ export async function DELETE(req: NextRequest) {
         }
 
         const tenant = await requireTenant();
+        const companyId = tenant.id;
+        
+        if (!companyId) {
+            return NextResponse.json({ error: "Company not configured" }, { status: 400 });
+        }
+        
         const searchParams = req.nextUrl.searchParams;
         const approvalId = searchParams.get("id");
 
@@ -159,7 +183,7 @@ export async function DELETE(req: NextRequest) {
 
         const approval = await ShiftApprovalService.cancelApproval(
             approvalId,
-            tenant.companyId,
+            companyId,
             session.user.id
         );
 

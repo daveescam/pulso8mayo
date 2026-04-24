@@ -27,6 +27,7 @@ import {
   CheckSquare,
   Package,
   TrendingUp,
+  Wrench,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -160,6 +161,33 @@ const navMain = [
       {
         title: "Alertas de Stock",
         url: "/dashboard/inventory/alerts",
+      },
+    ],
+  },
+  {
+    title: "Equipos",
+    url: "/dashboard/equipment",
+    icon: Wrench,
+    items: [
+      {
+        title: "Dashboard",
+        url: "/dashboard/equipment",
+      },
+      {
+        title: "Catálogo",
+        url: "/dashboard/equipment/catalog",
+      },
+      {
+        title: "Mantenimientos",
+        url: "/dashboard/equipment/maintenance",
+      },
+      {
+        title: "Servicios Normativos",
+        url: "/dashboard/equipment/compliance",
+      },
+      {
+        title: "Proveedores",
+        url: "/dashboard/equipment/providers",
       },
     ],
   },

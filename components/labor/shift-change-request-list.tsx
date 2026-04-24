@@ -207,7 +207,7 @@ export function ShiftChangeRequestList({ employees: propEmployees }: ShiftChange
                 body: JSON.stringify({
                     requestedShiftId: selectedShift,
                     counterpartyId: selectedCounterparty,
-                    counterpartyShiftId: selectedCounterpartyShift || undefined,
+                    counterpartyShiftId: (selectedCounterpartyShift && selectedCounterpartyShift !== "none") ? selectedCounterpartyShift : undefined,
                     reason,
                     notes: notes || undefined,
                 }),
@@ -414,7 +414,7 @@ export function ShiftChangeRequestList({ employees: propEmployees }: ShiftChange
                         <div className="flex items-center gap-2">
                             <Filter className="h-4 w-4 text-muted-foreground" />
                             <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                <SelectTrigger className="w-[180px]">
+                                <SelectTrigger className="w-45">
                                     <SelectValue placeholder="Filtrar por estado" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -435,7 +435,7 @@ export function ShiftChangeRequestList({ employees: propEmployees }: ShiftChange
                             <p>No hay solicitudes de cambio de turno</p>
                         </div>
                     ) : (
-                        <ScrollArea className="h-[500px]">
+                        <ScrollArea className="h-125">
                             <div className="space-y-3">
                                 {filteredRequests.map(request => (
                                     <div
@@ -581,7 +581,7 @@ export function ShiftChangeRequestList({ employees: propEmployees }: ShiftChange
                                     <SelectValue placeholder="Selecciona turno (opcional)" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">Sin turno específico</SelectItem>
+                                    <SelectItem value="none">Sin turno específico</SelectItem>
                                     {/* Here you would load counterparty shifts */}
                                 </SelectContent>
                             </Select>

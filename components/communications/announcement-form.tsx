@@ -37,16 +37,27 @@ export function AnnouncementForm({ companyId, userId, onSuccess, onCancel, initi
     communicationType: initialData?.communicationType || 'ANNOUNCEMENT',
     targetType: initialData?.targetType || 'COMPANY',
     targetIds: initialData?.targetIds || [] as string[],
+    targetRoles: initialData?.targetRoles || [] as string[],
     isPinned: initialData?.isPinned || false,
     deliveredVia: initialData?.deliveredVia || [] as string[],
   });
 
   const [availableBranches, setAvailableBranches] = useState<any[]>([]);
+  const [availableDepartments, setAvailableDepartments] = useState<any[]>([]);
+  const [estimatedReach, setEstimatedReach] = useState<number | null>(null);
+  const [isCalculating, setIsCalculating] = useState(false);
+
+  const roles = [
+    { id: 'ADMIN', label: 'Administradores' },
+    { id: 'GERENTE', label: 'Gerentes' },
+    { id: 'SUPERVISOR', label: 'Supervisores' },
+    { id: 'EMPLEADO', label: 'Empleados' },
+  ];
 
   // Fetch branches if not provided as props
   // We do it once when component mounts if targetType might need it
   useEffect(() => {
-    async function loadBranches() {
+      async function loadBranches() {
       if (companyId) {
         try {
           const res = await fetch(`/api/branches?companyId=${companyId}`);
@@ -60,8 +71,54 @@ export function AnnouncementForm({ companyId, userId, onSuccess, onCancel, initi
         }
       }
     }
+
+    async function loadDepartments() {
+      if (companyId) {
+        try {
+          const res = await fetch(`/api/departments?companyId=${companyId}`);
+          if (res.ok) {
+            const data = await res.json();
+            setAvailableDepartments(data.departments || []);
+          }
+        } catch (error) {
+          console.error("Error loading departments", error);
+        }
+      }
+    }
+
     loadBranches();
+    loadDepartments();
   }, [companyId]);
+
+  // Recalculate estimated reach when filters change
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (!companyId) return;
+      
+      setIsCalculating(true);
+      try {
+        const res = await fetch('/api/communications/recipients/count', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            targetType: formData.targetType,
+            targetIds: formData.targetIds,
+            targetRoles: formData.targetRoles,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setEstimatedReach(data.count);
+        }
+      } catch (error) {
+        console.error("Error calculating reach", error);
+      } finally {
+        setIsCalculating(false);
+      }
+    }, 500); // Debounce to avoid too many requests
+
+    return () => clearTimeout(timer);
+  }, [companyId, formData.targetType, formData.targetIds, formData.targetRoles]);
 
   const handleSubmit = async () => {
     if (!formData.title.trim()) {
@@ -181,9 +238,9 @@ export function AnnouncementForm({ companyId, userId, onSuccess, onCancel, initi
           </div>
 
           {formData.targetType === 'BRANCH' && (
-            <div className="space-y-2 md:col-span-2 border p-3 rounded-md">
-              <Label>Selecciona las Sucursales</Label>
-              <div className="flex flex-col gap-2 mt-2">
+            <div className="space-y-2 md:col-span-2 border p-3 rounded-md bg-muted/30">
+              <Label className="text-xs font-bold uppercase text-muted-foreground">Selecciona las Sucursales</Label>
+              <div className="grid grid-cols-2 gap-2 mt-2">
                 {availableBranches.map((branch: any) => (
                   <div key={branch.id} className="flex items-center space-x-2">
                     <input 
@@ -204,7 +261,7 @@ export function AnnouncementForm({ companyId, userId, onSuccess, onCancel, initi
                         });
                       }}
                     />
-                    <Label htmlFor={`branch-${branch.id}`} className="font-normal cursor-pointer">
+                    <Label htmlFor={`branch-${branch.id}`} className="font-normal text-sm cursor-pointer truncate">
                       {branch.name}
                     </Label>
                   </div>
@@ -215,6 +272,92 @@ export function AnnouncementForm({ companyId, userId, onSuccess, onCancel, initi
               </div>
             </div>
           )}
+
+          {formData.targetType === 'DEPARTMENT' && (
+            <div className="space-y-2 md:col-span-2 border p-3 rounded-md bg-muted/30">
+              <Label className="text-xs font-bold uppercase text-muted-foreground">Selecciona los Departamentos</Label>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                {availableDepartments.map((dept: any) => (
+                  <div key={dept.id} className="flex items-center space-x-2">
+                    <input 
+                      type="checkbox" 
+                      id={`dept-${dept.id}`}
+                      className="rounded border-gray-300 text-primary focus:ring-primary"
+                      checked={(formData.targetIds || []).includes(dept.id)}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setFormData((prev) => {
+                          const current = prev.targetIds || [];
+                          return {
+                            ...prev,
+                            targetIds: checked 
+                              ? [...current, dept.id]
+                              : current.filter((id: string) => id !== dept.id)
+                          }
+                        });
+                      }}
+                    />
+                    <Label htmlFor={`dept-${dept.id}`} className="font-normal text-sm cursor-pointer truncate">
+                      {dept.name}
+                    </Label>
+                  </div>
+                ))}
+                {availableDepartments.length === 0 && (
+                  <span className="text-sm text-muted-foreground">No hay departamentos con empleados asignados aun.</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2 md:col-span-2 border p-3 rounded-md border-primary/20 bg-primary/5">
+            <Label className="text-xs font-bold uppercase text-primary">Filtrar por Roles (Opcional)</Label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
+              {roles.map((role) => (
+                <div key={role.id} className="flex items-center space-x-2">
+                  <input 
+                    type="checkbox" 
+                    id={`role-${role.id}`}
+                    className="rounded border-gray-300 text-primary focus:ring-primary"
+                    checked={(formData.targetRoles || []).includes(role.id)}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setFormData((prev) => {
+                        const current = prev.targetRoles || [];
+                        return {
+                          ...prev,
+                          targetRoles: checked 
+                            ? [...current, role.id]
+                            : current.filter((id: string) => id !== role.id)
+                        }
+                      });
+                    }}
+                  />
+                  <Label htmlFor={`role-${role.id}`} className="font-normal text-sm cursor-pointer">
+                    {role.label}
+                  </Label>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-2">
+              Si no seleccionas ningún rol, se enviará a todos los empleados dentro del grupo seleccionado.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-secondary shadow-sm">
+          <div className="flex items-center gap-2">
+            <div className={`h-2 w-2 rounded-full ${estimatedReach && estimatedReach > 0 ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`} />
+            <span className="text-sm font-medium">Alcance Estimado:</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {isCalculating ? (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            ) : (
+              <span className="text-lg font-bold">
+                {estimatedReach !== null ? estimatedReach : '0'} <span className="text-xs font-normal text-muted-foreground">empleados</span>
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">

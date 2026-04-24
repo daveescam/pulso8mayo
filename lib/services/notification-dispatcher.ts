@@ -14,6 +14,29 @@ export type NotificationEventType =
     | "schedule_change"
     | "document_expiration";
 
+export interface UserData {
+    id: string;
+    name: string | null;
+    email: string;
+    phone: string | null;
+    whatsappPhone: string | null;
+    role: string | null;
+    companyId: string | null;
+    branchId: string | null;
+}
+
+export interface NotificationPreferencesData {
+    userId: string;
+    whatsappEnabled: boolean;
+    emailEnabled: boolean;
+    inAppEnabled: boolean;
+    workflowAssignments: boolean;
+    workflowDueSoon: boolean;
+    workflowOverdue: boolean;
+    incidents: boolean;
+    inventoryAlerts: boolean;
+}
+
 export interface NotificationPayload {
     userId: string;
     title: string;
@@ -22,7 +45,7 @@ export interface NotificationPayload {
     eventType: NotificationEventType;
     actionUrl?: string;
     actionLabel?: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
 }
 
 export interface NotificationTemplate {
@@ -202,7 +225,7 @@ export class NotificationDispatcher {
     private static async sendWhatsAppNotification(
         payload: NotificationPayload,
         template: NotificationTemplate,
-        userData: any
+        userData: UserData
     ): Promise<void> {
         try {
             if (!template.whatsappTemplate) return;
@@ -243,7 +266,7 @@ export class NotificationDispatcher {
     private static async sendEmailNotification(
         payload: NotificationPayload,
         template: NotificationTemplate,
-        userData: any
+        userData: UserData
     ): Promise<void> {
         try {
             if (!template.emailSubject || !template.emailBody) return;
@@ -289,7 +312,7 @@ export class NotificationDispatcher {
     private static async sendInAppNotification(
         payload: NotificationPayload,
         template: NotificationTemplate,
-        userData: any
+        userData: UserData
     ): Promise<void> {
         try {
             if (!template.inAppTitle || !template.inAppMessage) return;
@@ -352,7 +375,7 @@ export class NotificationDispatcher {
      */
     private static shouldSendNotification(
         eventType: NotificationEventType,
-        prefs: any
+        prefs: NotificationPreferencesData
     ): boolean {
         switch (eventType) {
             case "workflow_assignment":
@@ -465,7 +488,7 @@ export class NotificationDispatcher {
                 promises.push(
                     db.insert(notifications).values({
                         userId: payload.userId,
-                        type: 'inventory_alert',
+                        type: 'warning',
                         title: `Alerta de Inventario: ${payload.data.itemName}`,
                         message: `El stock de ${payload.data.itemName} está por debajo del mínimo (${payload.data.currentStock} < ${payload.data.minLevel})`,
                         actionUrl: `/dashboard/inventory/alerts`,

@@ -265,7 +265,7 @@ export function ShiftAssignmentBuilder({
             employeeId: employee.id,
             employeeName: employee.name,
             employeeImage: employee.image,
-            shiftType: selectedShiftType,
+            shiftType: selectedShiftType as ShiftAssignment["shiftType"],
             date: selectedDate.toISOString(),
             startTime: customStart || config.defaultStart,
             endTime: customEnd || config.defaultEnd,
@@ -387,7 +387,7 @@ export function ShiftAssignmentBuilder({
 
                         <div className="pt-4 border-t">
                             <h4 className="text-sm font-medium mb-3">Asignaciones para {formatDate(selectedDate, "EEEE d 'de' MMMM", { locale: es })}</h4>
-                            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                            <div className="space-y-2 max-h-100 overflow-y-auto">
                                 {assignments.length === 0 ? (
                                     <div className="text-sm text-muted-foreground text-center py-4">
                                         No hay turnos asignados para esta fecha

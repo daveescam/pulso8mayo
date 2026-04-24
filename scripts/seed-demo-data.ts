@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
-import { 
-    companies, branches, users, workflowTemplates, workflowInstances, 
-    inventoryItems, inventoryBatches, kpiDefinitions, kpiThresholds, kpiHistory,
+import {
+    companies, branches, users, workflowTemplates, workflowInstances,
+    inventoryItems, inventoryBatches, kpiDefinitions, kpiHistory,
     employeeDocuments, plannedShifts, shiftSessions
 } from "@/lib/db/schema";
 import { sql } from "drizzle-orm";
@@ -37,7 +37,8 @@ async function main() {
         const [user] = await db.insert(users).values({
             id: crypto.randomUUID(),
             name: emp.name, email: emp.email, emailVerified: true,
-            role: emp.role as any, companyId: company.id, branchId: emp.branchId
+            role: emp.role as any, companyId: company.id, branchId: emp.branchId,
+            createdAt: new Date(), updatedAt: new Date()
         }).returning();
         usersList.push(user);
     }
@@ -89,7 +90,7 @@ async function main() {
         companyId: company.id, name: "Carne Premium", sku: "MEAT-01", unit: "kg", minLevel: 20
     }).returning();
     await db.insert(inventoryBatches).values({
-        itemId: meat.id, branchId: branch1.id, batchNumber: "L-CRIT", initialQuantity: 50, currentQuantity: 5, // Baja
+        itemId: meat.id, branchId: branch1.id, lotNumber: "L-CRIT", initialQuantity: 50, currentQuantity: 5, // Baja
         status: "AVAILABLE", expirationDate: subDays(new Date(), -1) // Un Dia de Expiracion
     });
 
@@ -99,7 +100,7 @@ async function main() {
     const mapTemp = new Map();
     for (const t of templates) {
         const [insertedT] = await db.insert(workflowTemplates).values({
-            id: t.id, companyId: company.id, name: t.title, description: t.description, version: 1, status: "PUBLISHED", complianceType: t.id.includes("nom-035") ? "NOM-035" : "NOM-251"
+            companyId: company.id, name: t.title, description: t.description, complianceType: t.id?.includes("nom-035") ? "NOM-035" : "NOM-251", steps: t.steps || []
         }).returning();
         mapTemp.set(t.id, insertedT);
     }

@@ -7,11 +7,23 @@
  * @see https://docs.wasender.com
  */
 
+import { createHmac } from 'crypto';
+
 const WASENDER_API_URL = process.env.WASENDER_API_URL || 'https://api.wasender.com/v1';
-const WASENDER_API_KEY = process.env.WASENDER_API_KEY;
+const WASENDER_API_KEY = process.env.WASENDER_API_KEY || '';
+
+const WHATSAPP_CONFIGURED = !!WASENDER_API_KEY;
+
+if (process.env.NODE_ENV === 'production' && !WHATSAPP_CONFIGURED) {
+    throw new Error('[WhatsApp] CRITICAL: Missing WASENDER_API_KEY in production. WhatsApp functionality will not work.');
+}
 
 if (!WASENDER_API_KEY) {
     console.warn('WASENDER_API_KEY not set. WhatsApp functionality will be disabled.');
+}
+
+export function isWhatsAppConfigured(): boolean {
+    return WHATSAPP_CONFIGURED;
 }
 
 export interface WasenderSession {
@@ -235,10 +247,8 @@ export class WasenderClient {
      * Verify webhook signature
      */
     verifyWebhookSignature(payload: string, signature: string): boolean {
-        const crypto = require('crypto');
         const secret = process.env.WASENDER_WEBHOOK_SECRET || '';
-        const expectedSignature = crypto
-            .createHmac('sha256', secret)
+        const expectedSignature = createHmac('sha256', secret)
             .update(payload)
             .digest('hex');
 

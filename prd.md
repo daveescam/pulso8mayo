@@ -1185,7 +1185,7 @@ Pulso is a multi-tenant SaaS platform that combines:
   - **Workflows**: Completion rate, on-time %, avg duration
   - **Inventory**: Stock value, items below minimum, expiring items
   - **Alerts**: Open alerts by priority, avg resolution time
-  - **Costs**: AI usage cost, operational costs
+ 
   - **Labor**: Total hours, overtime hours, compliance %
 - **Visualizations**:
   - KPI cards with trend indicators

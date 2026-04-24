@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { employeeCommunications, communicationReadReceipts, messageTemplates, users } from '@/lib/db/schema';
-import { eq, and, desc, or, inArray } from 'drizzle-orm';
+import { eq, and, desc, or, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 // Validation schemas
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     }
 
     const [{ count }] = await db
-      .select({ count: db.sql<number>`count(*)::int` })
+      .select({ count: sql<number>`count(*)::int` })
       .from(employeeCommunications)
       .where(and(...conditions));
 
@@ -215,7 +215,7 @@ export async function PATCH(request: NextRequest) {
         await db
           .update(employeeCommunications)
           .set({
-            readCount: db.sql`${employeeCommunications.readCount} + 1`,
+            readCount: sql`${employeeCommunications.readCount} + 1`,
             updatedAt: new Date(),
           })
           .where(eq(employeeCommunications.id, validated.data.communicationId));

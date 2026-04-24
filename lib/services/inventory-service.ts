@@ -72,10 +72,10 @@ export class InventoryService {
             .where(
                 and(
                     eq(inventoryBatches.itemId, itemId),
-                    eq(inventoryBatches.branchId, branchId),
-                    desc(inventoryBatches.expirationDate)
+                    eq(inventoryBatches.branchId, branchId)
                 )
-            );
+            )
+            .orderBy(desc(inventoryBatches.expirationDate));
     }
 
     static async createBatch(data: typeof inventoryBatches.$inferInsert) {

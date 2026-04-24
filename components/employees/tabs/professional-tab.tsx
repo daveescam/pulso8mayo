@@ -11,6 +11,8 @@ import { es } from "date-fns/locale";
 
 interface ProfessionalTabProps {
   profile: any;
+  onEdit?: () => void;
+  canEdit?: boolean;
 }
 
 const statusLabels: Record<string, string> = {
@@ -68,7 +70,7 @@ function DateField({ label, date }: { label: string; date: any }) {
   );
 }
 
-export function ProfessionalTab({ profile }: ProfessionalTabProps) {
+export function ProfessionalTab({ profile, onEdit, canEdit }: ProfessionalTabProps) {
   // Calculate probation end date if not provided
   const probationEndDate = profile.probationEndDate
     ? new Date(profile.probationEndDate)
@@ -95,10 +97,12 @@ export function ProfessionalTab({ profile }: ProfessionalTabProps) {
               <CardTitle>Employment Details</CardTitle>
               <CardDescription>Position, department, and employment information.</CardDescription>
             </div>
-            <Button variant="outline" size="sm">
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </Button>
+            {canEdit && (
+              <Button variant="outline" size="sm" onClick={onEdit}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -141,10 +145,12 @@ export function ProfessionalTab({ profile }: ProfessionalTabProps) {
               <CardTitle>Employment Status</CardTitle>
               <CardDescription>Current employment status and history.</CardDescription>
             </div>
-            <Button variant="outline" size="sm">
-              <Edit className="mr-2 h-4 w-4" />
-              Update Status
-            </Button>
+            {canEdit && (
+              <Button variant="outline" size="sm" onClick={onEdit}>
+                <Edit className="mr-2 h-4 w-4" />
+                Update Status
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -206,10 +212,12 @@ export function ProfessionalTab({ profile }: ProfessionalTabProps) {
               <CardTitle>Work Schedule</CardTitle>
               <CardDescription>Standard work hours and shift assignment.</CardDescription>
             </div>
-            <Button variant="outline" size="sm">
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </Button>
+            {canEdit && (
+              <Button variant="outline" size="sm" onClick={onEdit}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -230,10 +238,12 @@ export function ProfessionalTab({ profile }: ProfessionalTabProps) {
               <CardTitle>Skills & Languages</CardTitle>
               <CardDescription>Employee skills and language proficiencies.</CardDescription>
             </div>
-            <Button variant="outline" size="sm">
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </Button>
+            {canEdit && (
+              <Button variant="outline" size="sm" onClick={onEdit}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>

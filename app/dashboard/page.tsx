@@ -1,13 +1,6 @@
-import { AppSidebar } from "@/components/app-sidebar"
-import { ChartAreaInteractive } from "@/components/chart-area-interactive"
-
 import { ComplianceMetrics } from "@/components/dashboard/compliance-metrics"
-import { SiteHeader } from "@/components/site-header"
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
-
+import { DashboardCharts } from "@/components/dashboard/dashboard-charts"
+import { DashboardFilters } from "@/components/dashboard/dashboard-filters"
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
@@ -15,7 +8,6 @@ import { workflowInstances, workflowTemplates, users, employeeCommunications } f
 import { eq, desc, and, sql } from "drizzle-orm";
 import { RecentWorkflowsTable } from "@/components/dashboard/recent-workflows-table";
 import { ComplianceReportGenerator } from "@/components/compliance/report-generator";
-
 
 export default async function Page() {
   const session = await auth.api.getSession({
@@ -37,7 +29,6 @@ export default async function Page() {
     .orderBy(desc(workflowInstances.updatedAt))
     .limit(10) : [];
 
-  // Transform data to match component expectations
   const formattedWorkflows = recentWorkflows.map(workflow => ({
     ...workflow,
     templateName: workflow.templateName || "Sin nombre",
@@ -61,40 +52,64 @@ export default async function Page() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col pb-8">
         <div className="@container/main flex flex-1 flex-col gap-2">
-          <div className="flex items-center justify-between px-4 lg:px-6 py-2">
-            <h2 className="text-xl font-semibold">Resumen del Dashboard</h2>
-            <ComplianceReportGenerator />
-          </div>
-
-          {pinnedAnnouncements.length > 0 && (
-            <div className="px-4 lg:px-6 mb-2">
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {pinnedAnnouncements.map((announcement) => (
-                  <div key={announcement.id} className="bg-primary/10 border border-primary/20 rounded-lg p-4 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-2 h-full bg-primary/40"></div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/20 text-primary-foreground">
-                        {announcement.communicationType === 'ANNOUNCEMENT' ? 'Anuncio' : announcement.communicationType === 'NOTIFICATION' ? 'Notificación' : 'Mensaje'}
-                      </span>
-                    </div>
-                    <h3 className="font-semibold text-base mb-1">{announcement.title}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-2">{announcement.content}</p>
-                  </div>
-                ))}
+          {/* Executive Header Section */}
+          <div className="border-b bg-card">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between px-4 lg:px-6 py-6 gap-4 max-w-7xl mx-auto w-full">
+              <div>
+                <h2 className="text-3xl font-bold tracking-tight text-foreground">Dashboard Ejecutivo</h2>
+                <p className="text-muted-foreground mt-1">
+                  Control operativo, cumplimiento normativo y gestión de labor.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                <DashboardFilters />
+                <div className="hidden sm:block h-8 w-px bg-border mx-1" />
+                <ComplianceReportGenerator />
               </div>
             </div>
-          )}
+          </div>
 
-          <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+          <div className="max-w-7xl mx-auto w-full flex flex-col gap-6 py-6">
+            {/* Pinned Announcements */}
+            {pinnedAnnouncements.length > 0 && (
+              <div className="px-4 lg:px-6">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {pinnedAnnouncements.map((announcement) => (
+                    <div key={announcement.id} className="bg-primary/5 border border-primary/10 rounded-xl p-4 relative overflow-hidden group hover:bg-primary/10 transition-all cursor-pointer shadow-sm">
+                      <div className="absolute top-0 left-0 w-1 h-full bg-primary/40"></div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                          {announcement.communicationType === 'ANNOUNCEMENT' ? 'Anuncio' : announcement.communicationType === 'NOTIFICATION' ? 'Notificación' : 'Mensaje'}
+                        </span>
+                      </div>
+                      <h3 className="font-bold text-base mb-1 group-hover:text-primary transition-colors">{announcement.title}</h3>
+                      <p className="text-sm text-muted-foreground line-clamp-2">{announcement.content}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* KPI Cards section */}
             <ComplianceMetrics />
+            
+            {/* Charts Section */}
             <div className="px-4 lg:px-6">
-              <ChartAreaInteractive />
+                <DashboardCharts />
             </div>
+
+            {/* Recent Activity Section */}
             <div className="px-4 lg:px-6">
-              <h3 className="text-lg font-medium mb-4">Actividad Reciente</h3>
-              <RecentWorkflowsTable workflows={formattedWorkflows} />
+              <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b bg-muted/30">
+                  <h3 className="text-lg font-bold">Actividad Reciente</h3>
+                </div>
+                <div className="p-0">
+                  <RecentWorkflowsTable workflows={formattedWorkflows} />
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -19,15 +19,16 @@ import { ApiError } from "../api/error";
 export class UserService {
     static async listUsers(
         tenantId?: string,
-        options: { page?: number; limit?: number; search?: string; role?: string } = {}
+        options: { page?: number; limit?: number; search?: string; role?: "SUPER_ADMIN" | "ADMIN" | "GERENTE" | "SUPERVISOR" | "EMPLEADO" | "READONLY"; branchId?: string } = {}
     ) {
-        const { page = 1, limit = 20, search, role } = options;
+        const { page = 1, limit = 20, search, role, branchId } = options;
         const offset = (page - 1) * limit;
 
         // Base filters
         const filters = [isNull(users.deletedAt)];
         if (tenantId) filters.push(eq(users.companyId, tenantId));
         if (role) filters.push(eq(users.role, role));
+        if (branchId) filters.push(eq(users.branchId, branchId));
 
         // Search filter
         if (search) {

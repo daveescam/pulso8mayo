@@ -11,6 +11,7 @@ export const incidentStatus = pgEnum("incident_status", ['DETECTED', 'IN_REMEDIA
 export const inventoryBatchStatus = pgEnum("inventory_batch_status", ['AVAILABLE', 'RESERVED', 'EXPIRED', 'QUARANTINED', 'DEPLETED'])
 export const inventoryTransactionType = pgEnum("inventory_transaction_type", ['RECEIVING', 'USAGE', 'ADJUSTMENT', 'TRANSFER', 'WASTE', 'RETURN'])
 export const inventoryTransferStatus = pgEnum("inventory_transfer_status", ['PENDING', 'APPROVED', 'REJECTED', 'IN_TRANSIT', 'COMPLETED', 'CANCELLED'])
+export const purchaseOrderStatus = pgEnum("purchase_order_status", ['DRAFT', 'PENDING', 'SENT', 'CONFIRMED', 'RECEIVED', 'COMPLETED', 'CANCELLED', 'REJECTED'])
 export const kpiAlertStatus = pgEnum("kpi_alert_status", ['ACTIVE', 'ACKNOWLEDGED', 'RESOLVED', 'FALSE_POSITIVE'])
 export const kpiFrequency = pgEnum("kpi_frequency", ['REALTIME', 'HOURLY', 'DAILY', 'WEEKLY', 'MONTHLY'])
 export const kpiMetricType = pgEnum("kpi_metric_type", ['PERCENTAGE', 'COUNT', 'AVERAGE', 'SUM', 'TIME', 'RATIO'])

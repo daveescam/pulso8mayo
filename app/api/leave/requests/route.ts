@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { leaveRequests, leaveBalances, users, branches } from '@/lib/db/schema';
-import { eq, and, desc, or, gte, lte } from 'drizzle-orm';
+import { eq, and, desc, or, gte, lte, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 // Validation schemas
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     if (endDate) conditions.push(lte(leaveRequests.endDate, new Date(endDate)));
 
     const [{ count }] = await db
-      .select({ count: db.sql<number>`count(*)::int` })
+      .select({ count: sql<number>`count(*)::int` })
       .from(leaveRequests)
       .where(and(...conditions));
 

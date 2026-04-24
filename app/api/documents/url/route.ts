@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
             .where(
                 and(
                     eq(employeeDocuments.id, documentId),
-                    eq(employeeDocuments.companyId, tenant.companyId)
+                    eq(employeeDocuments.companyId, tenant.id)
                 )
             )
             .limit(1);

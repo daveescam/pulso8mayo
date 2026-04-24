@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
 
         // Fetch incidents as audit logs
         const incidentConditions = [
-            eq(incidents.companyId, session.user.companyId)
+            eq(branches.companyId, session.user.companyId)
         ];
 
         if (branchId) {
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
             action: sql<string>`'INCIDENT_' || ${incidents.status}`,
             resource: incidents.title,
             resourceType: sql<string>`'INCIDENT'`,
-            userId: incidents.assignedTo,
+            userId: incidents.detectedBy,
             userName: users.name,
             userRole: users.role,
             branchId: incidents.branchId,
@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
             createdAt: incidents.createdAt,
         })
             .from(incidents)
-            .leftJoin(users, eq(incidents.assignedTo, users.id))
+            .leftJoin(users, eq(incidents.detectedBy, users.id))
             .leftJoin(branches, eq(incidents.branchId, branches.id))
             .where(and(...incidentConditions))
             .orderBy(desc(incidents.createdAt))

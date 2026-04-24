@@ -41,7 +41,32 @@ export interface KpiValueResult {
     status: 'NORMAL' | 'WARNING' | 'CRITICAL';
     target?: number;
     targetAchieved: boolean;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
+}
+
+export interface KpiDefinitionRow {
+    id: string;
+    companyId: string;
+    branchId: string | null;
+    name: string;
+    description: string | null;
+    formula: string;
+    metricType: string;
+    target: number | null;
+    warningThreshold: number | null;
+    criticalThreshold: number | null;
+    thresholdType: string;
+    frequency: string;
+    dataRetentionDays: number;
+    unit: string;
+    decimalPlaces: number;
+    category: string;
+    active: boolean;
+    isSystem: boolean;
+    createdBy: string;
+    updatedBy: string | null;
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 /**
@@ -266,7 +291,7 @@ export class KpiService {
      * Calculate current KPI value based on formula
      * This is a simplified implementation - in production, you'd parse and execute the formula
      */
-    async calculateKpiValue(kpi: any, branchId?: string): Promise<KpiValueResult> {
+    async calculateKpiValue(kpi: KpiDefinitionRow, branchId?: string): Promise<KpiValueResult> {
         // This is a placeholder - actual implementation would parse the formula
         // and execute it against the database
         
@@ -289,7 +314,7 @@ export class KpiService {
     /**
      * Determine status based on thresholds
      */
-    private determineStatus(value: number, kpi: any): 'NORMAL' | 'WARNING' | 'CRITICAL' {
+    private determineStatus(value: number, kpi: KpiDefinitionRow): 'NORMAL' | 'WARNING' | 'CRITICAL' {
         const { thresholdType, warningThreshold, criticalThreshold, target } = kpi;
 
         if (thresholdType === 'MIN') {
@@ -312,7 +337,7 @@ export class KpiService {
     /**
      * Check if target is achieved
      */
-    private checkTargetAchieved(value: number, kpi: any): boolean {
+    private checkTargetAchieved(value: number, kpi: KpiDefinitionRow): boolean {
         if (!kpi.target) return true;
         
         const { thresholdType, warningThreshold } = kpi;

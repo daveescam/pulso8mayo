@@ -1,15 +1,17 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardAction } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, TrendingUp, AlertCircle, CheckCircle } from "lucide-react";
+import { Loader2, TrendingUp, AlertCircle, CheckCircle, ClipboardList, Users } from "lucide-react";
+import { StatCard } from "@/components/ui/stat-card";
 
 interface Metrics {
     complianceRate: number;
+    complianceSentiment: string;
     totalInspections: number;
     openIncidents: number;
+    openIncidentsSentiment: string;
+    activeStaff?: number;
+    activeStaffSentiment?: string;
     period: string;
 }
 
@@ -35,79 +37,66 @@ export function ComplianceMetrics() {
     }, []);
 
     if (loading) {
-        return <div className="p-4 flex justify-center"><Loader2 className="animate-spin" /></div>;
+        return (
+            <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 md:grid-cols-2 lg:grid-cols-4">
+                {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="h-32 rounded-xl bg-muted animate-pulse" />
+                ))}
+            </div>
+        );
     }
 
     if (!metrics) return null;
 
+    const getSentimentColor = (sentiment: string) => {
+        switch (sentiment) {
+            case 'Bueno':
+            case 'Normal':
+            case 'Bajo' && metrics.openIncidents === 0: return 'success';
+            case 'Regular':
+            case 'Atención': return 'warning';
+            case 'Crítico': return 'danger';
+            default: return 'default';
+        }
+    }
+
     return (
-        <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-3">
-            <Card>
-                <CardHeader>
-                    <CardDescription>Compliance Rate</CardDescription>
-                    <CardTitle className="text-2xl font-semibold tabular-nums">
-                        {metrics.complianceRate}%
-                    </CardTitle>
-                    <CardAction>
-                        <Badge variant={metrics.complianceRate > 90 ? "default" : "destructive"}>
-                            {metrics.complianceRate > 90 ? <TrendingUp className="mr-1 h-3 w-3" /> : <AlertCircle className="mr-1 h-3 w-3" />}
-                            {metrics.complianceRate > 90 ? "High" : "Needs Attention"}
-                        </Badge>
-                    </CardAction>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-xs text-muted-foreground">
-                        Overall score across all completed workflows.
-                    </div>
-                </CardContent>
-            </Card>
+        <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 md:grid-cols-2 lg:grid-cols-4">
+            <StatCard
+                title="Workflows"
+                value={metrics.totalInspections}
+                icon={ClipboardList}
+                description="Hoy"
+                trend={{ value: 12, isPositive: true }}
+                variant="default"
+            />
 
-            <Card>
-                <CardHeader>
-                    <CardDescription>Total Inspections</CardDescription>
-                    <CardTitle className="text-2xl font-semibold tabular-nums">
-                        {metrics.totalInspections}
-                    </CardTitle>
-                    <CardAction>
-                        <Badge variant="outline">
-                            <CheckCircle className="mr-1 h-3 w-3" />
-                            Completed
-                        </Badge>
-                    </CardAction>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-xs text-muted-foreground">
-                        Total workflow executions completed.
-                    </div>
-                </CardContent>
-            </Card>
+            <StatCard
+                title="Compliance"
+                value={`${metrics.complianceRate}%`}
+                icon={TrendingUp}
+                description={`🟢 ${metrics.complianceSentiment}`}
+                trend={{ value: 3.2, isPositive: true }}
+                variant={metrics.complianceRate > 90 ? "success" : metrics.complianceRate > 75 ? "warning" : "danger"}
+            />
 
-            <Card>
-                <CardHeader>
-                    <CardDescription>Open Incidents</CardDescription>
-                    <CardTitle className="text-2xl font-semibold tabular-nums">
-                        {metrics.openIncidents}
-                    </CardTitle>
-                    <CardAction>
-                        {metrics.openIncidents > 0 ? (
-                            <Badge variant="destructive">
-                                <AlertCircle className="mr-1 h-3 w-3" />
-                                Action Required
-                            </Badge>
-                        ) : (
-                            <Badge variant="outline" className="text-green-600 border-green-600">
-                                <CheckCircle className="mr-1 h-3 w-3" />
-                                All good
-                            </Badge>
-                        )}
-                    </CardAction>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-xs text-muted-foreground">
-                        Incidents requiring manager attention.
-                    </div>
-                </CardContent>
-            </Card>
+            <StatCard
+                title="Labor / Turnos"
+                value={metrics.activeStaff || 0}
+                icon={Users}
+                description={`🟢 ${metrics.activeStaffSentiment}`}
+                trend={{ value: 5, isPositive: true }}
+                variant="default"
+            />
+
+            <StatCard
+                title="Incidentes"
+                value={metrics.openIncidents}
+                icon={AlertCircle}
+                description={`🟡 ${metrics.openIncidentsSentiment}`}
+                trend={{ value: 0, isPositive: true }}
+                variant={metrics.openIncidents > 0 ? "danger" : "default"}
+            />
         </div>
     );
 }

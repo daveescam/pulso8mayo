@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
 
         // If userId is provided, return compliance for that specific employee
         if (userId) {
-            const documents = await EmployeeDocumentService.getEmployeeDocuments(userId, tenant.companyId);
+            const documents = await EmployeeDocumentService.getEmployeeDocuments(userId, tenant.id as string);
 
             const validDocuments = documents.filter(d => d.isValid && d.status === 'VALIDATED').length;
             const pendingDocuments = documents.filter(d => d.status === 'PENDING').length;
@@ -88,7 +88,7 @@ export async function GET(req: NextRequest) {
 
         // Get all employees in the company, optionally filtered by branch
         const employeeConditions = [
-            eq(users.companyId, tenant.companyId),
+            eq(users.companyId, tenant.id as string),
             isNull(users.deletedAt)
         ];
 
@@ -114,7 +114,7 @@ export async function GET(req: NextRequest) {
         if (employeeIds.length > 0) {
             allDocuments = await db.query.employeeDocuments.findMany({
                 where: and(
-                    eq(employeeDocuments.companyId, tenant.companyId),
+                    eq(employeeDocuments.companyId, tenant.id as string),
                     inArray(employeeDocuments.userId, employeeIds)
                 )
             });

@@ -24,11 +24,11 @@ export async function POST(req: NextRequest) {
         });
 
         if (!branch) {
-            return ApiHandler.error(new Error("Branch not found"), 404);
+            return ApiHandler.error(new Error("Branch not found"));
         }
 
         if (branch.companyId !== tenant.id) {
-            return ApiHandler.error(new Error("Unauthorized"), 403);
+            return ApiHandler.error(new Error("Unauthorized"));
         }
 
         // Generate or get existing invite token

@@ -17,6 +17,13 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import Link from 'next/link';
 
 export function BuilderHeader() {
@@ -127,6 +134,24 @@ export function BuilderHeader() {
                                     onChange={(e) => updateTemplateMeta({ description: e.target.value })}
                                     placeholder="Descripción breve del propósito de este flujo..."
                                 />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="category">Categoría</Label>
+                                <Select
+                                    value={templateMeta.category || "OPERATIONS"}
+                                    onValueChange={(value) => updateTemplateMeta({ category: value })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Seleccionar categoría" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="OPERATIONS">Operaciones</SelectItem>
+                                        <SelectItem value="COMPLIANCE">Cumplimiento</SelectItem>
+                                        <SelectItem value="LABOR">Laboral</SelectItem>
+                                        <SelectItem value="INVENTORY">Inventario</SelectItem>
+                                        <SelectItem value="GENERAL">General</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
                         <DialogFooter>

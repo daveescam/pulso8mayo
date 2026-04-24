@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { employeeCommunications, communicationReadReceipts, users } from '@/lib/db/schema';
-import { eq, and, desc, or, sql, inArray } from 'drizzle-orm';
+import { employeeCommunications, communicationReadReceipts, users, employeeProfiles } from '@/lib/db/schema';
+import { eq, and, desc, or, sql, inArray, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { WhatsAppService } from '@/lib/services/whatsapp-service';
 
 const createAnnouncementSchema = z.object({
   companyId: z.string().uuid(),
   branchId: z.string().uuid().optional().nullable(),
-  communicationType: z.enum(['MESSAGE', 'ANNOUNCEMENT', 'NOTIFICATION']).default('ANNOUNCEMENT'),
+  communicationType: z.enum(['MESSAGE', 'ANNOUNCEMENT', 'NOTIFICATION', 'POLICY']).default('ANNOUNCEMENT'),
   title: z.string().min(1).max(200),
   content: z.string().min(1),
   targetType: z.enum(['INDIVIDUAL', 'DEPARTMENT', 'BRANCH', 'COMPANY']).default('COMPANY'),
   targetIds: z.array(z.string()).optional(),
+  targetRoles: z.array(z.string()).optional(),
   isPinned: z.boolean().default(false),
   deliveredVia: z.array(z.string()).optional(),
   createdBy: z.string(),
@@ -54,6 +55,7 @@ export async function GET(request: NextRequest) {
         content: employeeCommunications.content,
         targetType: employeeCommunications.targetType,
         targetIds: employeeCommunications.targetIds,
+        targetRoles: employeeCommunications.targetRoles,
         status: employeeCommunications.status,
         isPinned: employeeCommunications.isPinned,
         sentAt: employeeCommunications.sentAt,
@@ -89,48 +91,68 @@ export async function POST(request: NextRequest) {
 
     if (!validated.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: validated.error.errors },
+        { error: 'Invalid input', details: validated.error.issues },
         { status: 400 }
       );
     }
 
     const data = validated.data;
 
+    // 1. Resolve Target Users to calculate totalRecipients
+    const userConditions = [eq(users.companyId, data.companyId), isNull(users.deletedAt)];
+    
+    // Role filtering
+    if (data.targetRoles && data.targetRoles.length > 0) {
+      userConditions.push(inArray(users.role, data.targetRoles as any));
+    }
+
+    // Branch filtering
+    if (data.targetType === 'BRANCH' && data.targetIds && data.targetIds.length > 0) {
+      userConditions.push(inArray(users.branchId, data.targetIds));
+    }
+
+    // Individual targeting
+    if (data.targetType === 'INDIVIDUAL' && data.targetIds && data.targetIds.length > 0) {
+      userConditions.push(inArray(users.id, data.targetIds));
+    }
+
+    let query = db.select({
+      id: users.id,
+      name: users.name,
+      phone: users.phone,
+      whatsappPhone: users.whatsappPhone,
+    }).from(users);
+
+    // Department filtering requires join with employeeProfiles
+    if (data.targetType === 'DEPARTMENT' && data.targetIds && data.targetIds.length > 0) {
+      // @ts-ignore - leftJoin might type weird in some versions but works
+      query = query.leftJoin(employeeProfiles, eq(users.id, employeeProfiles.userId));
+      userConditions.push(inArray(employeeProfiles.department, data.targetIds));
+    }
+
+    const targetUsers = await query.where(and(...userConditions));
+
+    // 2. Insert Announcement with calculated recipient count
     const [newAnnouncement] = await db
       .insert(employeeCommunications)
       .values({
         ...data,
         status: 'SENT',
         sentAt: new Date(),
+        totalRecipients: targetUsers.length,
       })
       .returning();
 
-    // Trigger WhatsApp notification if requested
-    if (data.deliveredVia?.includes('WHATSAPP')) {
-      const conditionMatches = [];
-      conditionMatches.push(eq(users.companyId, data.companyId));
-      if (data.targetType === 'BRANCH' && data.targetIds && data.targetIds.length > 0) {
-        conditionMatches.push(inArray(users.branchId, data.targetIds));
-      }
-      
-      const targetUsers = await db
-        .select({
-          id: users.id,
-          name: users.name,
-          phone: users.phone,
-          whatsappPhone: users.whatsappPhone,
-        })
-        .from(users)
-        .where(and(...conditionMatches));
-
+    // 3. Trigger WhatsApp notification if requested
+    if (data.deliveredVia?.includes('WHATSAPP') && targetUsers.length > 0) {
       const messageContent = `🔔 *Pulso - ${data.communicationType === 'MESSAGE' ? 'Nuevo Mensaje' : 'Nuevo Anuncio'}*
-${data.title}
+*${data.title}*
 
 ${data.content}
 
-_No respondas a este mensaje. Es enviado automáticamente por tu empleador._`;
+_No respondas a este mensaje._`;
 
-      // Dispatch without blocking
+      // Dispatch in background
       Promise.all(
         targetUsers.map(async (u) => {
           const numberToUse = u.whatsappPhone || u.phone;

@@ -109,7 +109,9 @@ export function DocumentUpload({
             formData.append('documentType', documentType);
             formData.append('documentName', data.documentName);
             formData.append('userId', employeeId);
-            formData.append('companyId', companyId);
+            if (companyId) {
+                formData.append('companyId', companyId);
+            }
             formData.append('isRequired', isRequired.toString());
 
             if (data.issueDate) {

@@ -6,7 +6,8 @@ import { templateLibrary } from '@/templates';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Calendar, Copy, Loader2, UserPlus } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Edit, Calendar, Copy, Loader2, UserPlus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -32,6 +33,11 @@ export function TemplateManager({ userTemplates }: TemplateManagerProps) {
     const router = useRouter();
     const [creating, setCreating] = useState(false);
     const [cloning, setCloning] = useState<string | null>(null);
+    const [deleting, setDeleting] = useState<string | null>(null);
+    const [categoryFilter, setCategoryFilter] = useState<string>("all");
+
+    // Get unique categories from user templates
+    const availableCategories = Array.from(new Set(userTemplates.map(t => t.category).filter(Boolean)));
 
     const handleCreateNew = async () => {
         setCreating(true);
@@ -51,10 +57,43 @@ export function TemplateManager({ userTemplates }: TemplateManagerProps) {
 
             if (!res.ok) throw new Error("Failed to create template");
 
-            const newTemplate = await res.json();
-            if (newTemplate && newTemplate.id) {
+            const response = await res.json();
+            if (response.data && response.data.id) {
                 toast.success("Plantilla creada");
-                router.push(`/dashboard/builder/editor/${newTemplate.id}`);
+                router.push(`/dashboard/builder/editor/${response.data.id}`);
+            } else {
+                throw new Error("ID de plantilla no recibido");
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Error al crear la plantilla");
+        } finally {
+            setCreating(false);
+        }
+    };
+
+    const handleCreateWithTemplate = async (templateData: { name: string; description?: string; category: string; steps?: unknown[] }) => {
+        setCreating(true);
+        try {
+            const payload = {
+                name: templateData.name,
+                description: templateData.description || '',
+                category: templateData.category,
+                steps: templateData.steps || []
+            };
+
+            const res = await fetch('/api/workflows/templates', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) throw new Error("Failed to create template");
+
+            const response = await res.json();
+            if (response.data && response.data.id) {
+                toast.success("Plantilla creada");
+                router.push(`/dashboard/builder/editor/${response.data.id}`);
             } else {
                 throw new Error("ID de plantilla no recibido");
             }
@@ -84,10 +123,10 @@ export function TemplateManager({ userTemplates }: TemplateManagerProps) {
 
             if (!res.ok) throw new Error("Failed to clone template");
 
-            const newTemplate = await res.json();
-            if (newTemplate && newTemplate.id) {
+            const response = await res.json();
+            if (response.data && response.data.id) {
                 toast.success("Plantilla clonada correctamente");
-                router.push(`/dashboard/builder/editor/${newTemplate.id}`);
+                router.push(`/dashboard/builder/editor/${response.data.id}`);
             } else {
                 throw new Error("ID de plantilla clonada no recibido");
             }
@@ -96,6 +135,27 @@ export function TemplateManager({ userTemplates }: TemplateManagerProps) {
             toast.error("Error al clonar la plantilla");
         } finally {
             setCloning(null);
+        }
+    };
+
+    const handleDelete = async (templateId: string) => {
+        if (!confirm('¿Estás seguro de que deseas eliminar esta plantilla?')) return;
+        
+        setDeleting(templateId);
+        try {
+            const res = await fetch(`/api/workflows/templates/${templateId}`, {
+                method: 'DELETE',
+            });
+
+            if (!res.ok) throw new Error("Failed to delete template");
+
+            toast.success("Plantilla eliminada");
+            router.refresh();
+        } catch (error) {
+            console.error(error);
+            toast.error("Error al eliminar la plantilla");
+        } finally {
+            setDeleting(null);
         }
     };
 
@@ -167,8 +227,24 @@ export function TemplateManager({ userTemplates }: TemplateManagerProps) {
                 </TabsList>
 
                 <TabsContent value="my-templates" className="mt-6">
+                    <div className="mb-6 flex items-center justify-between">
+                        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                            <SelectTrigger className="w-[200px]">
+                                <SelectValue placeholder="Filtrar por categoría" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todas las categorías</SelectItem>
+                                {availableCategories.map(category => (
+                                    <SelectItem key={category} value={category}>
+                                        {category}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        {userTemplates.length === 0 ? (
+                        {userTemplates.filter(t => categoryFilter === 'all' || t.category === categoryFilter).length === 0 ? (
                             <div className="col-span-full flex flex-col items-center justify-center p-12 border-2 border-dashed rounded-lg text-muted-foreground bg-card">
                                 <p className="text-lg font-medium mb-2">No tienes plantillas aún</p>
                                 <p className="text-sm mb-4">Crea una nueva o explora el catálogo.</p>
@@ -177,7 +253,7 @@ export function TemplateManager({ userTemplates }: TemplateManagerProps) {
                                 </Link>
                             </div>
                         ) : (
-                            userTemplates.map((template) => (
+                            userTemplates.filter(t => categoryFilter === 'all' || t.category === categoryFilter).map((template) => (
                                 <Card key={template.id} className="flex flex-col">
                                     <CardHeader>
                                         <CardTitle className="flex justify-between items-start">
@@ -203,6 +279,15 @@ export function TemplateManager({ userTemplates }: TemplateManagerProps) {
                                                 Editar
                                             </Button>
                                         </Link>
+                                        <Button 
+                                            variant="outline" 
+                                            size="icon" 
+                                            className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                            onClick={() => handleDelete(template.id)}
+                                            disabled={deleting === template.id}
+                                        >
+                                            {deleting === template.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                        </Button>
                                     </CardFooter>
                                 </Card>
                             ))

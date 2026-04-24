@@ -44,11 +44,12 @@ export default function SchedulesPage() {
                 });
 
                 if (response.ok) {
-                    const data = await response.json();
+                    const result = await response.json();
+                    const data = result.data || result;
                     setBranches(data);
 
                     // Set first branch as default
-                    if (data.length > 0 && !branchId) {
+                    if (Array.isArray(data) && data.length > 0 && !branchId) {
                         setBranchId(data[0].id);
                     }
                 }

@@ -14,9 +14,34 @@ export interface GeolocationData {
     timestamp?: number;
 }
 
+export interface ShiftSessionRow {
+    id: string;
+    plannedShiftId: string | null;
+    userId: string;
+    branchId: string;
+    status: string;
+    scheduledStartTime: string | null;
+    scheduledEndTime: string | null;
+    checkInTime: Date | null;
+    checkOutTime: Date | null;
+    totalBreakMinutes: number;
+    totalWorkMinutes: number;
+    overtimeMinutes: number;
+    checkInGeolocation: GeolocationData | null;
+    checkOutGeolocation: GeolocationData | null;
+    complianceFlags: Record<string, unknown> | null;
+    lateMinutes: number;
+    earlyDepartureMinutes: number;
+    requiresApproval: boolean;
+    approvedBy: string | null;
+    approvedAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
 export interface ClockInResult {
     success: boolean;
-    session?: any;
+    session?: ShiftSessionRow;
     withinRadius: boolean;
     distance: number;
     message: string;
@@ -203,9 +228,9 @@ export class ShiftService {
         try {
             const [session] = await this.startSession(userId, branchId);
             return session;
-        } catch (e: any) {
+        } catch (e: unknown) {
             // Return null if already active to handle gracefully in workflow
-            if (e.message?.includes("already has an active")) return null;
+            if (e instanceof Error && e.message.includes("already has an active")) return null;
             throw e;
         }
     }

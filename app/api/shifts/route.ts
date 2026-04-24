@@ -70,12 +70,46 @@ export async function GET(req: NextRequest) {
             conditions.push(eq(plannedShifts.userId, userId));
         }
 
-        const shifts = await db.query.plannedShifts.findMany({
+        const rawShifts = await db.query.plannedShifts.findMany({
             where: and(...conditions),
             orderBy: (shifts, { asc }) => [asc(shifts.shiftDate), asc(shifts.startTime)],
         });
 
-        return ApiHandler.success(shifts);
+        // Transform to include user and branch data, and combine date/time
+        const shiftsWithDetails = await Promise.all(
+            rawShifts.map(async (shift) => {
+                const user = await db.query.users.findFirst({
+                    where: eq(users.id, shift.userId),
+                    columns: { name: true, image: true }
+                });
+
+                const branch = await db.query.branches.findFirst({
+                    where: eq(branches.id, shift.branchId),
+                    columns: { name: true }
+                });
+
+                // Combine shiftDate and startTime/endTime into ISO datetime strings
+                const startDateTime = new Date(`${shift.shiftDate}T${shift.startTime}`);
+                const endDateTime = new Date(`${shift.shiftDate}T${shift.endTime}`);
+
+                return {
+                    id: shift.id,
+                    userId: shift.userId,
+                    userName: user?.name || 'Unknown User',
+                    branchId: shift.branchId,
+                    branchName: branch?.name || 'Unknown Branch',
+                    role: shift.role,
+                    startTime: startDateTime.toISOString(),
+                    endTime: endDateTime.toISOString(),
+                    date: shift.shiftDate,
+                    status: shift.status as "DRAFT" | "PUBLISHED",
+                    notes: shift.notes,
+                    templateId: shift.templateId,
+                };
+            })
+        );
+
+        return ApiHandler.success(shiftsWithDetails);
     } catch (error) {
         console.error("Error fetching shifts:", error);
         return ApiHandler.error(error);
@@ -198,6 +232,115 @@ export async function POST(req: NextRequest) {
         });
     } catch (error) {
         console.error("Error creating shifts:", error);
+        if (error instanceof z.ZodError) {
+            return ApiHandler.error(ApiError.badRequest(`Validación fallida: ${error.issues.map(issue => issue.message).join(", ")}`));
+        }
+        return ApiHandler.error(error as Error);
+    }
+}
+
+/**
+ * PUT /api/shifts
+ * Actualiza uno o múltiples turnos planificados
+ * Body: { shifts: ShiftUpdate[] } o ShiftUpdate para individual
+ */
+export async function PUT(req: NextRequest) {
+    try {
+        const tenant = await requireTenant();
+
+        // If user doesn't have a company assigned, reject the request
+        if (!tenant.id) {
+            return ApiHandler.error(ApiError.forbidden("Company not assigned to user"));
+        }
+
+        const body = await req.json();
+
+        // Determinar si es bulk o individual
+        const isArray = Array.isArray(body.shifts || body);
+        const data = isArray ? body.shifts : [body];
+
+        const updateSchema = z.object({
+            id: z.string().uuid(),
+            status: z.enum(["DRAFT", "PUBLISHED", "CANCELLED"]).optional(),
+            notes: z.string().optional(),
+            role: z.string().optional(),
+            startTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+            endTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+        });
+
+        const validatedUpdates = updateSchema.array().parse(data);
+
+        // Validar permisos y existencia
+        const updatedShifts = [];
+        for (const update of validatedUpdates) {
+            const existing = await db.query.plannedShifts.findFirst({
+                where: eq(plannedShifts.id, update.id),
+            });
+
+            if (!existing) {
+                return ApiHandler.error(ApiError.notFound(`Turno no encontrado: ${update.id}`));
+            }
+
+            // Verificar que pertenece a la compañía
+            const branch = await db.query.branches.findFirst({
+                where: and(
+                    eq(branches.id, existing.branchId),
+                    eq(branches.companyId, tenant.id!)
+                ),
+            });
+
+            if (!branch) {
+                return ApiHandler.error(ApiError.forbidden("No tienes permiso para modificar este turno"));
+            }
+
+            // Aplicar validaciones si se actualizan horas
+            if (update.startTime || update.endTime) {
+                const startTime = update.startTime || existing.startTime;
+                const endTime = update.endTime || existing.endTime;
+
+                const startHour = parseInt(startTime.replace(":", ""));
+                const endHour = parseInt(endTime.replace(":", ""));
+
+                if (startHour > endHour && startHour < 2000) {
+                    // Turno nocturno válido
+                } else if (startHour >= endHour) {
+                    return ApiHandler.error(ApiError.badRequest("La hora de fin debe ser posterior a la hora de inicio"));
+                }
+
+                let hoursDiff: number;
+                if (startHour > endHour) {
+                    const startMinutes = (Math.floor(startHour / 100) * 60) + (startHour % 100);
+                    const endMinutes = ((Math.floor(endHour / 100) + 24) * 60) + (endHour % 100);
+                    hoursDiff = (endMinutes - startMinutes) / 60;
+                } else {
+                    hoursDiff = endHour - startHour;
+                }
+
+                if (hoursDiff > 12) {
+                    return ApiHandler.error(
+                        ApiError.badRequest(`El turno de ${hoursDiff.toFixed(1)} horas excede el límite legal de 12 horas`)
+                    );
+                }
+            }
+
+            // Actualizar
+            const [updated] = await db.update(plannedShifts)
+                .set({
+                    ...update,
+                    updatedAt: new Date()
+                })
+                .where(eq(plannedShifts.id, update.id))
+                .returning();
+
+            updatedShifts.push(updated);
+        }
+
+        return ApiHandler.success({
+            shifts: updatedShifts,
+            count: updatedShifts.length,
+        });
+    } catch (error) {
+        console.error("Error updating shifts:", error);
         if (error instanceof z.ZodError) {
             return ApiHandler.error(ApiError.badRequest(`Validación fallida: ${error.issues.map(issue => issue.message).join(", ")}`));
         }

@@ -1,0 +1,320 @@
+{
+  "id": "tpl-fumigacion-v1",
+  "nombre": "🦟 Fumigación y Control de Plagas",
+  "descripcion": "Registro de servicio de fumigación y control de plagas para cumplimiento de normativas de salud e higiene.",
+  "tipo": "COMPLIANCE",
+  "categoria": "COMPLIANCE",
+  "version": 1,
+  "activo": true,
+  "requiereIA": false,
+  "duracionEstimada": "20-30 min",
+  "cumplimientoNormativo": [
+    "NOM-251",
+    "COFEPRIS"
+  ],
+  "tags": [
+    "fumigacion",
+    "control-plagas",
+    "sanitizacion",
+    "cumplimiento",
+    "normativa",
+    "higiene"
+  ],
+  "aiConfig": {
+    "provider": "openai",
+    "maxRetries": 2
+  },
+  "complianceConfig": {
+    "complianceType": "NOM-251",
+    "regulationSection": "4.4 Control de plagas",
+    "requiredFrequency": "monthly",
+    "auditable": true,
+    "evidenceRequired": true,
+    "criticalForCompliance": true
+  },
+  "pasos": [
+    {
+      "id": "intro",
+      "type": "text",
+      "title": "Servicio de Fumigación",
+      "description": "Registre la visita del proveedor de control de plagas. Verifique que el técnico cuente con las certificaciones requeridas y que se cubran todas las áreas establecidas.",
+      "readOnly": true
+    },
+    {
+      "id": "fecha_servicio",
+      "type": "date",
+      "title": "Fecha del Servicio",
+      "required": true,
+      "validation": {
+        "message": "La fecha del servicio es obligatoria"
+      }
+    },
+    {
+      "id": "hora_inicio",
+      "type": "time",
+      "title": "Hora de Inicio",
+      "required": true
+    },
+    {
+      "id": "hora_termino",
+      "type": "time",
+      "title": "Hora de Término",
+      "required": true
+    },
+    {
+      "id": "proveedor",
+      "type": "text",
+      "title": "Nombre del Proveedor",
+      "description": "Empresa que realiza el servicio de fumigación",
+      "required": true,
+      "placeholder": "Ej. Fumigaciones del Centro S.A. de C.V."
+    },
+    {
+      "id": "tecnico_nombre",
+      "type": "text",
+      "title": "Nombre del Técnico",
+      "description": "Nombre completo del técnico que realizó el servicio",
+      "required": true
+    },
+    {
+      "id": "tecnico_certificacion",
+      "type": "text",
+      "title": "Número de Certificación del Técnico",
+      "description": "Número de licencia o certificación COFEPRIS del técnico",
+      "required": true
+    },
+    {
+      "id": "foto_certificacion",
+      "type": "photo",
+      "title": "Foto de Certificación",
+      "description": "Tome una foto de la credencial o certificado del técnico",
+      "required": true
+    },
+    {
+      "id": "tipo_fumigacion",
+      "type": "select",
+      "title": "Tipo de Servicio",
+      "required": true,
+      "options": [
+        {
+          "value": "fumigacion_completa",
+          "label": "Fumigación Completa"
+        },
+        {
+          "value": "control_plagas",
+          "label": "Control de Plagas"
+        },
+        {
+          "value": "desinsectacion",
+          "label": "Desinsectación"
+        },
+        {
+          "value": "desratizacion",
+          "label": "Desratización"
+        },
+        {
+          "value": "tratamiento_especifico",
+          "label": "Tratamiento Específico"
+        },
+        {
+          "value": "seguimiento",
+          "label": "Visita de Seguimiento"
+        }
+      ]
+    },
+    {
+      "id": "areas_tratadas",
+      "type": "checkbox",
+      "title": "Áreas Tratadas",
+      "description": "Seleccione todas las áreas que fueron tratadas",
+      "required": true,
+      "options": [
+        "Cocina",
+        "Área de Almacén",
+        "Comedor",
+        "Baños",
+        "Oficinas",
+        "Áreas Exteriores",
+        "Estacionamiento",
+        "Zona de Residuos",
+        "Techo",
+        "Sótano"
+      ]
+    },
+    {
+      "id": "productos_usados",
+      "type": "textarea",
+      "title": "Productos Utilizados",
+      "description": "Liste los productos químicos utilizados y sus concentraciones",
+      "required": true,
+      "placeholder": "Ej. Cypermethrin 10% - 100ml por litro de agua\nDeltamethrin 2.5% - 50ml por litro de agua"
+    },
+    {
+      "id": "ficha_tecnica",
+      "type": "photo",
+      "title": "Ficha Técnica de Productos",
+      "description": "Fotografía de las fichas técnicas o etiquetas de los productos usados",
+      "required": true
+    },
+    {
+      "id": "plagas_detectadas",
+      "type": "checkbox",
+      "title": "Plagas Detectadas",
+      "description": "Seleccione si se detectaron signos de plagas",
+      "options": [
+        "Cucarachas",
+        "Hormigas",
+        "Moscas",
+        "Mosquitos",
+        "Roedores",
+        "Ácaros",
+        "Polillas",
+        "Ninguna"
+      ]
+    },
+    {
+      "id": "nivel_infestacion",
+      "type": "select",
+      "title": "Nivel de Infestación",
+      "required": true,
+      "options": [
+        {
+          "value": "ninguna",
+          "label": "Ninguna"
+        },
+        {
+          "value": "baja",
+          "label": "Baja"
+        },
+        {
+          "value": "media",
+          "label": "Media"
+        },
+        {
+          "value": "alta",
+          "label": "Alta"
+        }
+      ]
+    },
+    {
+      "id": "fotos_evidencia",
+      "type": "photo",
+      "title": "Fotos de Evidencia",
+      "description": "Tome fotos de las áreas tratadas, trampas revisadas, o evidencia de plagas",
+      "required": true,
+      "allowMultiple": true
+    },
+    {
+      "id": "recomendaciones",
+      "type": "textarea",
+      "title": "Recomendaciones del Técnico",
+      "description": "Anotar las recomendaciones proporcionadas por el técnico",
+      "placeholder": "Ej. Mantener cerradas las puertas de servicio, reparar grietas identificadas..."
+    },
+    {
+      "id": "acciones_correctivas",
+      "type": "yes_no",
+      "title": "¿Se requieren acciones correctivas?",
+      "description": "Indique si el técnico identificó problemas que requieren atención",
+      "required": true
+    },
+    {
+      "id": "detalle_acciones",
+      "type": "textarea",
+      "title": "Detalle de Acciones Correctivas",
+      "description": "Describa las acciones correctivas recomendadas",
+      "conditionalLogic": {
+        "dependentOn": "acciones_correctivas",
+        "value": "yes"
+      }
+    },
+    {
+      "id": "fecha_siguiente",
+      "type": "date",
+      "title": "Fecha del Próximo Servicio",
+      "description": "Fecha programada para la siguiente visita",
+      "required": true
+    },
+    {
+      "id": "observaciones",
+      "type": "textarea",
+      "title": "Observaciones Adicionales",
+      "placeholder": "Cualquier observación adicional sobre el servicio..."
+    },
+    {
+      "id": "firma_tecnico",
+      "type": "SignatureField",
+      "title": "Firma del Técnico",
+      "required": true
+    },
+    {
+      "id": "firma_responsable",
+      "type": "SignatureField",
+      "title": "Firma del Responsable del Local",
+      "required": true
+    }
+  ],
+  "logicRules": [
+    {
+      "id": "rule_infestacion_alta",
+      "condition": "steps.nivel_infestacion.value == 'alta'",
+      "severity": "HIGH",
+      "message": "Se detectó nivel alto de infestación. Se requiere atención inmediata y seguimiento.",
+      "escalationChain": [
+        {
+          "level": 1,
+          "triggerAfterMinutes": 0,
+          "notifyRoles": [
+            "GERENTE",
+            "SUPERVISOR"
+          ],
+          "channel": "whatsapp",
+          "message": "🚨 ALTO: Se detectó nivel alto de infestación de plagas. Revisar reporte de fumigación."
+        }
+      ],
+      "actions": [
+        {
+          "type": "CREATE_FOLLOW_UP",
+          "priority": "HIGH",
+          "dueDate": "3_days"
+        }
+      ]
+    },
+    {
+      "id": "rule_acciones_correctivas",
+      "condition": "steps.acciones_correctivas.value == 'yes'",
+      "severity": "MEDIUM",
+      "message": "Se identificaron acciones correctivas pendientes.",
+      "actions": [
+        {
+          "type": "CREATE_TASK",
+          "taskType": "CORRECTIVE_ACTION",
+          "assignTo": "MANAGER"
+        }
+      ]
+    }
+  ],
+  "completionActions": [
+    {
+      "type": "SEND_NOTIFICATION",
+      "target": [
+        "GERENTE"
+      ],
+      "channel": "email",
+      "message": "✅ Servicio de fumigación completado"
+    },
+    {
+      "type": "GENERATE_PDF_REPORT",
+      "template": "fumigacion_report_v1",
+      "includePhotos": true,
+      "sendTo": [
+        "GERENTE"
+      ]
+    },
+    {
+      "type": "SCHEDULE_NEXT_SERVICE",
+      "serviceType": "FUMIGATION",
+      "basedOnField": "fecha_siguiente"
+    }
+  ]
+}

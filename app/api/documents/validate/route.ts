@@ -14,6 +14,11 @@ export async function PATCH(req: NextRequest) {
             return NextResponse.json({ error: "No autorizado" }, { status: 401 });
         }
 
+        // RBAC Check: Only ADMIN/GERENTE can validate documents
+        if (session.user.role !== "ADMIN" && session.user.role !== "GERENTE") {
+            return NextResponse.json({ error: "No tienes permiso para validar documentos" }, { status: 403 });
+        }
+
         const tenant = await requireTenant();
         const searchParams = req.nextUrl.searchParams;
         const documentId = searchParams.get("documentId");
@@ -34,7 +39,7 @@ export async function PATCH(req: NextRequest) {
 
         const document = await EmployeeDocumentService.validateDocument(
             documentId,
-            tenant.companyId,
+            tenant.id,
             {
                 status,
                 validatedBy: session.user.id,
@@ -65,12 +70,17 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "No autorizado" }, { status: 401 });
         }
 
+        // RBAC Check: Only ADMIN/GERENTE can view compliance reports
+        if (session.user.role !== "ADMIN" && session.user.role !== "GERENTE") {
+            return NextResponse.json({ error: "No tienes permiso para ver informes de cumplimiento" }, { status: 403 });
+        }
+
         const tenant = await requireTenant();
         const searchParams = req.nextUrl.searchParams;
         const branchId = searchParams.get("branchId");
 
         const report = await EmployeeDocumentService.generateComplianceReport(
-            tenant.companyId,
+            tenant.id,
             branchId || undefined
         );
 

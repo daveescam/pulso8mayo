@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import { employeeDocuments, users } from "@/lib/db/schema";
 import { eq, and, or, lt, gte, lte, desc, inArray } from "drizzle-orm";
+import { AuditService } from "./audit-service";
+import { employeeOnboarding, onboardingSteps } from "@/lib/db/schema";
 
 export type DocumentType = 
     | 'CONTRACT' 
@@ -111,6 +113,22 @@ export class EmployeeDocumentService {
             notes: data.notes
         }).returning();
 
+
+        if (document) {
+            await AuditService.logEmployeeAction({
+                userId: data.userId,
+                performedBy: data.uploadedBy,
+                action: 'CREATE',
+                entityType: 'DOCUMENT',
+                entityId: document.id,
+                newValue: { 
+                    type: data.documentType, 
+                    name: data.documentName,
+                    url: data.documentUrl 
+                }
+            });
+        }
+
         return document as EmployeeDocument;
     }
 
@@ -171,7 +189,97 @@ export class EmployeeDocumentService {
             ))
             .returning();
 
+        if (document) {
+            // 1. Audit Log
+            await AuditService.logEmployeeAction({
+                userId: document.userId,
+                performedBy: validationData.validatedBy,
+                action: 'UPDATE',
+                entityType: 'DOCUMENT',
+                entityId: document.id,
+                fieldName: 'status',
+                oldValue: 'PENDING',
+                newValue: validationData.status,
+                reason: validationData.rejectionReason || validationData.notes
+            });
+
+            // 2. Automate Onboarding Progress
+            if (validationData.status === 'VALIDATED') {
+                await this.syncOnboardingStatus(document.userId, document.documentType, validationData.validatedBy);
+            }
+        }
+
         return document as EmployeeDocument | null;
+    }
+
+    /**
+     * Helper to sync onboarding status based on document validation
+     */
+    private static async syncOnboardingStatus(userId: string, docType: DocumentType, performedBy: string) {
+        try {
+            // Mapping document types to possible step names
+            const typeToStepName: Record<string, string[]> = {
+                'ID': ['Upload identification documents', 'Provide ID', 'Identificación Oficial'],
+                'CONTRACT': ['Sign employment contract', 'Firmar contrato'],
+                'TAX_ID': ['Complete tax forms', 'Upload RFC', 'RFC'],
+                'BANK_INFO': ['Provide bank information', 'Datos Bancarios'],
+                'PROOF_OF_ADDRESS': ['Provide proof of address', 'Comprobante de domicilio']
+            };
+
+            const possibleStepNames = typeToStepName[docType];
+            if (!possibleStepNames) return;
+
+            // Find an active onboarding for this user
+            const onboarding = await db.query.employeeOnboarding.findFirst({
+                where: and(
+                    eq(employeeOnboarding.userId, userId),
+                    eq(employeeOnboarding.status, 'IN_PROGRESS')
+                )
+            });
+
+            if (!onboarding) return;
+
+            // Look for a step matching the criteria
+            for (const stepName of possibleStepNames) {
+                const step = await db.query.onboardingSteps.findFirst({
+                    where: and(
+                        eq(onboardingSteps.onboardingId, onboarding.id),
+                        ilike(onboardingSteps.stepName, `%${stepName}%`),
+                        eq(onboardingSteps.status, 'PENDING')
+                    )
+                });
+
+                if (step) {
+                    console.log(`[Lifecycle] Automatically completing onboarding step: ${step.stepName} for user: ${userId}`);
+                    
+                    // Complete the step
+                    await db.update(onboardingSteps).set({
+                        status: 'COMPLETED',
+                        completedDate: new Date(),
+                        completedBy: performedBy,
+                        updatedAt: new Date()
+                    }).where(eq(onboardingSteps.id, step.id));
+
+                    // Recalculate onboarding progress
+                    const allSteps = await db.select().from(onboardingSteps).where(eq(onboardingSteps.onboardingId, onboarding.id));
+                    const completedSteps = allSteps.filter(s => s.status === 'COMPLETED').length;
+                    const progressPercentage = Math.round((completedSteps / allSteps.length) * 100);
+
+                    await db.update(employeeOnboarding).set({
+                        completedSteps,
+                        progressPercentage,
+                        status: progressPercentage === 100 ? 'COMPLETED' : 'IN_PROGRESS',
+                        completedDate: progressPercentage === 100 ? new Date() : undefined,
+                        updatedAt: new Date()
+                    }).where(eq(employeeOnboarding.id, onboarding.id));
+
+                    // Break after completing one step per document type validation
+                    break;
+                }
+            }
+        } catch (error) {
+            console.error("[Lifecycle] Failed to sync onboarding status:", error);
+        }
     }
 
     /**
@@ -337,12 +445,25 @@ export class EmployeeDocumentService {
     /**
      * Delete a document
      */
-    static async deleteDocument(documentId: string, companyId: string): Promise<void> {
+    static async deleteDocument(documentId: string, companyId: string, performedBy?: string): Promise<void> {
+        const doc = await this.getDocument(documentId, companyId);
+        
         await db.delete(employeeDocuments)
             .where(and(
                 eq(employeeDocuments.id, documentId),
                 eq(employeeDocuments.companyId, companyId)
             ));
+
+        if (doc && performedBy) {
+            await AuditService.logEmployeeAction({
+                userId: doc.userId,
+                performedBy: performedBy,
+                action: 'DELETE',
+                entityType: 'DOCUMENT',
+                entityId: documentId,
+                oldValue: { type: doc.documentType, name: doc.documentName }
+            });
+        }
     }
 
     /**

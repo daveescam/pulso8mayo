@@ -5,8 +5,8 @@
  */
 
 import { db } from '@/lib/db';
-import { eq, and, gt } from 'drizzle-orm';
-import { workflowInstances, workflowInstanceSteps } from '@/lib/db/schema';
+import { eq, and, gt, inArray } from 'drizzle-orm';
+import { workflowInstances, workflowInstanceSteps, workflowTemplates } from '@/lib/db/schema';
 import { ConversationStateManager, ConversationState } from './workflow-state-manager';
 import { EvidenceProcessor } from './evidence-processor';
 import { wasenderClient } from './wasender-client';
@@ -88,16 +88,25 @@ export class WorkflowConversationHandler {
     const messageText = message.message.toLowerCase().trim();
 
     // Try to match workflow by name
-    const workflows = await db.query.workflowInstances.findMany({
+    const workflowInstancesData = await db.query.workflowInstances.findMany({
       where: and(
         eq(workflowInstances.assigneeId, userId),
         eq(workflowInstances.status, 'PENDING')
       ),
-      with: {
-        template: true,
-      },
       limit: 10,
     });
+
+    // Fetch templates for these instances
+    const templateIds = workflowInstancesData.map(w => w.workflowTemplateId);
+    const templates = await db.query.workflowTemplates.findMany({
+      where: inArray(workflowTemplates.id, templateIds)
+    });
+
+    // Combine instances with templates
+    const workflows = workflowInstancesData.map(instance => ({
+      ...instance,
+      template: templates.find(t => t.id === instance.workflowTemplateId)
+    }));
 
     // Find matching workflow
     const matchedWorkflow = workflows.find((w) =>
@@ -163,20 +172,28 @@ ${this.formatStepPrompt(matchedWorkflow.template?.steps?.[0], 1, matchedWorkflow
       // Check if there are more steps
       const nextStepIndex = (state.stepIndex || 0) + 1;
       const instance = await db.query.workflowInstances.findFirst({
-        where: eq(workflowInstances.id, state.workflowInstanceId),
-        with: {
-          template: true,
-        },
+        where: eq(workflowInstances.id, state.workflowInstanceId)
       });
 
-      if (!instance?.template) {
+      if (!instance) {
+        return {
+          success: false,
+          reply: '❌ Error: Instancia no encontrada.',
+        };
+      }
+
+      const template = await db.query.workflowTemplates.findFirst({
+        where: eq(workflowTemplates.id, instance.workflowTemplateId)
+      });
+
+      if (!template) {
         return {
           success: false,
           reply: '❌ Error: Template no encontrado.',
         };
       }
 
-      const totalSteps = instance.template.steps?.length || 0;
+      const totalSteps = template.steps?.length || 0;
 
       if (nextStepIndex >= totalSteps) {
         // Workflow completed
@@ -186,7 +203,7 @@ ${this.formatStepPrompt(matchedWorkflow.template?.steps?.[0], 1, matchedWorkflow
           success: true,
           reply: `🎉 *¡Workflow Completado!*
 
-📋 *${instance.template.name}*
+📋 *${template.name}*
 ✅ Puntuación: ${result.score || 100}%
 📝 Pasos Completados: ${totalSteps}/${totalSteps}
 
@@ -231,18 +248,23 @@ ${this.formatStepPrompt(nextStep, nextStepIndex + 1, totalSteps)}`,
     }
 
     const instance = await db.query.workflowInstances.findFirst({
-      where: eq(workflowInstances.id, state.workflowInstanceId),
-      with: {
-        template: true,
-      },
+      where: eq(workflowInstances.id, state.workflowInstanceId)
     });
 
-    if (!instance?.template) {
+    if (!instance) {
+      return { success: false, reply: '❌ Instancia no encontrada.' };
+    }
+
+    const template = await db.query.workflowTemplates.findFirst({
+      where: eq(workflowTemplates.id, instance.workflowTemplateId)
+    });
+
+    if (!template) {
       return { success: false, reply: '❌ Template no encontrado.' };
     }
 
     const nextStepIndex = (state.stepIndex || 0) + 1;
-    const totalSteps = instance.template.steps?.length || 0;
+    const totalSteps = template.steps?.length || 0;
 
     if (nextStepIndex >= totalSteps) {
       return {
@@ -278,18 +300,19 @@ ${this.formatStepPrompt(nextStep, nextStepIndex + 1, totalSteps)}`,
     }
 
     const instance = await db.query.workflowInstances.findFirst({
-      where: eq(workflowInstances.id, state.workflowInstanceId),
-      with: {
-        template: true,
-      },
+      where: eq(workflowInstances.id, state.workflowInstanceId)
     });
 
-    if (!instance?.template) {
+    const template = await db.query.workflowTemplates.findFirst({
+      where: eq(workflowTemplates.id, instance.workflowTemplateId)
+    });
+
+    if (!template) {
       return { success: false, reply: '❌ Template no encontrado.' };
     }
 
     const prevStepIndex = state.stepIndex - 1;
-    const prevStep = instance.template.steps?.[prevStepIndex];
+    const prevStep = template.steps?.[prevStepIndex];
 
     await this.stateManager.updateState(message.from, {
       currentStepId: prevStep?.id || null,
@@ -300,7 +323,7 @@ ${this.formatStepPrompt(nextStep, nextStepIndex + 1, totalSteps)}`,
 
     return {
       success: true,
-      reply: this.formatStepPrompt(prevStep, prevStepIndex + 1, instance.template.steps?.length || 0),
+      reply: this.formatStepPrompt(prevStep, prevStepIndex + 1, template.steps?.length || 0),
     };
   }
 

@@ -220,7 +220,7 @@ export function BulkShiftAssignment({
                         employeeId: employee.id,
                         employeeName: employee.name,
                         employeeImage: employee.image,
-                        shiftType: selectedShiftType,
+                        shiftType: selectedShiftType as ShiftAssignment["shiftType"],
                         date: date.toISOString(),
                         startTime: customStart || config.defaultStart,
                         endTime: customEnd || config.defaultEnd,
@@ -469,7 +469,7 @@ export function BulkShiftAssignment({
                         <h3 className="text-lg font-semibold mb-4">
                             Turnos Asignados ({assignments.length})
                         </h3>
-                        <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                        <div className="space-y-2 max-h-100 overflow-y-auto">
                             {assignments.map((assignment) => (
                                 <div
                                     key={assignment.id}

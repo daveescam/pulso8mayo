@@ -14,13 +14,68 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Loader2, Calendar, Clock, Users, Zap, Plus, X } from 'lucide-react';
+import { Loader2, Calendar, Clock, Users, Zap, Plus, X, Trash2 } from 'lucide-react';
 
 interface WorkflowSettingsModalProps {
     open: boolean;
     onClose: () => void;
     templateId: string;
+    initialSettings?: {
+        version?: number;
+        activo?: boolean;
+        requiereIA?: boolean;
+        duracionEstimada?: string;
+        cumplimientoNormativo?: string[];
+        tags?: string[];
+        aiConfig?: AICofig;
+        complianceConfig?: ComplianceConfig;
+        completionActions?: CompletionAction[];
+        frequency?: string;
+        days?: string[];
+        assignedRoles?: string[];
+        assignedShifts?: string[];
+        shiftTimes?: Record<string, string>;
+        triggers?: Trigger[];
+    };
 }
+
+interface AICofig {
+    provider?: string;
+    fallbackProvider?: string;
+    maxRetries?: number;
+}
+
+interface ComplianceConfig {
+    complianceType?: string;
+    regulationSection?: string;
+    requiredFrequency?: string;
+    auditable?: boolean;
+    evidenceRequired?: boolean;
+    criticalForCompliance?: boolean;
+}
+
+interface CompletionAction {
+    type: string;
+    target?: string[];
+    channel?: string;
+    message?: string;
+    status?: string;
+    validFor?: number;
+    template?: string;
+    includePhotos?: boolean;
+    workflowId?: string;
+    delay?: number;
+    priority?: string;
+    assignTo?: string;
+    item?: string;
+    quantity?: number;
+    requireMedicalClearance?: boolean;
+}
+
+const TAGS_SUGGESTIONS = [
+    'higiene', 'seguridad', 'ia-verificacion', 'compliance', 'diario', 'semanal',
+    'calidad', 'operaciones', 'mantenimiento', 'capacitacion', 'emergencia', 'inventario'
+];
 
 const FREQUENCIES = [
     { value: 'daily', label: 'Daily' },
@@ -62,14 +117,82 @@ const EVENTS = [
     { value: 'INCIDENT_REPORTED', label: 'Incident Reported' }
 ];
 
+// Compliance types for Mexican regulations
+const COMPLIANCE_TYPES = [
+    { value: 'NOM_251', label: 'NOM-251 (COFEPRIS - Buenas Prácticas)' },
+    { value: 'NOM_035', label: 'NOM-035 (STPS - Factores de Riesgo Psicosocial)' },
+    { value: 'NOM_030', label: 'NOM-030 (STPS - Servicios de Prevención)' },
+    { value: 'NOM_019', label: 'NOM-019 (STPS - Seguridad y Salud)' },
+    { value: 'NOM_017', label: 'NOM-017 (STPS - Equipo de Protección)' },
+    { value: 'LFT', label: 'LFT (Ley Federal del Trabajo)' },
+    { value: 'LSSN', label: 'LSSN (Ley del Seguro Social)' },
+    { value: 'ISR', label: 'ISR (Impuesto sobre la Renta)' },
+    { value: 'IVA', label: 'IVA (Impuesto al Valor Agregado)' },
+    { value: 'INFONAVIT', label: 'INFONAVIT (Crédito de Vivienda)' },
+    { value: 'FONACOT', label: 'FONACOT (Crédito para Trabajadores)' },
+    { value: 'NONE', label: 'No aplica regulación específica' }
+];
+
+const REGULATION_SECTIONS = [
+    { value: 'ARTICLE_132', label: 'Artículo 132 LFT (Obligaciones del patrón)' },
+    { value: 'ARTICLE_134', label: 'Artículo 134 LFT (Trabajo de menores)' },
+    { value: 'ARTICLE_153', label: 'Artículo 153 LFT (Trabajo peligroso)' },
+    { value: 'CHAPTER_V', label: 'Capítulo V LFT (Trabajo de mujeres)' },
+    { value: 'CHAPTER_VII', label: 'Capítulo VII LFT (Agencia de empleo)' },
+    { value: 'CHAPTER_IX', label: 'Capítulo IX LFT (Subcontratación)' },
+    { value: 'SECTION_I', label: 'Sección I NOM-251 (Higiene)' },
+    { value: 'SECTION_II', label: 'Sección II NOM-251 (Calidad)' },
+    { value: 'SECTION_III', label: 'Sección III NOM-251 (Seguridad)' },
+    { value: 'ARTICLE_3', label: 'Artículo 3 NOM-035 (Identificación)' },
+    { value: 'ARTICLE_4', label: 'Artículo 4 NOM-035 (Análisis)' },
+    { value: 'ARTICLE_5', label: 'Artículo 5 NOM-035 (Medidas)' },
+    { value: 'OTHER', label: 'Otra sección' }
+];
+
+const FREQUENCIES_COMPLIANCE = [
+    { value: 'DAILY', label: 'Diario' },
+    { value: 'WEEKLY', label: 'Semanal' },
+    { value: 'BIWEEKLY', label: 'Quincenal' },
+    { value: 'MONTHLY', label: 'Mensual' },
+    { value: 'QUARTERLY', label: 'Trimestral' },
+    { value: 'SEMIANNUAL', label: 'Semestral' },
+    { value: 'ANNUAL', label: 'Anual' },
+    { value: 'ON_DEMAND', label: 'Bajo demanda' }
+];
+
 interface Trigger {
     eventName: string;
     conditions: Record<string, any>;
 }
 
-export function WorkflowSettingsModal({ open, onClose, templateId }: WorkflowSettingsModalProps) {
+export function WorkflowSettingsModal({ open, onClose, templateId, initialSettings }: WorkflowSettingsModalProps) {
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+
+    // Workflow metadata
+    const [version, setVersion] = useState(1);
+    const [activo, setActivo] = useState(true);
+    const [requiereIA, setRequiereIA] = useState(false);
+    const [duracionEstimada, setDuracionEstimada] = useState('');
+    const [cumplimientoNormativo, setCumplimientoNormativo] = useState<string[]>([]);
+    const [tags, setTags] = useState<string[]>([]);
+    const [newTag, setNewTag] = useState('');
+
+    // AI Config
+    const [aiProvider, setAiProvider] = useState('moondream');
+    const [aiFallbackProvider, setAiFallbackProvider] = useState('openai');
+    const [aiMaxRetries, setAiMaxRetries] = useState(2);
+
+    // Compliance Config
+    const [complianceType, setComplianceType] = useState('');
+    const [regulationSection, setRegulationSection] = useState('');
+    const [requiredFrequency, setRequiredFrequency] = useState('');
+    const [auditable, setAuditable] = useState(false);
+    const [evidenceRequired, setEvidenceRequired] = useState(false);
+    const [criticalForCompliance, setCriticalForCompliance] = useState(false);
+
+    // Completion Actions
+    const [completionActions, setCompletionActions] = useState<CompletionAction[]>([]);
 
     // Scheduling settings
     const [enabled, setEnabled] = useState(true);
@@ -100,6 +223,45 @@ export function WorkflowSettingsModal({ open, onClose, templateId }: WorkflowSet
         }
     }, [open, templateId]);
 
+    // Initialize state from initialSettings prop when it changes or when modal opens
+    useEffect(() => {
+        if (initialSettings) {
+            setVersion(initialSettings.version || 1);
+            setActivo(initialSettings.activo ?? true);
+            setRequiereIA(initialSettings.requiereIA ?? false);
+            setDuracionEstimada(initialSettings.duracionEstimada || '');
+            setCumplimientoNormativo(initialSettings.cumplimientoNormativo || []);
+            setTags(initialSettings.tags || []);
+            setCompletionActions(initialSettings.completionActions || []);
+
+            if (initialSettings.aiConfig) {
+                setAiProvider(initialSettings.aiConfig.provider || 'moondream');
+                setAiFallbackProvider(initialSettings.aiConfig.fallbackProvider || 'openai');
+                setAiMaxRetries(initialSettings.aiConfig.maxRetries || 2);
+            }
+
+            if (initialSettings.complianceConfig) {
+                setComplianceType(initialSettings.complianceConfig.complianceType || '');
+                setRegulationSection(initialSettings.complianceConfig.regulationSection || '');
+                setRequiredFrequency(initialSettings.complianceConfig.requiredFrequency || '');
+                setAuditable(initialSettings.complianceConfig.auditable ?? false);
+                setEvidenceRequired(initialSettings.complianceConfig.evidenceRequired ?? false);
+                setCriticalForCompliance(initialSettings.complianceConfig.criticalForCompliance ?? false);
+            }
+
+            setFrequency(initialSettings.frequency || "daily");
+            setSelectedDays(initialSettings.days || []);
+            setAssignedRoles(initialSettings.assignedRoles || []);
+            setAssignedShifts(initialSettings.assignedShifts || []);
+            setShiftTimes(initialSettings.shiftTimes || {
+                morning: "08:00",
+                afternoon: "14:00",
+                night: "22:00",
+            });
+            setTriggers(initialSettings.triggers || []);
+        }
+    }, [initialSettings, open]);
+
     const loadSettings = async () => {
         setLoading(true);
         try {
@@ -107,27 +269,43 @@ export function WorkflowSettingsModal({ open, onClose, templateId }: WorkflowSet
             if (response.ok) {
                 const data = await response.json();
                 if (data.settings) {
-                    setEnabled(data.settings.enabled ?? true);
-                    setFrequency(data.settings.frequency || 'daily');
+                    const s = data.settings;
+                    setEnabled(s.enabled ?? true);
+                    setFrequency(s.frequency || 'daily');
+                    setVersion(s.version || 1);
+                    setActivo(s.activo ?? true);
+                    setRequiereIA(s.requiereIA ?? false);
+                    setDuracionEstimada(s.duracionEstimada || '');
+                    setCumplimientoNormativo(s.cumplimientoNormativo || []);
+                    setTags(s.tags || []);
+                    setCompletionActions(s.completionActions || []);
 
-                    // Handle both old format (single time) and new format (shiftTimes object)
-                    if (data.settings.shiftTimes) {
-                        setShiftTimes(data.settings.shiftTimes);
-                    } else if (data.settings.time) {
-                        // Backward compatibility: use old single time for all shifts
-                        setShiftTimes({
-                            morning: data.settings.time,
-                            afternoon: data.settings.time,
-                            night: data.settings.time,
-                            all: data.settings.time
-                        });
+                    if (s.shiftTimes) {
+                        setShiftTimes(s.shiftTimes);
+                    } else if (s.time) {
+                        setShiftTimes({ morning: s.time, afternoon: s.time, night: s.time, all: s.time });
                     }
 
-                    setSelectedDays(data.settings.days || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']);
-                    setAssignedRoles(data.settings.assignedRoles || ['EMPLEADO']);
-                    setAssignedShifts(data.settings.assignedShifts || ['morning']);
-                    setAutoAssign(data.settings.autoAssign ?? true);
-                    setTriggers(data.settings.triggers || []);
+                    setSelectedDays(s.days || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']);
+                    setAssignedRoles(s.assignedRoles || ['EMPLEADO']);
+                    setAssignedShifts(s.assignedShifts || ['morning']);
+                    setAutoAssign(s.autoAssign ?? true);
+                    setTriggers(s.triggers || []);
+
+                    if (s.aiConfig) {
+                        setAiProvider(s.aiConfig.provider || 'moondream');
+                        setAiFallbackProvider(s.aiConfig.fallbackProvider || 'openai');
+                        setAiMaxRetries(s.aiConfig.maxRetries || 2);
+                    }
+
+                    if (s.complianceConfig) {
+                        setComplianceType(s.complianceConfig.complianceType || '');
+                        setRegulationSection(s.complianceConfig.regulationSection || '');
+                        setRequiredFrequency(s.complianceConfig.requiredFrequency || '');
+                        setAuditable(s.complianceConfig.auditable ?? false);
+                        setEvidenceRequired(s.complianceConfig.evidenceRequired ?? false);
+                        setCriticalForCompliance(s.complianceConfig.criticalForCompliance ?? false);
+                    }
                 }
             }
         } catch (error) {
@@ -144,6 +322,26 @@ export function WorkflowSettingsModal({ open, onClose, templateId }: WorkflowSet
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    version,
+                    activo,
+                    requiereIA,
+                    duracionEstimada,
+                    cumplimientoNormativo,
+                    tags,
+                    aiConfig: {
+                        provider: aiProvider,
+                        fallbackProvider: aiFallbackProvider,
+                        maxRetries: aiMaxRetries
+                    },
+                    complianceConfig: {
+                        complianceType,
+                        regulationSection,
+                        requiredFrequency,
+                        auditable,
+                        evidenceRequired,
+                        criticalForCompliance
+                    },
+                    completionActions,
                     enabled,
                     frequency,
                     shiftTimes,
@@ -201,6 +399,45 @@ export function WorkflowSettingsModal({ open, onClose, templateId }: WorkflowSet
         setTriggers(prev => prev.filter((_, i) => i !== index));
     };
 
+    const toggleTag = (tag: string) => {
+        setTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+    };
+
+    const addCustomTag = () => {
+        if (newTag.trim() && !tags.includes(newTag.trim())) {
+            setTags(prev => [...prev, newTag.trim()]);
+            setNewTag('');
+        }
+    };
+
+    const addCompletionAction = (type: string) => {
+        const action: CompletionAction = { type };
+        if (type === 'SEND_NOTIFICATION') {
+            action.target = ['GERENTE'];
+            action.channel = 'whatsapp';
+            action.message = 'Workflow completed';
+        } else if (type === 'UPDATE_EMPLOYEE_STATUS') {
+            action.status = 'VERIFIED';
+            action.validFor = 480;
+        } else if (type === 'GENERATE_PDF_REPORT') {
+            action.template = 'default';
+            action.includePhotos = true;
+        }
+        setCompletionActions(prev => [...prev, action]);
+    };
+
+    const removeCompletionAction = (index: number) => {
+        setCompletionActions(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const updateCompletionAction = (index: number, updates: Partial<CompletionAction>) => {
+        setCompletionActions(prev => {
+            const newActions = [...prev];
+            newActions[index] = { ...newActions[index], ...updates };
+            return newActions;
+        });
+    };
+
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -226,6 +463,217 @@ export function WorkflowSettingsModal({ open, onClose, templateId }: WorkflowSet
                                 </p>
                             </div>
                             <Switch checked={enabled} onCheckedChange={setEnabled} />
+                        </div>
+
+                        {/* Workflow Metadata */}
+                        <div className="space-y-4 border-t pt-4">
+                            <h3 className="font-semibold">Workflow Metadata</h3>
+                            <div className="grid grid-cols-4 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-xs">Version</Label>
+                                    <Input type="number" value={version} onChange={(e) => setVersion(parseInt(e.target.value))} className="text-sm" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-xs">Duration (est.)</Label>
+                                    <Input value={duracionEstimada} onChange={(e) => setDuracionEstimada(e.target.value)} placeholder="5-10 min" className="text-sm" />
+                                </div>
+                                <div className="flex items-center justify-between rounded-lg border p-2">
+                                    <Label className="text-xs">Active</Label>
+                                    <Switch checked={activo} onCheckedChange={setActivo} />
+                                </div>
+                                <div className="flex items-center justify-between rounded-lg border p-2">
+                                    <Label className="text-xs">Requires AI</Label>
+                                    <Switch checked={requiereIA} onCheckedChange={setRequiereIA} />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-xs">Compliance Standards (NOM-XXX)</Label>
+                                <div className="flex flex-wrap gap-2">
+                                    {['NOM-251', 'NOM-035', 'NOM-030', 'NOM-019', 'NOM-017', 'LFT'].map(norm => (
+                                        <button key={norm} onClick={() => {
+                                            setCumplimientoNormativo(prev => prev.includes(norm) ? prev.filter(n => n !== norm) : [...prev, norm]);
+                                        }} className={`px-2 py-1 rounded-md text-xs border ${cumplimientoNormativo.includes(norm) ? 'bg-primary text-primary-foreground' : 'bg-background'}`}>
+                                            {norm}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-xs">Tags</Label>
+                                <div className="flex flex-wrap gap-2 mb-2">
+                                    {TAGS_SUGGESTIONS.map(tag => (
+                                        <button key={tag} onClick={() => toggleTag(tag)} className={`px-2 py-1 rounded-md text-xs border ${tags.includes(tag) ? 'bg-primary text-primary-foreground' : 'bg-background'}`}>
+                                            {tag}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="flex gap-2">
+                                    <Input value={newTag} onChange={(e) => setNewTag(e.target.value)} placeholder="Add custom tag..." className="text-sm" />
+                                    <Button size="sm" onClick={addCustomTag} className="h-8">Add</Button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* AI Configuration */}
+                        <div className="space-y-4 border-t pt-4">
+                            <h3 className="font-semibold">AI Configuration</h3>
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-xs">Provider</Label>
+                                    <Select value={aiProvider} onValueChange={setAiProvider}>
+                                        <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="moondream">Moondream</SelectItem>
+                                            <SelectItem value="openai">OpenAI</SelectItem>
+                                            <SelectItem value="gemini">Gemini</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-xs">Fallback Provider</Label>
+                                    <Select value={aiFallbackProvider} onValueChange={setAiFallbackProvider}>
+                                        <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="openai">OpenAI</SelectItem>
+                                            <SelectItem value="moondream">Moondream</SelectItem>
+                                            <SelectItem value="gemini">Gemini</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-xs">Max Retries</Label>
+                                    <Input type="number" value={aiMaxRetries} onChange={(e) => setAiMaxRetries(parseInt(e.target.value))} className="text-sm" />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Compliance Configuration */}
+                        <div className="space-y-4 border-t pt-4">
+                            <h3 className="font-semibold">Compliance Configuration</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-xs">Compliance Type</Label>
+                                    <Select value={complianceType} onValueChange={setComplianceType}>
+                                        <SelectTrigger className="text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
+                                        <SelectContent>
+                                            {COMPLIANCE_TYPES.map(c => (
+                                                <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-xs">Regulation Section</Label>
+                                    <Select value={regulationSection} onValueChange={setRegulationSection}>
+                                        <SelectTrigger className="text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
+                                        <SelectContent>
+                                            {REGULATION_SECTIONS.map(s => (
+                                                <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-xs">Required Frequency</Label>
+                                    <Select value={requiredFrequency} onValueChange={setRequiredFrequency}>
+                                        <SelectTrigger className="text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
+                                        <SelectContent>
+                                            {FREQUENCIES_COMPLIANCE.map(f => (
+                                                <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                            <div className="flex flex-wrap gap-4">
+                                <div className="flex items-center gap-2">
+                                    <Switch checked={auditable} onCheckedChange={setAuditable} />
+                                    <Label className="text-xs">Auditable</Label>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Switch checked={evidenceRequired} onCheckedChange={setEvidenceRequired} />
+                                    <Label className="text-xs">Evidence Required</Label>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Switch checked={criticalForCompliance} onCheckedChange={setCriticalForCompliance} />
+                                    <Label className="text-xs">Critical for Compliance</Label>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Completion Actions */}
+                        <div className="space-y-4 border-t pt-4">
+                            <h3 className="font-semibold">Completion Actions</h3>
+                            <p className="text-xs text-muted-foreground">Actions executed when workflow is completed</p>
+
+                            <div className="space-y-2">
+                                <Select onValueChange={(v) => { addCompletionAction(v); }} value="">
+                                    <SelectTrigger className="text-sm"><SelectValue placeholder="Add completion action..." /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="SEND_NOTIFICATION">Send Notification</SelectItem>
+                                        <SelectItem value="UPDATE_EMPLOYEE_STATUS">Update Employee Status</SelectItem>
+                                        <SelectItem value="GENERATE_PDF_REPORT">Generate PDF Report</SelectItem>
+                                        <SelectItem value="UPDATE_BRANCH_STATUS">Update Branch Status</SelectItem>
+                                        <SelectItem value="TRIGGER_NEXT_WORKFLOW">Trigger Next Workflow</SelectItem>
+                                    </SelectContent>
+                                </Select>
+
+                                {completionActions.map((action, idx) => (
+                                    <div key={idx} className="border rounded p-3 space-y-2 bg-muted/20">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm font-medium">{action.type}</span>
+                                            <Button size="sm" variant="ghost" onClick={() => removeCompletionAction(idx)} className="h-6 w-6 p-0"><Trash2 className="h-3 w-3" /></Button>
+                                        </div>
+                                        {action.type === 'SEND_NOTIFICATION' && (
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="space-y-1">
+                                                    <Label className="text-[10px]">Target Roles</Label>
+                                                    <Input value={action.target?.join(', ') || ''} onChange={(e) => updateCompletionAction(idx, { target: e.target.value.split(',').map(s => s.trim()) })} className="text-xs" placeholder="GERENTE, OWNER" />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <Label className="text-[10px]">Channel</Label>
+                                                    <Select value={action.channel || 'whatsapp'} onValueChange={(v) => updateCompletionAction(idx, { channel: v })}>
+                                                        <SelectTrigger className="text-xs h-7"><SelectValue /></SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                                                            <SelectItem value="email">Email</SelectItem>
+                                                            <SelectItem value="sms">SMS</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {action.type === 'UPDATE_EMPLOYEE_STATUS' && (
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="space-y-1">
+                                                    <Label className="text-[10px]">Status</Label>
+                                                    <Input value={action.status || ''} onChange={(e) => updateCompletionAction(idx, { status: e.target.value })} className="text-xs" placeholder="VERIFIED" />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <Label className="text-[10px]">Valid For (min)</Label>
+                                                    <Input type="number" value={action.validFor || 480} onChange={(e) => updateCompletionAction(idx, { validFor: parseInt(e.target.value) })} className="text-xs" />
+                                                </div>
+                                            </div>
+                                        )}
+                                        {action.type === 'GENERATE_PDF_REPORT' && (
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="space-y-1">
+                                                    <Label className="text-[10px]">Template</Label>
+                                                    <Input value={action.template || ''} onChange={(e) => updateCompletionAction(idx, { template: e.target.value })} className="text-xs" placeholder="default" />
+                                                </div>
+                                                <div className="flex items-center gap-2 pt-4">
+                                                    <Switch checked={action.includePhotos || false} onCheckedChange={(c) => updateCompletionAction(idx, { includePhotos: c })} />
+                                                    <Label className="text-[10px]">Include Photos</Label>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
 
                         {/* Scheduling Section */}

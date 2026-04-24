@@ -5,11 +5,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { EmployeeTable } from "./employee-table";
 import { EmployeeFilters, EmployeeFiltersState } from "./employee-filters";
 import { EmployeeExportDialog } from "./employee-export-dialog";
+import { EmployeeDialog } from "./employee-dialog";
+import { EmployeeBulkActions } from "./employee-bulk-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, X } from "lucide-react";
+import { Plus, Search, X, LayoutGrid, List } from "lucide-react";
 import { useSession } from "@/hooks/use-session";
 import { toast } from "sonner";
+import { EmployeeCard } from "./employee-card";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 export interface Employee {
   id: string;
@@ -43,6 +47,10 @@ export default function EmployeeDirectory() {
   const [search, setSearch] = useState(searchParams?.get("search") || "");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showEmployeeDialog, setShowEmployeeDialog] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | undefined>(undefined);
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [filters, setFilters] = useState<EmployeeFiltersState>({
     department: "",
     branch: "",
@@ -50,6 +58,8 @@ export default function EmployeeDirectory() {
   });
 
   const companyId = session?.user?.companyId;
+  const userRole = session?.user?.role;
+  const canManageEmployees = userRole === "ADMIN" || userRole === "GERENTE";
 
   // Debounce search
   useEffect(() => {
@@ -112,16 +122,49 @@ export default function EmployeeDirectory() {
   };
 
   const handleAddEmployee = () => {
-    // TODO: Navigate to create employee form or open dialog
-    toast.info("Add employee feature coming soon");
+    setSelectedEmployee(undefined);
+    setShowEmployeeDialog(true);
+  };
+
+  const handleEditEmployee = (employeeId: string) => {
+    const employee = employees.find((e) => e.id === employeeId);
+    if (employee) {
+      setSelectedEmployee(employee);
+      setShowEmployeeDialog(true);
+    }
   };
 
   const handleViewEmployee = (employeeId: string) => {
     router.push(`/dashboard/employees/${employeeId}`);
   };
 
-  const handleEditEmployee = (employeeId: string) => {
-    router.push(`/dashboard/employees/${employeeId}?tab=professional`);
+  const handleViewDocuments = (employeeId: string) => {
+    router.push(`/dashboard/employees/${employeeId}?tab=documents`);
+  };
+
+  const handleSelectEmployee = (employeeId: string, selected: boolean) => {
+    if (selected) {
+      setSelectedEmployees((prev) => [...prev, employeeId]);
+    } else {
+      setSelectedEmployees((prev) => prev.filter((id) => id !== employeeId));
+    }
+  };
+
+  const handleSelectAll = (selected: boolean) => {
+    if (selected) {
+      setSelectedEmployees(employees.map((e) => e.id));
+    } else {
+      setSelectedEmployees([]);
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedEmployees([]);
+  };
+
+  const handleBulkAction = async (action: string, employeeIds: string[]) => {
+    // Implement bulk actions here
+    console.log(`Bulk action ${action} for employees:`, employeeIds);
   };
 
   const totalPages = Math.ceil(total / limit);
@@ -137,13 +180,17 @@ export default function EmployeeDirectory() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setShowExportDialog(true)}>
-            Export
-          </Button>
-          <Button onClick={handleAddEmployee}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Employee
-          </Button>
+          {session?.user && (
+            <Button variant="outline" onClick={() => setShowExportDialog(true)}>
+              Export
+            </Button>
+          )}
+          {canManageEmployees && (
+            <Button onClick={handleAddEmployee}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Employee
+            </Button>
+          )}
         </div>
       </div>
 
@@ -159,6 +206,14 @@ export default function EmployeeDirectory() {
               className="pl-10"
             />
           </div>
+          <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as "list" | "grid")}>
+            <ToggleGroupItem value="list" aria-label="List view">
+              <List className="h-4 w-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="grid" aria-label="Grid view">
+              <LayoutGrid className="h-4 w-4" />
+            </ToggleGroupItem>
+          </ToggleGroup>
           {(search || filters.department || filters.status) && (
             <Button variant="ghost" onClick={handleClearFilters}>
               <X className="mr-2 h-4 w-4" />
@@ -170,13 +225,40 @@ export default function EmployeeDirectory() {
         <EmployeeFilters filters={filters} onFilterChange={setFilters} />
       </div>
 
-      {/* Employee Table */}
-      <EmployeeTable
-        employees={employees}
-        loading={loading}
-        onViewEmployee={handleViewEmployee}
-        onEditEmployee={handleEditEmployee}
+      {/* Bulk Actions */}
+      <EmployeeBulkActions
+        selectedEmployees={selectedEmployees}
+        onClearSelection={handleClearSelection}
+        onBulkAction={handleBulkAction}
       />
+
+      {/* Employee List/Grid */}
+      {viewMode === "list" ? (
+        <EmployeeTable
+          employees={employees}
+          loading={loading}
+          onViewEmployee={handleViewEmployee}
+          onEditEmployee={handleEditEmployee}
+          onViewDocuments={handleViewDocuments}
+          canEdit={canManageEmployees}
+          selectedEmployees={selectedEmployees}
+          onSelectEmployee={handleSelectEmployee}
+          onSelectAll={handleSelectAll}
+        />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {employees.map((employee) => (
+            <EmployeeCard
+              key={employee.id}
+              employee={employee}
+              onView={handleViewEmployee}
+              onEdit={handleEditEmployee}
+              onViewDocuments={handleViewDocuments}
+              canEdit={canManageEmployees}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Pagination */}
       <div className="flex items-center justify-between">
@@ -223,6 +305,17 @@ export default function EmployeeDirectory() {
           employees={employees}
           total={total}
           onClose={() => setShowExportDialog(false)}
+        />
+      )}
+
+      {/* Employee Dialog (Add/Edit) */}
+      {companyId && (
+        <EmployeeDialog
+          open={showEmployeeDialog}
+          onOpenChange={setShowEmployeeDialog}
+          onSuccess={fetchEmployees}
+          companyId={companyId}
+          employee={selectedEmployee}
         />
       )}
     </div>

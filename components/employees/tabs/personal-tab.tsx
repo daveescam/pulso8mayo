@@ -2,7 +2,6 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Edit } from "lucide-react";
@@ -10,6 +9,8 @@ import { format } from "date-fns";
 
 interface PersonalTabProps {
   profile: any;
+  onEdit?: () => void;
+  canEdit?: boolean;
 }
 
 const genderLabels: Record<string, string> = {
@@ -56,7 +57,7 @@ function InfoField({ label, value }: { label: string; value: string | null | und
   );
 }
 
-export function PersonalTab({ profile }: PersonalTabProps) {
+export function PersonalTab({ profile, onEdit, canEdit }: PersonalTabProps) {
   const address = profile.address as any;
 
   return (
@@ -69,10 +70,12 @@ export function PersonalTab({ profile }: PersonalTabProps) {
               <CardTitle>Personal Details</CardTitle>
               <CardDescription>Basic personal information and identification documents.</CardDescription>
             </div>
-            <Button variant="outline" size="sm">
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </Button>
+            {canEdit && (
+              <Button variant="outline" size="sm" onClick={onEdit}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -87,7 +90,7 @@ export function PersonalTab({ profile }: PersonalTabProps) {
             />
             <InfoField label="CURP" value={profile.curp} />
             <InfoField label="RFC" value={profile.rfc} />
-            <InfoField label="NSS (Social Security)" value={profile.nss} />
+            <InfoField label="NSS" value={profile.nss} />
             <InfoField
               label="Gender"
               value={profile.gender ? genderLabels[profile.gender] : null}
@@ -113,10 +116,12 @@ export function PersonalTab({ profile }: PersonalTabProps) {
               <CardTitle>Contact Information</CardTitle>
               <CardDescription>Personal email, phone, and address.</CardDescription>
             </div>
-            <Button variant="outline" size="sm">
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </Button>
+            {canEdit && (
+              <Button variant="outline" size="sm" onClick={onEdit}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -164,10 +169,12 @@ export function PersonalTab({ profile }: PersonalTabProps) {
               <CardTitle>Emergency Contact</CardTitle>
               <CardDescription>Contact person in case of emergency.</CardDescription>
             </div>
-            <Button variant="outline" size="sm">
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </Button>
+            {canEdit && (
+              <Button variant="outline" size="sm" onClick={onEdit}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -195,12 +202,14 @@ export function PersonalTab({ profile }: PersonalTabProps) {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Bank Information</CardTitle>
-              <CardDescription>Bank account details for payroll. (Restricted access)</CardDescription>
+              <CardDescription>Bank account details for payroll.</CardDescription>
             </div>
-            <Button variant="outline" size="sm">
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </Button>
+            {canEdit && (
+              <Button variant="outline" size="sm" onClick={onEdit}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>

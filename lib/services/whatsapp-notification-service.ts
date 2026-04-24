@@ -396,13 +396,18 @@ export class WhatsAppNotificationService {
     static async sendWorkflowOverdue(instanceId: string, userId: string): Promise<boolean> {
         try {
             const instance = await db.query.workflowInstances.findFirst({
-                where: eq(workflowInstances.id, instanceId),
-                with: {
-                    workflowTemplate: true
-                }
+                where: eq(workflowInstances.id, instanceId)
             });
 
             if (!instance) {
+                return false;
+            }
+
+            const template = await db.query.workflowTemplates.findFirst({
+                where: eq(workflowTemplates.id, instance.workflowTemplateId)
+            });
+
+            if (!template) {
                 return false;
             }
 
@@ -421,7 +426,7 @@ export class WhatsAppNotificationService {
                 await NotificationDispatcher.sendNotification({
                     userId,
                     title: "⚠️ Tarea Vencida",
-                    message: `${instance.workflowTemplate.name} está vencida`,
+                    message: `${template.name} está vencida`,
                     type: "error",
                     eventType: "workflow_overdue"
                 });
@@ -433,7 +438,7 @@ export class WhatsAppNotificationService {
                 await NotificationDispatcher.sendNotification({
                     userId,
                     title: "⚠️ Tarea Vencida",
-                    message: `${instance.workflowTemplate.name} está vencida`,
+                    message: `${template.name} está vencida`,
                     type: "error",
                     eventType: "workflow_overdue"
                 });
@@ -446,7 +451,7 @@ export class WhatsAppNotificationService {
 
             const message = `🚨 *TAREA VENCIDA*\n\n` +
                 `Hola ${user.name || "Usuario"},\n\n` +
-                `La tarea *${instance.workflowTemplate.name}* está VENCIDA desde hace ${overdueHours} horas.\n\n` +
+                `La tarea *${template.name}* está VENCIDA desde hace ${overdueHours} horas.\n\n` +
                 `Por favor, complétala lo antes posible.\n\n` +
                 `_Pulso - Workflow Management_`;
 

@@ -2,6 +2,26 @@ import { db } from '@/lib/db';
 import { incidents } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
+export interface EscalationLevel {
+    afterMinutes: number;
+    role?: string;
+    userId?: string;
+    notificationTemplate?: string;
+    action?: string;
+}
+
+export interface IncidentData {
+    id: string;
+    title: string;
+    severity?: string;
+    status?: string;
+    companyId: string;
+    branchId?: string;
+    userId?: string;
+    description?: string;
+    [key: string]: unknown;
+}
+
 /**
  * EscalationService - Manages incident escalation chains
  * 
@@ -23,7 +43,7 @@ export class EscalationService {
      * @param incident - The incident to escalate
      * @param chain - Escalation chain configuration from logicRule
      */
-    static async triggerEscalation(incident: any, chain: any[]) {
+    static async triggerEscalation(incident: IncidentData, chain: EscalationLevel[]) {
         try {
             console.log(`[EscalationService] Triggering escalation for incident ${incident.id}`);
 
@@ -61,7 +81,7 @@ export class EscalationService {
      * Executes a single escalation level
      * Public for Workflow Engine usage
      */
-    public static async executeEscalationLevel(incidentId: string, level: any) {
+    public static async executeEscalationLevel(incidentId: string, level: EscalationLevel) {
         try {
             console.log(`[EscalationService] Executing escalation level ${level.level} for incident ${incidentId}`);
 
@@ -127,7 +147,7 @@ export class EscalationService {
     /**
      * Evaluates a trigger condition for escalation
      */
-    private static evaluateTriggerCondition(condition: string, incident: any): boolean {
+    private static evaluateTriggerCondition(condition: string, incident: IncidentData): boolean {
         try {
             // Handle common trigger conditions
             if (condition === 'remediation_failed') {
@@ -204,7 +224,7 @@ export class EscalationService {
     /**
      * Formats an escalation message with incident context
      */
-    private static formatMessage(template: string, incident: any): string {
+    private static formatMessage(template: string, incident: IncidentData): string {
         let message = template;
 
         // Replace placeholders

@@ -10,6 +10,8 @@ import reporteIncidentesV2 from './atencion_cliente/reporte-incidentes-v2-enhanc
 
 // Compliance
 import dailyAttendance from './compliance/daily-attendance-v1.json';
+import fumigacionV1 from './compliance/fumigacion-v1.json';
+import inspeccionSistemaIncendiosV1 from './compliance/inspeccion-sistema-contra-incendios-v1.json';
 import nom035Survey from './compliance/nom-035-survey-v1.json';
 
 // Control de Calidad
@@ -58,8 +60,10 @@ export const templateLibrary: Record<string, Template> = {
   // Atención al Cliente (1)
   'reporte-incidentes-v2': normalizeTemplate(reporteIncidentesV2),
 
-  // Compliance (2)
+  // Compliance (4)
   'daily-attendance-v1': normalizeTemplate(dailyAttendance),
+  'fumigacion-v1': normalizeTemplate(fumigacionV1),
+  'inspeccion-sistema-incendios-v1': normalizeTemplate(inspeccionSistemaIncendiosV1),
   'nom-035-survey-v1': normalizeTemplate(nom035Survey),
 
   // Control de Calidad (4)

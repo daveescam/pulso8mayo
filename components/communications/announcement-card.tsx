@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Pin, PinOff, Trash2, Edit, Megaphone, Bell, Mail } from 'lucide-react';
+import { Pin, PinOff, Trash2, Edit, Megaphone, Bell, Mail, Briefcase, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -21,6 +21,7 @@ interface AnnouncementCardProps {
     authorName: string | null;
     readCount: number;
     totalRecipients: number;
+    targetRoles: string[] | null;
   };
   onPin?: (id: string, pinned: boolean) => void;
   onDelete?: (id: string) => void;
@@ -32,6 +33,14 @@ export function AnnouncementCard({ announcement, onPin, onDelete, onEdit }: Anno
     ANNOUNCEMENT: { icon: Megaphone, label: 'Anuncio', color: 'bg-blue-100 text-blue-800' },
     NOTIFICATION: { icon: Bell, label: 'Notificación', color: 'bg-amber-100 text-amber-800' },
     MESSAGE: { icon: Mail, label: 'Mensaje', color: 'bg-green-100 text-green-800' },
+    POLICY: { icon: Briefcase, label: 'Política', color: 'bg-purple-100 text-purple-800' },
+  };
+
+  const roleLabels: Record<string, string> = {
+    ADMIN: 'Admin',
+    GERENTE: 'Gerentes',
+    SUPERVISOR: 'Supervisores',
+    EMPLEADO: 'Empleados',
   };
 
   const targetLabels: Record<string, string> = {
@@ -57,7 +66,21 @@ export function AnnouncementCard({ announcement, onPin, onDelete, onEdit }: Anno
               <Icon className="h-3 w-3 mr-1" />
               {config.label}
             </Badge>
-            <Badge variant="outline">{targetLabels[announcement.targetType]}</Badge>
+            <div className="flex flex-col items-end gap-1">
+              <Badge variant="outline" className="flex items-center gap-1">
+                <Users className="h-3 w-3" />
+                {targetLabels[announcement.targetType]}
+              </Badge>
+              {announcement.targetRoles && announcement.targetRoles.length > 0 && (
+                <div className="flex gap-1 flex-wrap justify-end">
+                  {announcement.targetRoles.map(role => (
+                    <span key={role} className="text-[10px] bg-muted px-1.5 py-0.5 rounded border">
+                      {roleLabels[role] || role}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </CardHeader>
@@ -66,18 +89,32 @@ export function AnnouncementCard({ announcement, onPin, onDelete, onEdit }: Anno
           {announcement.content}
         </p>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <span>Por: {announcement.authorName || 'Sistema'}</span>
             <span>
               {format(new Date(announcement.sentAt || announcement.createdAt), 'dd MMM yyyy HH:mm', { locale: es })}
             </span>
-            {announcement.totalRecipients > 0 && (
-              <span>
-                Leído: {announcement.readCount}/{announcement.totalRecipients}
-              </span>
-            )}
           </div>
-          <div className="flex items-center gap-1">
+          
+          <div className="flex items-center gap-3">
+            {announcement.totalRecipients > 0 && (
+              <div className="flex flex-col items-end gap-1 min-w-[120px]">
+                <div className="flex justify-between w-full text-[10px] font-medium">
+                  <span>Alcance</span>
+                  <span>{Math.round((announcement.readCount / announcement.totalRecipients) * 100)}%</span>
+                </div>
+                <div className="w-full bg-muted h-1 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-primary h-full transition-all duration-500" 
+                    style={{ width: `${(announcement.readCount / announcement.totalRecipients) * 100}%` }}
+                  />
+                </div>
+                <span className="text-[10px] text-muted-foreground">
+                  {announcement.readCount} de {announcement.totalRecipients} leídos
+                </span>
+              </div>
+            )}
+            
+            <div className="flex items-center gap-1">
             {onPin && (
               <Button
                 variant="ghost"

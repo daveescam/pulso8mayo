@@ -29,7 +29,6 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Calendar, Clock, Users, Plus, Trash2, Save, RefreshCw } from "lucide-react";
 import { format, addDays, startOfWeek, eachDayOfInterval, isSameDay, parseISO } from "date-fns";
@@ -112,13 +111,13 @@ export function ScheduleBuilder({ branchId, companyId }: ScheduleBuilderProps) {
         if (branchId && companyId) {
             fetchEmployees();
         }
-    }, [branchId, companyId]);
+    }, [branchId, companyId, fetchEmployees]);
 
     useEffect(() => {
         if (branchId) {
             fetchShifts();
         }
-    }, [branchId, selectedWeek]);
+    }, [branchId, selectedWeek, fetchShifts]);
 
     const handleAddShift = async () => {
         if (!selectedEmployee || !selectedDate || !startTime || !endTime) {
@@ -183,7 +182,6 @@ export function ScheduleBuilder({ branchId, companyId }: ScheduleBuilderProps) {
 
     const sendShiftReminder = async (userId: string, shiftDate: string, shiftTime: string) => {
         try {
-            const employee = employees.find(e => e.id === userId);
             await fetch("/api/notifications/test-whatsapp", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -305,7 +303,7 @@ export function ScheduleBuilder({ branchId, companyId }: ScheduleBuilderProps) {
                     <div className="grid gap-2">
                         <Label htmlFor="role-select">Rol</Label>
                         <Select value={selectedRole} onValueChange={setSelectedRole}>
-                            <SelectTrigger className="w-[200px]" id="role-select">
+                            <SelectTrigger className="w-50" id="role-select">
                                 <SelectValue placeholder="Seleccionar rol" />
                             </SelectTrigger>
                             <SelectContent>
@@ -324,7 +322,7 @@ export function ScheduleBuilder({ branchId, companyId }: ScheduleBuilderProps) {
                             type="time"
                             value={startTime}
                             onChange={(e) => setStartTime(e.target.value)}
-                            className="w-[150px]"
+                            className="w-37.5"
                         />
                     </div>
                     <div className="grid gap-2">
@@ -334,7 +332,7 @@ export function ScheduleBuilder({ branchId, companyId }: ScheduleBuilderProps) {
                             type="time"
                             value={endTime}
                             onChange={(e) => setEndTime(e.target.value)}
-                            className="w-[150px]"
+                            className="w-37.5"
                         />
                     </div>
                 </CardContent>
@@ -353,9 +351,9 @@ export function ScheduleBuilder({ branchId, companyId }: ScheduleBuilderProps) {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-[200px]">Empleado</TableHead>
+                                    <TableHead className="w-50">Empleado</TableHead>
                                     {weekDates.map((date) => (
-                                        <TableHead key={date} className="text-center min-w-[120px]">
+                                        <TableHead key={date.toISOString()} className="text-center min-w-30">
                                             <div className="flex flex-col items-center">
                                                 <span className="text-xs font-medium">
                                                     {format(date, "EEE", { locale: es })}
@@ -382,7 +380,7 @@ export function ScheduleBuilder({ branchId, companyId }: ScheduleBuilderProps) {
                                         {weekDates.map((date) => {
                                             const shift = getShiftForEmployee(employee.id, date);
                                             return (
-                                                <TableCell key={date} className="text-center">
+                                                <TableCell key={date.toISOString()} className="text-center">
                                                     {shift ? (
                                                         <div className="relative group">
                                                             <Badge

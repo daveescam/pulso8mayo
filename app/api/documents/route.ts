@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { EmployeeDocumentService, DocumentUploadRequest, DocumentValidationRequest } from "@/lib/services/employee-document-service";
+import { EmployeeDocumentService, DocumentUploadRequest } from "@/lib/services/employee-document-service";
 import { auth } from "@/lib/auth";
 import { requireTenant } from "@/lib/tenant-context";
 
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
         // Get specific document
         if (documentId) {
-            const document = await EmployeeDocumentService.getDocument(documentId, tenant.companyId);
+            const document = await EmployeeDocumentService.getDocument(documentId, tenant.id);
             if (!document) {
                 return NextResponse.json({ error: "Documento no encontrado" }, { status: 404 });
             }
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
         // Get documents by type
         if (documentType) {
             const documents = await EmployeeDocumentService.getDocumentsByType(
-                tenant.companyId,
+                tenant.id,
                 documentType as any
             );
             return NextResponse.json({ documents });
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
         const targetUserId = userId || session.user.id;
         const documents = await EmployeeDocumentService.getEmployeeDocuments(
             targetUserId,
-            tenant.companyId
+            tenant.id
         );
 
         return NextResponse.json({ documents });
@@ -65,10 +65,16 @@ export async function POST(req: NextRequest) {
 
         const tenant = await requireTenant();
         const body = await req.json();
+        const targetUserId = body.userId || session.user.id;
+
+        // RBAC Check: Only ADMIN/GERENTE can upload for others
+        if (targetUserId !== session.user.id && session.user.role !== "ADMIN" && session.user.role !== "GERENTE") {
+            return NextResponse.json({ error: "No tienes permiso para subir documentos de otros empleados" }, { status: 403 });
+        }
 
         const uploadData: DocumentUploadRequest = {
-            userId: body.userId || session.user.id,
-            companyId: tenant.companyId,
+            userId: targetUserId,
+            companyId: tenant.id,
             branchId: body.branchId || session.user.branchId,
             documentType: body.documentType,
             documentName: body.documentName,
@@ -110,6 +116,11 @@ export async function DELETE(req: NextRequest) {
             return NextResponse.json({ error: "No autorizado" }, { status: 401 });
         }
 
+        // RBAC Check: Only ADMIN/GERENTE can delete documents
+        if (session.user.role !== "ADMIN" && session.user.role !== "GERENTE") {
+            return NextResponse.json({ error: "No tienes permiso para eliminar documentos" }, { status: 403 });
+        }
+
         const tenant = await requireTenant();
         const searchParams = req.nextUrl.searchParams;
         const documentId = searchParams.get("documentId");
@@ -118,7 +129,7 @@ export async function DELETE(req: NextRequest) {
             return NextResponse.json({ error: "documentId requerido" }, { status: 400 });
         }
 
-        await EmployeeDocumentService.deleteDocument(documentId, tenant.companyId);
+        await EmployeeDocumentService.deleteDocument(documentId, tenant.id);
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error("Error deleting document:", error);

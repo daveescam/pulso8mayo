@@ -50,12 +50,13 @@ export async function PATCH(
         }
 
         const body = await req.json();
-        const { name, description, steps, active } = body;
+        const { name, description, category, steps, active } = body;
 
         const [updatedTemplate] = await db.update(workflowTemplates)
             .set({
                 ...(name && { name }),
                 ...(description && { description }),
+                ...(category && { category }),
                 ...(steps && { steps }),
                 ...(active !== undefined && { active }),
                 updatedAt: new Date(),

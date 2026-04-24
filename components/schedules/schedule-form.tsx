@@ -110,7 +110,7 @@ export function ScheduleForm({ schedule, branchId, onSuccess, onCancel }: Schedu
                 });
                 if (templatesRes.ok) {
                     const templatesData = await templatesRes.json();
-                    setTemplates(templatesData);
+                    setTemplates(templatesData.data || []);
                 }
 
                 // Fetch users for the branch
@@ -119,7 +119,7 @@ export function ScheduleForm({ schedule, branchId, onSuccess, onCancel }: Schedu
                 });
                 if (usersRes.ok) {
                     const usersData = await usersRes.json();
-                    setUsers(usersData);
+                    setUsers(usersData.data?.data || []);
                 }
             } catch (error) {
                 console.error('Error fetching data:', error);

@@ -14,6 +14,28 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
+export interface AIVerificationData {
+    passed?: boolean;
+    confidence?: number;
+    notes?: string;
+    reason?: string;
+    detectedIssues?: string;
+    [key: string]: unknown;
+}
+
+export interface WorkflowReviewStep {
+    id: string;
+    stepId: string;
+    title: string;
+    type: string;
+    status: string;
+    value: unknown;
+    evidenceUrl: string | null;
+    aiAnalysis: AIVerificationData | null;
+    comment: string | null;
+    completedAt: Date | null;
+}
+
 export interface WorkflowReviewData {
   id: string;
   templateName: string;
@@ -23,18 +45,7 @@ export interface WorkflowReviewData {
   score: number | null;
   createdAt: Date;
   completedAt: Date | null;
-  steps: Array<{
-    id: string;
-    stepId: string;
-    title: string;
-    type: string;
-    status: string;
-    value: any;
-    evidenceUrl: string | null;
-    aiAnalysis: any | null;
-    comment: string | null;
-    completedAt: Date | null;
-  }>;
+  steps: WorkflowReviewStep[];
 }
 
 export interface WorkflowReviewProps {
@@ -75,9 +86,9 @@ export function WorkflowReview({
       setReviewDialogOpen(false);
       setReviewComment("");
       setReviewAction(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Error al procesar la revisión', {
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Error desconocido',
       });
     } finally {
       setSubmitting(false);

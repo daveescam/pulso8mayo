@@ -99,16 +99,6 @@ export async function GET(request: NextRequest) {
       .where(eq(employeeProfiles.isActive, true))
       .groupBy(employeeProfiles.department);
 
-    // Branch Distribution
-    const branchDistribution = await db
-      .select({
-        branchId: employeeProfiles.branchId,
-        count: count(),
-      })
-      .from(employeeProfiles)
-      .where(eq(employeeProfiles.isActive, true))
-      .groupBy(employeeProfiles.branchId);
-
     // Compensation Analytics - Average Salary by Department
     const avgSalaryByDept = await db
       .select({
@@ -252,7 +242,6 @@ export async function GET(request: NextRequest) {
           name: d.department || 'Not specified',
           value: d.count,
         })),
-        branchDistribution, // Will need to join with branches table for names
       },
       compensation: {
         avgSalaryByDept: avgSalaryByDept.map(d => ({

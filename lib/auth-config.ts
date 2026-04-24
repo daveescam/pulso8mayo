@@ -24,7 +24,7 @@ export const authConfig: BetterAuthOptions = {
 
         // Allow session extension via refresh token
         cookieCache: {
-            enabled: true,
+            enabled: false,
             maxAge: 60 * 5, // 5 minutes cache for session cookie
         },
 

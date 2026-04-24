@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AnnouncementCard } from '@/components/communications/announcement-card';
 import { AnnouncementForm } from '@/components/communications/announcement-form';
-import { Megaphone, Plus, Pin, List, BarChart3 } from 'lucide-react';
+import { Megaphone, Plus, Pin, List, BarChart3, Briefcase } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Announcement {
@@ -16,6 +16,7 @@ interface Announcement {
   content: string;
   communicationType: string;
   targetType: string;
+  targetRoles: string[] | null;
   status: string;
   isPinned: boolean;
   sentAt: string | null;
@@ -32,7 +33,7 @@ export default function CommunicationsPage() {
   const [showForm, setShowForm] = useState(false);
   const [companyId, setCompanyId] = useState<string>('');
   const [userId, setUserId] = useState<string>('');
-  const [stats, setStats] = useState({ total: 0, pinned: 0, announcements: 0, messages: 0 });
+  const [stats, setStats] = useState({ total: 0, pinned: 0, announcements: 0, messages: 0, policies: 0 });
 
   const fetchAnnouncements = useCallback(async () => {
     if (!companyId) return;
@@ -47,6 +48,7 @@ export default function CommunicationsPage() {
           pinned: items.filter((a: Announcement) => a.isPinned).length,
           announcements: items.filter((a: Announcement) => a.communicationType === 'ANNOUNCEMENT').length,
           messages: items.filter((a: Announcement) => a.communicationType === 'MESSAGE').length,
+          policies: items.filter((a: Announcement) => a.communicationType === 'POLICY').length,
         });
       }
     } catch (e) {
@@ -127,7 +129,7 @@ export default function CommunicationsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total</CardTitle>
@@ -168,6 +170,16 @@ export default function CommunicationsPage() {
             <p className="text-xs text-muted-foreground">Tipo mensaje</p>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Políticas</CardTitle>
+            <Briefcase className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.policies}</div>
+            <p className="text-xs text-muted-foreground">Tipo política</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Form */}
@@ -190,6 +202,7 @@ export default function CommunicationsPage() {
           <TabsTrigger value="pinned">Fijados</TabsTrigger>
           <TabsTrigger value="announcements">Anuncios</TabsTrigger>
           <TabsTrigger value="messages">Mensajes</TabsTrigger>
+          <TabsTrigger value="policies">Políticas</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="space-y-4">
@@ -235,6 +248,12 @@ export default function CommunicationsPage() {
 
         <TabsContent value="messages" className="space-y-4">
           {announcements.filter(a => a.communicationType === 'MESSAGE').map((a) => (
+            <AnnouncementCard key={a.id} announcement={a} onPin={handlePin} onDelete={handleDelete} />
+          ))}
+        </TabsContent>
+
+        <TabsContent value="policies" className="space-y-4">
+          {announcements.filter(a => a.communicationType === 'POLICY').map((a) => (
             <AnnouncementCard key={a.id} announcement={a} onPin={handlePin} onDelete={handleDelete} />
           ))}
         </TabsContent>

@@ -54,6 +54,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { BulkShiftAssignment, type ShiftAssignment } from "@/components/labor/shift-assignment-bulk"
+import { LaborComplianceView } from "@/components/labor/labor-compliance-view"
 
 // Types
 interface Shift {
@@ -61,12 +62,22 @@ interface Shift {
     userId: string
     userName: string
     branchId: string
+    branchName: string
     role: string
     startTime: string
     endTime: string
     status: "DRAFT" | "PUBLISHED"
     date: string
     notes?: string
+    templateId?: string
+}
+
+interface ApiUser {
+    id: string
+    name: string
+    image?: string
+    role: string
+    branchId: string
 }
 
 interface User {
@@ -102,7 +113,13 @@ interface VacationRequest {
     status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "COMPLETED"
 }
 
-type ViewMode = "matrix" | "calendar" | "list"
+interface ApiBranch {
+    id: string
+    name: string
+    address?: string
+}
+
+type ViewMode = "matrix" | "calendar" | "list" | "compliance"
 
 // Shift type configurations
 const SHIFT_TYPES = {
@@ -197,6 +214,15 @@ export function UnifiedShiftScheduler() {
     // Conflicts
     const [conflicts, setConflicts] = React.useState<{shiftId: string, message: string, type: "warning" | "error"}[]>([])
 
+    // Settings
+    const [settingsOpen, setSettingsOpen] = React.useState(false)
+    const [weeklyHours, setWeeklyHours] = React.useState(40)
+    const [workDays, setWorkDays] = React.useState(5)
+    const [toleranceMinutes, setToleranceMinutes] = React.useState(15)
+
+    // Track original shifts
+    const [originalShifts, setOriginalShifts] = React.useState<Shift[]>([])
+
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 })
     const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 })
     const weekDays = Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i))
@@ -205,7 +231,22 @@ export function UnifiedShiftScheduler() {
     React.useEffect(() => {
         loadData()
         loadTemplates()
-    }, [currentDate])
+    }, [currentDate, selectedBranch])
+
+    // Load settings when branch changes
+    React.useEffect(() => {
+        loadSettings()
+    }, [selectedBranch])
+
+    const loadSettings = () => {
+        const saved = localStorage.getItem(`shift-settings-${selectedBranch}`)
+        if (saved) {
+            const settings = JSON.parse(saved)
+            setWeeklyHours(settings.weeklyHours || 40)
+            setWorkDays(settings.workDays || 5)
+            setToleranceMinutes(settings.toleranceMinutes || 15)
+        }
+    }
 
     const loadData = async () => {
         setLoading(true)
@@ -213,9 +254,9 @@ export function UnifiedShiftScheduler() {
             // Fetch users
             const usersRes = await fetch("/api/users")
             if (usersRes.ok) {
-                const response = await usersRes.json()
+                const response = await usersRes.json() as { data?: { data?: ApiUser[] } }
                 const data = response.data?.data || []
-                setUsers(data.map((u: any) => ({
+                setUsers(data.map((u: ApiUser) => ({
                     id: u.id,
                     name: u.name,
                     image: u.image,
@@ -227,7 +268,7 @@ export function UnifiedShiftScheduler() {
             // Fetch branches
             const branchesRes = await fetch("/api/branches")
             if (branchesRes.ok) {
-                const branchResponse = await branchesRes.json()
+                const branchResponse = await branchesRes.json() as { data?: ApiBranch[] }
                 const branchesData = branchResponse.data || []
                 setBranches(branchesData)
                 if (branchesData.length > 0 && selectedBranch === "all") {
@@ -241,9 +282,10 @@ export function UnifiedShiftScheduler() {
                     `/api/shifts?branchId=${selectedBranch}&start=${weekStart.toISOString()}&end=${addDays(weekStart, 7).toISOString()}`
                 )
                 if (shiftsRes.ok) {
-                    const shiftsResponse = await shiftsRes.json()
+                    const shiftsResponse = await shiftsRes.json() as { data?: Shift[] }
                     const shiftsData = shiftsResponse.data || []
                     setShifts(shiftsData)
+                    setOriginalShifts(shiftsData)
                     detectConflicts(shiftsData)
                 }
             }
@@ -253,7 +295,7 @@ export function UnifiedShiftScheduler() {
                 `/api/vacations?branchId=${selectedBranch !== "all" ? selectedBranch : ""}&status=APPROVED&startDate=${weekStart.toISOString()}&endDate=${addDays(weekStart, 14).toISOString()}`
             )
             if (vacationsRes.ok) {
-                const vacationsResponse = await vacationsRes.json()
+                const vacationsResponse = await vacationsRes.json() as { data?: VacationRequest[] }
                 setVacations(vacationsResponse.data || [])
             }
         } catch (e) {
@@ -353,10 +395,12 @@ export function UnifiedShiftScheduler() {
             userId: selectedUser,
             userName: user.name,
             branchId: user.branchId,
+            branchName: user.branchName || "Default",
             role: shiftRole,
             startTime: start.toISOString(),
             endTime: end.toISOString(),
             status: "DRAFT",
+            date: start.toISOString(),
             notes: shiftNotes
         }
 
@@ -378,17 +422,23 @@ export function UnifiedShiftScheduler() {
     }
 
     const handleBulkAssignmentsChange = (newAssignments: ShiftAssignment[]) => {
-        const convertedShifts = newAssignments.map(a => ({
-            id: a.id,
-            userId: a.employeeId,
-            userName: a.employeeName,
-            branchId: selectedBranch !== "all" ? selectedBranch : "default",
-            role: "EMPLEADO",
-            startTime: new Date(a.date).setHours(...a.startTime.split(":").map(Number)).toString(),
-            endTime: new Date(a.date).setHours(...a.endTime.split(":").map(Number)).toString(),
-            status: a.status as "DRAFT" | "PUBLISHED",
-            date: a.date
-        }))
+        const convertedShifts = newAssignments.map(a => {
+            const [sh, sm] = a.startTime.split(":").map(Number)
+            const [eh, em] = a.endTime.split(":").map(Number)
+            const baseDate = new Date(a.date)
+            return {
+                id: a.id,
+                userId: a.employeeId,
+                userName: a.employeeName,
+                branchId: selectedBranch !== "all" ? selectedBranch : "default",
+                branchName: "Default",
+                role: "EMPLEADO",
+                startTime: new Date(baseDate.setHours(sh, sm)).toISOString(),
+                endTime: new Date(baseDate.setHours(eh, em)).toISOString(),
+                status: a.status as "DRAFT" | "PUBLISHED",
+                date: a.date
+            }
+        })
         setShifts(convertedShifts)
     }
 
@@ -446,10 +496,12 @@ export function UnifiedShiftScheduler() {
                     userId: user.id,
                     userName: user.name,
                     branchId: user.branchId,
+                    branchName: user.branchName || "Default",
                     role: shiftConfig.role,
                     startTime: start.toISOString(),
                     endTime: end.toISOString(),
-                    status: "DRAFT"
+                    status: "DRAFT",
+                    date: selectedDay.toISOString()
                 })
             }
         })
@@ -498,6 +550,121 @@ export function UnifiedShiftScheduler() {
         toast.success("Turno eliminado")
     }
 
+    const handleSave = async () => {
+        if (selectedBranch === "all") {
+            toast.error("Selecciona una sucursal específica para guardar los horarios")
+            return
+        }
+
+        try {
+            // Separate new and existing shifts
+            const newShifts = shifts.filter(s => !originalShifts.find(os => os.id === s.id))
+            const existingShifts = shifts.filter(s => originalShifts.find(os => os.id === s.id))
+
+            // Convert to API format
+            const formatShiftForAPI = (shift: Shift) => ({
+                userId: shift.userId,
+                branchId: shift.branchId,
+                shiftDate: format(parseISO(shift.startTime), "yyyy-MM-dd"),
+                startTime: format(parseISO(shift.startTime), "HH:mm"),
+                endTime: format(parseISO(shift.endTime), "HH:mm"),
+                role: shift.role,
+                notes: shift.notes,
+                templateId: shift.templateId,
+            })
+
+            // Create new shifts
+            if (newShifts.length > 0) {
+                const createData = newShifts.map(formatShiftForAPI)
+                const createRes = await fetch("/api/shifts", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(createData.length === 1 ? createData[0] : createData)
+                })
+                if (!createRes.ok) {
+                    const error = await createRes.json()
+                    throw new Error(error.message || "Error creando turnos")
+                }
+            }
+
+            // Update existing shifts
+            if (existingShifts.length > 0) {
+                const updateData = existingShifts.map(s => ({
+                    id: s.id,
+                    role: s.role,
+                    notes: s.notes,
+                    startTime: format(parseISO(s.startTime), "HH:mm"),
+                    endTime: format(parseISO(s.endTime), "HH:mm"),
+                }))
+                const updateRes = await fetch("/api/shifts", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ shifts: updateData })
+                })
+                if (!updateRes.ok) {
+                    const error = await updateRes.json()
+                    throw new Error(error.message || "Error actualizando turnos")
+                }
+            }
+
+        // Refresh data
+        await loadData()
+        toast.success("Horarios guardados correctamente")
+    } catch (error) {
+        console.error("Save error:", error)
+        toast.error(error instanceof Error ? error.message : "Error guardando horarios")
+    }
+    }
+
+    const handlePublish = async () => {
+        if (selectedBranch === "all") {
+            toast.error("Selecciona una sucursal específica para publicar los horarios")
+            return
+        }
+
+        try {
+            const draftShifts = shifts.filter(s => s.status === "DRAFT")
+            if (draftShifts.length === 0) {
+                toast.info("No hay turnos en borrador para publicar")
+                return
+            }
+
+            const updateData = draftShifts.map(s => ({
+                id: s.id,
+                status: "PUBLISHED" as const
+            }))
+
+            const res = await fetch("/api/shifts", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ shifts: updateData })
+            })
+
+            if (!res.ok) {
+                const error = await res.json()
+                throw new Error(error.message || "Error publicando turnos")
+            }
+
+            // Refresh data
+            await loadData()
+            toast.success(`${draftShifts.length} turnos publicados`)
+        } catch (error) {
+            console.error("Publish error:", error)
+            toast.error(error instanceof Error ? error.message : "Error publicando horarios")
+        }
+    }
+
+    const handleSaveSettings = () => {
+        const settings = {
+            weeklyHours,
+            workDays,
+            toleranceMinutes
+        }
+        localStorage.setItem(`shift-settings-${selectedBranch}`, JSON.stringify(settings))
+        toast.success("Configuración guardada")
+        setSettingsOpen(false)
+    }
+
     const filteredUsers = users.filter(user => {
         const matchesBranch = selectedBranch === "all" || user.branchId === selectedBranch
         const matchesRole = selectedRole === "all" || user.role === selectedRole
@@ -539,7 +706,7 @@ export function UnifiedShiftScheduler() {
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigateWeek("prev")}>
                                 <ChevronLeft className="h-4 w-4" />
                             </Button>
-                            <div className="px-3 text-sm font-medium min-w-[200px] text-center flex items-center justify-center gap-2">
+                            <div className="px-3 text-sm font-medium min-w-50 text-center flex items-center justify-center gap-2">
                                 <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                                 {format(weekStart, "d 'de' MMM", { locale: es })} - {format(weekEnd, "d 'de' MMM, yyyy", { locale: es })}
                             </div>
@@ -570,6 +737,13 @@ export function UnifiedShiftScheduler() {
                             >
                                 Lista
                             </Button>
+                            <Button
+                                variant={viewMode === "compliance" ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setViewMode("compliance")}
+                            >
+                                Cumplimiento
+                            </Button>
                         </div>
                     </div>
 
@@ -586,18 +760,22 @@ export function UnifiedShiftScheduler() {
                             <Download className="h-4 w-4 mr-2" />
                             Exportar
                         </Button>
+                        <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)}>
+                            <Tag className="h-4 w-4 mr-2" />
+                            Configuración
+                        </Button>
                         <Button variant="outline" size="sm" onClick={() => setBulkMode(!bulkMode)}>
                             <Repeat className="h-4 w-4 mr-2" />
                             {bulkMode ? "Normal" : "Masivo"}
                         </Button>
-                        <Button size="sm">
-                            <Save className="h-4 w-4 mr-2" />
-                            Guardar
-                        </Button>
-                        <Button size="sm" variant="default">
-                            <Eye className="h-4 w-4 mr-2" />
-                            Publicar
-                        </Button>
+                        <Button size="sm" onClick={handleSave} disabled={selectedBranch === "all"}>
+                             <Save className="h-4 w-4 mr-2" />
+                             Guardar
+                         </Button>
+                         <Button size="sm" variant="default" onClick={handlePublish} disabled={selectedBranch === "all"}>
+                             <Eye className="h-4 w-4 mr-2" />
+                             Publicar
+                         </Button>
                     </div>
                 </div>
 
@@ -609,7 +787,7 @@ export function UnifiedShiftScheduler() {
                     </div>
                     
                     <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-                        <SelectTrigger className="w-[180px] h-8">
+                        <SelectTrigger className="w-45 h-8">
                             <SelectValue placeholder="Sucursal" />
                         </SelectTrigger>
                         <SelectContent>
@@ -621,7 +799,7 @@ export function UnifiedShiftScheduler() {
                     </Select>
 
                     <Select value={selectedRole} onValueChange={setSelectedRole}>
-                        <SelectTrigger className="w-[150px] h-8">
+                        <SelectTrigger className="w-37.5 h-8">
                             <SelectValue placeholder="Rol" />
                         </SelectTrigger>
                         <SelectContent>
@@ -638,7 +816,7 @@ export function UnifiedShiftScheduler() {
                         placeholder="Buscar empleado..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-[200px] h-8"
+                        className="w-50 h-8"
                     />
 
                     {conflicts.length > 0 && (
@@ -668,7 +846,14 @@ export function UnifiedShiftScheduler() {
                     </CardHeader>
                     <CardContent>
                         <BulkShiftAssignment
-                            employees={filteredUsers}
+                            employees={filteredUsers.map(u => ({
+                                id: u.id,
+                                name: u.name,
+                                email: u.email || `${u.name.toLowerCase().replace(/\s+/g, '.')}@example.com`,
+                                role: u.role,
+                                image: u.image,
+                                branchId: u.branchId
+                            }))}
                             selectedDate={currentDate}
                             assignments={[]}
                             vacations={vacations}
@@ -724,7 +909,7 @@ export function UnifiedShiftScheduler() {
                                                 <div
                                                     key={day.toString()}
                                                     className={cn(
-                                                        "p-2 min-h-[80px] relative group/cell transition-colors",
+                                                        "p-2 min-h-20 relative group/cell transition-colors",
                                                         isSameDay(day, new Date()) ? "bg-primary/5" : ""
                                                     )}
                                                 >
@@ -788,7 +973,14 @@ export function UnifiedShiftScheduler() {
                 <Card>
                     <CardContent className="p-6">
                         <BulkShiftAssignment
-                            employees={filteredUsers}
+                            employees={filteredUsers.map(u => ({
+                                id: u.id,
+                                name: u.name,
+                                email: u.email || `${u.name.toLowerCase().replace(/\s+/g, '.')}@example.com`,
+                                role: u.role,
+                                image: u.image,
+                                branchId: u.branchId
+                            }))}
                             selectedDate={currentDate}
                             assignments={shifts.map(s => ({
                                 id: s.id,
@@ -817,7 +1009,7 @@ export function UnifiedShiftScheduler() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <ScrollArea className="h-[500px]">
+                        <ScrollArea className="h-125">
                             <div className="space-y-2">
                                 {shifts.length === 0 ? (
                                     <div className="text-center py-12 text-muted-foreground">
@@ -885,6 +1077,23 @@ export function UnifiedShiftScheduler() {
                         </ScrollArea>
                     </CardContent>
                 </Card>
+            )}
+
+            {/* Compliance View */}
+            {!bulkMode && viewMode === "compliance" && (
+                selectedBranch === "all" ? (
+                    <Card>
+                        <CardContent className="py-12 text-center">
+                            <AlertTriangle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                            <p className="text-muted-foreground">Selecciona una sucursal específica para ver el reporte de cumplimiento</p>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <LaborComplianceView 
+                        branchId={selectedBranch}
+                        currentDate={currentDate}
+                    />
+                )
             )}
 
             {/* Add Shift Dialog */}
@@ -1081,7 +1290,7 @@ export function UnifiedShiftScheduler() {
                         {selectedTemplate && (
                             <div className="space-y-2">
                                 <Label className="text-sm">Turnos Incluidos:</Label>
-                                <ScrollArea className="h-[200px]">
+                                <ScrollArea className="h-50">
                                     <div className="space-y-2">
                                         {templates.find(t => t.id === selectedTemplate)?.shifts.map((shift, i) => (
                                             <div key={i} className="flex items-center justify-between text-sm p-2 bg-muted rounded">
@@ -1162,6 +1371,71 @@ export function UnifiedShiftScheduler() {
                         <Button onClick={handleExport}>
                             <Download className="h-4 w-4 mr-2" />
                             Exportar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Settings Dialog */}
+            <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Configuración de Horarios</DialogTitle>
+                        <DialogDescription>
+                            Configura los parámetros estándar para la planificación de turnos
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Horas semanales estándar</Label>
+                            <Input
+                                type="number"
+                                value={weeklyHours}
+                                onChange={(e) => setWeeklyHours(Number(e.target.value))}
+                                min="1"
+                                max="168"
+                            />
+                            <p className="text-sm text-muted-foreground">
+                                Horas laborales por semana según la legislación (ej. 40 horas)
+                            </p>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Días laborables por semana</Label>
+                            <Input
+                                type="number"
+                                value={workDays}
+                                onChange={(e) => setWorkDays(Number(e.target.value))}
+                                min="1"
+                                max="7"
+                            />
+                            <p className="text-sm text-muted-foreground">
+                                Número de días trabajados por semana (ej. 5 días de lunes a viernes)
+                            </p>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Tolerancia para llegada tardía (minutos)</Label>
+                            <Input
+                                type="number"
+                                value={toleranceMinutes}
+                                onChange={(e) => setToleranceMinutes(Number(e.target.value))}
+                                min="0"
+                                max="60"
+                            />
+                            <p className="text-sm text-muted-foreground">
+                                Minutos de tolerancia antes de marcar como llegada tardía
+                            </p>
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setSettingsOpen(false)}>
+                            Cancelar
+                        </Button>
+                        <Button onClick={handleSaveSettings}>
+                            Guardar Configuración
                         </Button>
                     </DialogFooter>
                 </DialogContent>

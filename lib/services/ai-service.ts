@@ -47,7 +47,7 @@ export class AIService {
     static async verifyPhoto(photoUrl: string, prompt: string, config: AIConfig = {}): Promise<{
         passed: boolean;
         reason: string;
-        details?: any;
+        details?: Record<string, unknown>;
     }> {
         const defaultProvider = process.env.AI_PROVIDER_DEFAULT || 'moondream';
         const targetProvider = config.provider || defaultProvider;
@@ -78,7 +78,7 @@ export class AIService {
             } else {
                 return await this.callOpenAI(photoUrl, prompt);
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('[AI] Verification failed:', error);
 
             // Allow mock mode for development if keys are missing
@@ -174,7 +174,7 @@ export class AIService {
     static async performVerification(
         photoUrl: string,
         type: import('../types/ai-verification').VerificationType,
-        context?: any,
+        context?: Record<string, unknown>,
         config: AIConfig = {}
     ): Promise<import('../types/ai-verification').AIAnalysisResult> {
         const prompt = this.getPromptForType(type, context);
@@ -192,7 +192,7 @@ export class AIService {
 
     private static getPromptForType(
         type: import('../types/ai-verification').VerificationType,
-        context?: any
+        context?: Record<string, unknown>
     ): string {
         switch (type) {
             case 'OCR':
@@ -274,7 +274,7 @@ export class AIService {
                     // Wait a bit before retry (exponential backoff could be added)
                     await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
                 }
-            } catch (error: any) {
+            } catch (error: unknown) {
                 console.error(`[AI] SmartLink verification error on attempt ${attempts + 1}:`, error.message);
                 lastResult = {
                     success: false,

@@ -26,7 +26,10 @@ interface EmployeeHeaderProps {
     department: string | null;
   };
   onBack: () => void;
+  onEdit?: () => void;
+  canEdit?: boolean;
 }
+
 
 const statusColors: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   ONBOARDING: "secondary",
@@ -46,7 +49,7 @@ const statusLabels: Record<string, string> = {
   RESIGNED: "Resigned",
 };
 
-export function EmployeeHeader({ employee, onBack }: EmployeeHeaderProps) {
+export function EmployeeHeader({ employee, onBack, onEdit, canEdit }: EmployeeHeaderProps) {
   const router = useRouter();
 
   return (
@@ -66,10 +69,13 @@ export function EmployeeHeader({ employee, onBack }: EmployeeHeaderProps) {
             <Download className="mr-2 h-4 w-4" />
             Export
           </Button>
-          <Button size="sm">
-            <Edit className="mr-2 h-4 w-4" />
-            Edit
-          </Button>
+          {canEdit && (
+            <Button size="sm" onClick={onEdit}>
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+          )}
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon" className="h-8 w-8">
