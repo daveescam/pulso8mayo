@@ -70,17 +70,18 @@ export class BranchService {
 
         // Get manager info if exists
         let manager = null;
-        if (branch.managerId) {
-            const managerUser = await db.query.users.findFirst({
-                where: eq(users.id, branch.managerId),
-                columns: {
-                    id: true,
-                    name: true,
-                    email: true
-                }
-            });
-            manager = managerUser || null;
-        }
+if (branch.managerId) {
+  const managerUser = await db.query.users.findFirst({
+    where: eq(users.id, branch.managerId),
+    columns: {
+      id: true,
+      name: true,
+      email: true,
+      role: true
+    }
+  }) as { id: string; name: string; email: string; role: string } | undefined;
+  manager = managerUser || null;
+}
 
         return {
             ...branch,

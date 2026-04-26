@@ -12,9 +12,10 @@ import { Loader2, CheckCircle, XCircle, AlertTriangle, Search } from "lucide-rea
 import { toast } from "sonner";
 
 interface ValidationResult {
-    rfc: string;
-    isValid: boolean;
-    message: string;
+  rfc?: string;
+  curp?: string;
+  isValid: boolean;
+  message: string;
 }
 
 export default function SATValidationPage() {

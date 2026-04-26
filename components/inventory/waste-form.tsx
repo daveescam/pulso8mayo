@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -23,12 +23,12 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { AlertTriangle, Package } from 'lucide-react';
+import { AlertTriangle, Package, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const wasteFormSchema = z.object({
-  batchId: z.string().min(1, 'Selecciona un lote'),
   itemId: z.string().min(1, 'Selecciona un producto'),
+  batchId: z.string().min(1, 'Selecciona un lote'),
   quantity: z.coerce.number().min(1, 'Cantidad debe ser mayor a 0'),
   unit: z.string().min(1, 'Unidad es requerida'),
   reason: z.enum(['EXPIRED', 'DAMAGED', 'QUALITY', 'SPILLAGE', 'OTHER']),
@@ -38,20 +38,40 @@ const wasteFormSchema = z.object({
 
 type WasteFormValues = z.infer<typeof wasteFormSchema>;
 
+interface Product {
+  id: string;
+  name: string;
+  sku: string;
+  unit: string;
+}
+
+interface Batch {
+  id: string;
+  lotNumber: string | null;
+  currentQuantity: number;
+  expirationDate: string | null;
+  unitCost: number | null;
+}
+
 interface WasteFormProps {
   branchId: string;
   onSuccess?: () => void;
   onCancel?: () => void;
+  preselectedItemId?: string;
 }
 
-export function WasteForm({ branchId, onSuccess, onCancel }: WasteFormProps) {
+export function WasteForm({ branchId, onSuccess, onCancel, preselectedItemId }: WasteFormProps) {
   const [submitting, setSubmitting] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [batches, setBatches] = useState<Batch[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [loadingBatches, setLoadingBatches] = useState(false);
 
-  const form = useForm<WasteFormValues>({
+  const form = useForm({
     resolver: zodResolver(wasteFormSchema),
     defaultValues: {
-      batchId: '',
       itemId: '',
+      batchId: '',
       quantity: 1,
       unit: 'UNIT',
       reason: 'EXPIRED',
@@ -60,9 +80,84 @@ export function WasteForm({ branchId, onSuccess, onCancel }: WasteFormProps) {
     },
   });
 
-  const quantity = form.watch('quantity');
-  const costPerUnit = form.watch('costPerUnit');
-  const totalLoss = quantity * (costPerUnit || 0);
+  const quantity = form.watch('quantity') as number;
+  const costPerUnit = (form.watch('costPerUnit') as number) || 0;
+  const totalLoss = quantity * costPerUnit;
+
+  // Load products on mount
+  useEffect(() => {
+    async function loadProducts() {
+      try {
+        const res = await fetch('/api/inventory/products');
+        if (res.ok) {
+          const data = await res.json();
+          setProducts(data || []);
+          // Preselect item if provided
+          if (preselectedItemId && data?.find((p: Product) => p.id === preselectedItemId)) {
+            form.setValue('itemId', preselectedItemId);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading products:', error);
+        toast.error('Error al cargar productos');
+      } finally {
+        setLoadingProducts(false);
+      }
+    }
+    loadProducts();
+  }, [preselectedItemId, form]);
+
+  // Load batches when product changes
+  const selectedItemId = form.watch('itemId');
+  useEffect(() => {
+    if (!selectedItemId) {
+      setBatches([]);
+      form.setValue('batchId', '');
+      return;
+    }
+
+    async function loadBatches() {
+      setLoadingBatches(true);
+      try {
+        // Get the selected product to set the unit
+        const selectedProduct = products.find(p => p.id === selectedItemId);
+        if (selectedProduct) {
+          form.setValue('unit', selectedProduct.unit);
+        }
+
+        const res = await fetch(`/api/inventory/batches?itemId=${selectedItemId}&branchId=${branchId}`);
+        if (res.ok) {
+          const data = await res.json();
+          // Filter only AVAILABLE batches with stock
+          const availableBatches = (data.batches || []).filter(
+            (b: Batch) => b.currentQuantity > 0
+          );
+          setBatches(availableBatches);
+        }
+      } catch (error) {
+        console.error('Error loading batches:', error);
+        toast.error('Error al cargar lotes');
+      } finally {
+        setLoadingBatches(false);
+      }
+    }
+    loadBatches();
+  }, [selectedItemId, branchId, products, form]);
+
+  // Update cost per unit when batch changes
+  const selectedBatchId = form.watch('batchId');
+  useEffect(() => {
+    if (!selectedBatchId) {
+      form.setValue('costPerUnit', 0);
+      return;
+    }
+
+    const selectedBatch = batches.find(b => b.id === selectedBatchId);
+    if (selectedBatch?.unitCost) {
+      // Convert cents to dollars for display
+      form.setValue('costPerUnit', selectedBatch.unitCost / 100);
+    }
+  }, [selectedBatchId, batches, form]);
 
   async function onSubmit(data: WasteFormValues) {
     try {
@@ -79,13 +174,14 @@ export function WasteForm({ branchId, onSuccess, onCancel }: WasteFormProps) {
       });
 
       if (!response.ok) {
-        throw new Error('Error al registrar merma');
+        const error = await response.json();
+        throw new Error(error.error || 'Error al registrar merma');
       }
 
       const result = await response.json();
 
       toast.success('Merma registrada exitosamente', {
-        description: `Se registraron ${data.quantity} unidades como merma`,
+        description: `Se registraron ${data.quantity} ${data.unit} como merma`,
       });
 
       form.reset();
@@ -93,12 +189,16 @@ export function WasteForm({ branchId, onSuccess, onCancel }: WasteFormProps) {
     } catch (error) {
       console.error('Error submitting waste form:', error);
       toast.error('Error al registrar merma', {
-        description: 'No se pudo completar el registro. Intenta de nuevo.',
+        description: error instanceof Error ? error.message : 'No se pudo completar el registro. Intenta de nuevo.',
       });
     } finally {
       setSubmitting(false);
     }
   }
+
+  const selectedProduct = products.find(p => p.id === selectedItemId);
+  const selectedBatch = batches.find(b => b.id === selectedBatchId);
+  const maxQuantity = selectedBatch?.currentQuantity || 1;
 
   return (
     <Form {...form}>
@@ -113,23 +213,39 @@ export function WasteForm({ branchId, onSuccess, onCancel }: WasteFormProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <FormField
             control={form.control}
             name="itemId"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Producto</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                  disabled={loadingProducts}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecciona un producto" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {/* This should be populated from API */}
-                    <SelectItem value="item1">Producto 1</SelectItem>
-                    <SelectItem value="item2">Producto 2</SelectItem>
+                    {loadingProducts ? (
+                      <SelectItem value="loading" disabled>
+                        Cargando productos...
+                      </SelectItem>
+                    ) : products.length === 0 ? (
+                      <SelectItem value="empty" disabled>
+                        No hay productos disponibles
+                      </SelectItem>
+                    ) : (
+                      products.map((product) => (
+                        <SelectItem key={product.id} value={product.id}>
+                          {product.name} ({product.sku})
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -143,18 +259,46 @@ export function WasteForm({ branchId, onSuccess, onCancel }: WasteFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Lote</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                  disabled={!selectedItemId || loadingBatches}
+                >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecciona un lote" />
+                      <SelectValue
+                        placeholder={
+                          !selectedItemId
+                            ? 'Primero selecciona un producto'
+                            : loadingBatches
+                            ? 'Cargando lotes...'
+                            : 'Selecciona un lote'
+                        }
+                      />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {/* This should be populated from API */}
-                    <SelectItem value="batch1">Lote 001</SelectItem>
-                    <SelectItem value="batch2">Lote 002</SelectItem>
+                    {batches.length === 0 ? (
+                      <SelectItem value="empty" disabled>
+                        {selectedItemId
+                          ? 'No hay lotes disponibles'
+                          : 'Selecciona un producto primero'}
+                      </SelectItem>
+                    ) : (
+                      batches.map((batch) => (
+                        <SelectItem key={batch.id} value={batch.id}>
+                          {batch.lotNumber || 'Sin lote'} - Stock: {batch.currentQuantity}{' '}
+                          {selectedProduct?.unit}
+                          {batch.expirationDate &&
+                            ` - Vence: ${new Date(batch.expirationDate).toLocaleDateString()}`}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
+                <FormDescription>
+                  Solo se muestran lotes con stock disponible
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -169,8 +313,20 @@ export function WasteForm({ branchId, onSuccess, onCancel }: WasteFormProps) {
               <FormItem>
                 <FormLabel>Cantidad</FormLabel>
                 <FormControl>
-                  <Input type="number" min="1" {...field} />
+                  <Input
+                    type="number"
+                    min="1"
+                    max={maxQuantity}
+                    {...field}
+                    value={field.value as number}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                  />
                 </FormControl>
+                {selectedBatch && (
+                  <FormDescription>
+                    Máximo: {maxQuantity} {selectedProduct?.unit}
+                  </FormDescription>
+                )}
                 <FormMessage />
               </FormItem>
             )}
@@ -182,7 +338,11 @@ export function WasteForm({ branchId, onSuccess, onCancel }: WasteFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Unidad</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                  disabled
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue />
@@ -195,6 +355,7 @@ export function WasteForm({ branchId, onSuccess, onCancel }: WasteFormProps) {
                     <SelectItem value="BOX">Cajas</SelectItem>
                   </SelectContent>
                 </Select>
+                <FormDescription>Auto-asignada del producto</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -206,7 +367,7 @@ export function WasteForm({ branchId, onSuccess, onCancel }: WasteFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Motivo</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue />
@@ -239,10 +400,12 @@ export function WasteForm({ branchId, onSuccess, onCancel }: WasteFormProps) {
                   step="0.01"
                   placeholder="0.00"
                   {...field}
+                  value={field.value as number}
+                  onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
                 />
               </FormControl>
               <FormDescription>
-                Deja en blanco si no deseas calcular la pérdida económica
+                Auto-completado desde el lote si tiene costo registrado
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -279,18 +442,18 @@ export function WasteForm({ branchId, onSuccess, onCancel }: WasteFormProps) {
         />
 
         <div className="flex gap-3 justify-end">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-          >
+          <Button type="button" variant="outline" onClick={onCancel}>
             Cancelar
           </Button>
-          <Button
-            type="submit"
-            disabled={submitting}
-          >
-            {submitting ? 'Registrando...' : 'Registrar Merma'}
+          <Button type="submit" disabled={submitting || loadingProducts}>
+            {submitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Registrando...
+              </>
+            ) : (
+              'Registrar Merma'
+            )}
           </Button>
         </div>
       </form>

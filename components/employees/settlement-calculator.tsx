@@ -142,10 +142,9 @@ export function SettlementCalculator({
             <div className="space-y-3">
               <div className="space-y-1.5 text-xs text-muted-foreground">
                 <Label htmlFor="deductions">Otras Deducciones (ej. Préstamos)</Label>
-                <Input 
-                  id="deductions" 
-                  type="number" 
-                  size="sm"
+                <Input
+                  id="deductions"
+                  type="number"
                   className="h-8"
                   value={formConfig.manualDeductions}
                   onChange={(e) => setFormConfig(f => ({ ...f, manualDeductions: Number(e.target.value) }))}

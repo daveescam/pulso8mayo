@@ -498,7 +498,7 @@ export function NOM251Report({ branchId, defaultStartDate, defaultEndDate }: NOM
                                                                 variant={step.status === 'COMPLETED' ? 'outline' : 'secondary'}
                                                                 className="text-xs"
                                                             >
-                                                                {step.status === 'COMPLETED' ? '✓' : '○'} {step.stepId}
+                                                                {step.status === 'COMPLETED' ? '✓' : '○'} {step.stepName}
                                                             </Badge>
                                                         ))}
                                                     </div>

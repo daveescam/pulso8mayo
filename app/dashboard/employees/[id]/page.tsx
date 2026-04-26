@@ -194,6 +194,7 @@ export default function EmployeeProfilePage() {
 
   const [showPersonalDialog, setShowPersonalDialog] = useState(false);
   const [showProfessionalDialog, setShowProfessionalDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   const companyId = session?.user?.companyId;
   const userRole = session?.user?.role;

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { kpiService } from "@/lib/services/kpi-service";
 import { users } from "@/lib/db/schema";
-import { db } from "@/lib/db/db";
+import { db } from "@/lib/db";
 import { eq } from "drizzle-orm";
 
 /**

@@ -113,18 +113,18 @@ export async function PATCH(
     } catch (error) {
         console.error("Update supplier error:", error);
         
-        if (error instanceof z.ZodError) {
-            return NextResponse.json(
-                { error: "Invalid data", details: error.errors },
-                { status: 400 }
-            );
-        }
-
-        return NextResponse.json(
-            { error: "Failed to update supplier" },
-            { status: 500 }
-        );
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Invalid data", details: error.issues },
+        { status: 400 }
+      );
     }
+
+    return NextResponse.json(
+      { error: "Failed to update supplier" },
+      { status: 500 }
+    );
+  }
 }
 
 /**

@@ -1,8 +1,63 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { inventoryWaste, inventoryBatches, inventoryItems, inventoryMovements } from '@/lib/db/schema';
+
+// GET /api/inventory/waste - Get waste history
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth.api.getSession({
+      headers: request.headers,
+    });
+
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const branchId = searchParams.get('branchId');
+
+    // Build query conditions
+    const conditions = [
+      eq(inventoryWaste.companyId, session.user.companyId),
+    ];
+
+    if (branchId) {
+      conditions.push(eq(inventoryWaste.branchId, branchId));
+    }
+
+    // Fetch waste records with item and batch info
+    const wasteRecords = await db
+      .select({
+        waste: inventoryWaste,
+        item: {
+          id: inventoryItems.id,
+          name: inventoryItems.name,
+          sku: inventoryItems.sku,
+          unit: inventoryItems.unit,
+        },
+        batch: {
+          id: inventoryBatches.id,
+          lotNumber: inventoryBatches.lotNumber,
+          expirationDate: inventoryBatches.expirationDate,
+        },
+      })
+      .from(inventoryWaste)
+      .leftJoin(inventoryItems, eq(inventoryWaste.itemId, inventoryItems.id))
+      .leftJoin(inventoryBatches, eq(inventoryWaste.batchId, inventoryBatches.id))
+      .where(and(...conditions))
+      .orderBy(desc(inventoryWaste.recordedAt));
+
+    return NextResponse.json({ waste: wasteRecords });
+  } catch (error) {
+    console.error('Error fetching waste records:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {

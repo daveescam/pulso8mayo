@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
                     evidenceUrl: workflowInstanceSteps.evidenceUrl,
                 })
                     .from(workflowInstanceSteps)
-                    .where(eq(workflowInstanceSteps.workflowInstanceId, instance.id));
+                    .where(eq(workflowInstanceSteps.instanceId, instance.id));
 
                 return {
                     ...instance,

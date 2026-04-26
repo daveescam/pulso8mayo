@@ -10,6 +10,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Plus, Trash2, GripVertical, Save } from 'lucide-react';
 import { DraggableStep } from './draggable-step';
 import { toast } from 'sonner';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 export interface WorkflowStep {
     id: string;

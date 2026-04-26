@@ -45,7 +45,7 @@ export function ComplianceReportDialog({ branchId, companyId }: ComplianceReport
     );
     const [endDate, setEndDate] = useState<Date | undefined>(new Date());
 
-    const handleGenerateReport = async (format: "pdf" | "json") => {
+    const handleGenerateReport = async (reportFormat: "pdf" | "json") => {
         if (!startDate || !endDate) {
             toast.error("Selecciona un rango de fechas válido");
             return;
@@ -58,17 +58,17 @@ export function ComplianceReportDialog({ branchId, companyId }: ComplianceReport
                 branchId,
                 startDate: startDate.toISOString(),
                 endDate: endDate.toISOString(),
-                format
-            });
+      format: reportFormat
+    });
 
-            const response = await fetch(`/api/reports/compliance?${params}`);
+    const response = await fetch(`/api/reports/compliance?${params}`);
 
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || "Error al generar reporte");
-            }
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Error al generar reporte");
+    }
 
-            if (format === "pdf") {
+    if (reportFormat === "pdf") {
                 // Download PDF
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);

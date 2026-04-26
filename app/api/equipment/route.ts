@@ -1,8 +1,31 @@
 import { NextRequest } from "next/server";
 import { equipmentService } from "@/lib/services/equipment-service";
 import { ApiHandler } from "@/lib/api/response";
-import { requireTenant } from "@/lib/tenant-context";
+import { requireTenant, requireAuth } from "@/lib/tenant-context";
 import { z } from "zod";
+
+const createEquipmentSchema = z.object({
+  name: z.string().min(1, "El nombre es requerido"),
+  equipmentCode: z.string().min(1, "El código es requerido"),
+  type: z.string().min(1, "El tipo es requerido"),
+  brand: z.string().optional(),
+  model: z.string().optional(),
+  serialNumber: z.string().optional(),
+  assetTag: z.string().optional(),
+  location: z.string().optional(),
+  area: z.string().optional(),
+  specifications: z.record(z.string(), z.unknown()).optional(),
+  purchaseDate: z.string().optional(),
+  purchasePrice: z.number().optional(),
+  vendor: z.string().optional(),
+  vendorContact: z.string().optional(),
+  invoiceNumber: z.string().optional(),
+  status: z.enum(['ACTIVE', 'INACTIVE', 'UNDER_MAINTENANCE', 'OUT_OF_ORDER', 'DISPOSED']).optional(),
+  maintenanceFrequency: z.string().optional(),
+  nextMaintenanceDate: z.string().optional(),
+  isCritical: z.boolean().optional(),
+  notes: z.string().optional(),
+});
 
 const updateEquipmentSchema = z.object({
   name: z.string().min(1).optional(),
@@ -13,7 +36,7 @@ const updateEquipmentSchema = z.object({
   assetTag: z.string().optional(),
   location: z.string().optional(),
   area: z.string().optional(),
-  specifications: z.record(z.unknown()).optional(),
+  specifications: z.record(z.string(), z.unknown()).optional(),
   purchaseDate: z.string().datetime().optional(),
   purchasePrice: z.number().optional(),
   vendor: z.string().optional(),
@@ -28,11 +51,68 @@ const updateEquipmentSchema = z.object({
   notes: z.string().optional(),
 });
 
+// POST /api/equipment - Create a new equipment
+export async function POST(req: NextRequest) {
+  try {
+    const { user } = await requireAuth();
+    const tenant = await requireTenant();
+
+    if (!tenant.id) {
+      return ApiHandler.error(new Error("Unauthorized"), 401);
+    }
+
+    const branchId = tenant.branchId;
+    if (!branchId) {
+      return ApiHandler.error(new Error("Branch ID required"), 400);
+    }
+
+    const body = await req.json();
+    const validatedData = createEquipmentSchema.parse(body);
+
+    // Parse dates if provided
+    const purchaseDate = validatedData.purchaseDate 
+      ? new Date(validatedData.purchaseDate) 
+      : undefined;
+    const nextMaintenanceDate = validatedData.nextMaintenanceDate 
+      ? new Date(validatedData.nextMaintenanceDate) 
+      : undefined;
+
+    const equipment = await equipmentService.createEquipment({
+      companyId: tenant.id,
+      branchId: branchId,
+      name: validatedData.name,
+      equipmentCode: validatedData.equipmentCode,
+      type: validatedData.type,
+      brand: validatedData.brand,
+      model: validatedData.model,
+      serialNumber: validatedData.serialNumber,
+      assetTag: validatedData.assetTag,
+      location: validatedData.location,
+      area: validatedData.area,
+      specifications: validatedData.specifications,
+      purchaseDate: purchaseDate,
+      purchasePrice: validatedData.purchasePrice,
+      vendor: validatedData.vendor,
+      vendorContact: validatedData.vendorContact,
+      invoiceNumber: validatedData.invoiceNumber,
+      status: validatedData.status || 'ACTIVE',
+      maintenanceFrequency: validatedData.maintenanceFrequency,
+      nextMaintenanceDate: nextMaintenanceDate,
+      isCritical: validatedData.isCritical || false,
+      notes: validatedData.notes,
+    }, user.id);
+
+    return ApiHandler.success(equipment, 201);
+  } catch (error) {
+    return ApiHandler.error(error);
+  }
+}
+
 // GET /api/equipment - Get all equipment for company (across all branches)
 export async function GET(req: NextRequest) {
   try {
     const tenant = await requireTenant();
-    
+
     if (!tenant.id) {
       return ApiHandler.error(new Error("Unauthorized"), 401);
     }
@@ -41,7 +121,7 @@ export async function GET(req: NextRequest) {
     // This can be extended to support cross-branch queries for managers
     const url = new URL(req.url);
     const branchId = url.searchParams.get("branchId") || tenant.branchId;
-    
+
     if (!branchId) {
       return ApiHandler.error(new Error("Branch ID required"), 400);
     }

@@ -53,13 +53,13 @@ export async function GET(req: NextRequest) {
             const pendingDocuments = documents.filter(d => d.status === 'PENDING').length;
             const expiredDocuments = documents.filter(d => d.status === 'EXPIRED' || !d.isValid).length;
 
-            const requiredTypes = ['CONTRACT', 'ID', 'TAX_ID', 'BANK_INFO'];
-            const existingTypes = new Set(
-                documents
-                    .filter(d => d.status === 'VALIDATED' && d.isValid)
-                    .map(d => d.documentType)
-            );
-            const missingRequired = requiredTypes.filter(type => !existingTypes.has(type));
+    const requiredTypes: string[] = ['CONTRACT', 'ID', 'TAX_ID', 'BANK_INFO'];
+    const existingTypes = new Set<string>(
+      documents
+      .filter(d => d.status === 'VALIDATED' && d.isValid)
+      .map(d => d.documentType as string)
+    );
+    const missingRequired = requiredTypes.filter(type => !existingTypes.has(type));
 
             const compliancePercentage = documents.length > 0
                 ? Math.round((validDocuments / documents.length) * 100)
@@ -134,24 +134,24 @@ export async function GET(req: NextRequest) {
             branchMap = Object.fromEntries(branchList.map(b => [b.id, b.name]));
         }
 
-        // Build compliance status for each employee
-        const requiredTypes = ['CONTRACT', 'ID', 'TAX_ID', 'BANK_INFO'];
-        const employeeStatuses: EmployeeDocumentStatus[] = employees.map(employee => {
-            const empDocs = allDocuments.filter(d => d.userId === employee.id);
+    // Build compliance status for each employee
+    const requiredTypes: string[] = ['CONTRACT', 'ID', 'TAX_ID', 'BANK_INFO'];
+    const employeeStatuses: EmployeeDocumentStatus[] = employees.map(employee => {
+      const empDocs = allDocuments.filter(d => d.userId === employee.id);
 
-            const validDocuments = empDocs.filter(d => d.isValid && d.status === 'VALIDATED').length;
-            const pendingDocuments = empDocs.filter(d => d.status === 'PENDING').length;
-            const expiredDocuments = empDocs.filter(d => d.status === 'EXPIRED' || !d.isValid).length;
+      const validDocuments = empDocs.filter(d => d.isValid && d.status === 'VALIDATED').length;
+      const pendingDocuments = empDocs.filter(d => d.status === 'PENDING').length;
+      const expiredDocuments = empDocs.filter(d => d.status === 'EXPIRED' || !d.isValid).length;
 
-            const existingTypes = new Set(
-                empDocs
-                    .filter(d => d.status === 'VALIDATED' && d.isValid)
-                    .map(d => d.documentType)
-            );
-            const missingRequired = requiredTypes.filter(type => !existingTypes.has(type));
+      const existingTypes = new Set<string>(
+        empDocs
+        .filter(d => d.status === 'VALIDATED' && d.isValid)
+        .map(d => d.documentType as string)
+      );
+      const missingRequired = requiredTypes.filter(type => !existingTypes.has(type));
 
-            const totalRequired = requiredTypes.length;
-            const completedRequired = requiredTypes.filter(type => existingTypes.has(type)).length;
+      const totalRequired = requiredTypes.length;
+      const completedRequired = requiredTypes.filter(type => existingTypes.has(type)).length;
             const compliancePercentage = Math.round((completedRequired / totalRequired) * 100);
 
             return {

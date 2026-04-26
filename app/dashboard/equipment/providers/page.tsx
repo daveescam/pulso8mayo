@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Plus, Search, Building2, Star, Phone, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ServiceProviderForm } from "@/components/equipment/service-provider-form";
 
 interface ServiceProvider {
   id: string;
@@ -110,13 +111,11 @@ export default function EquipmentProvidersPage() {
               Nuevo Proveedor
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Agregar Proveedor</DialogTitle>
             </DialogHeader>
-            <p className="text-sm text-muted-foreground">
-              Registra un nuevo proveedor de servicios
-            </p>
+            <ServiceProviderForm onSuccess={() => { window.location.reload(); }} />
           </DialogContent>
         </Dialog>
       </div>

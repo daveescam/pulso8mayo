@@ -18,10 +18,25 @@ export default async function TemplatesPage() {
 
     const companyId = (session.user as any).companyId || (session.user as any).additionalFields?.companyId;
 
-    const templates = await db.select()
-        .from(workflowTemplates)
-        .where(eq(workflowTemplates.companyId, companyId))
-        .orderBy(desc(workflowTemplates.createdAt));
+const rawTemplates = await db.select({
+    id: workflowTemplates.id,
+    name: workflowTemplates.name,
+    description: workflowTemplates.description,
+    category: workflowTemplates.category,
+    steps: workflowTemplates.steps,
+  })
+  .from(workflowTemplates)
+  .where(eq(workflowTemplates.companyId, companyId))
+  .orderBy(desc(workflowTemplates.createdAt));
 
-    return <TemplateManager userTemplates={templates} />;
+  const templates = rawTemplates as unknown as Array<{
+    id: string;
+    name: string;
+    description?: string;
+    category: string;
+    steps?: Array<{ id: string; type: string; title: string; required?: boolean; options?: string[] }>;
+    createdAt?: Date;
+  }>;
+
+  return <TemplateManager userTemplates={templates} />;
 }

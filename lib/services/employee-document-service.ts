@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { employeeDocuments, users } from "@/lib/db/schema";
-import { eq, and, or, lt, gte, lte, desc, inArray } from "drizzle-orm";
+import { eq, and, or, lt, gte, lte, desc, inArray, ilike } from "drizzle-orm";
 import { AuditService } from "./audit-service";
 import { employeeOnboarding, onboardingSteps } from "@/lib/db/schema";
 

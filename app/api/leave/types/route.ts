@@ -60,14 +60,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = createLeaveTypeSchema.safeParse(body);
 
-    if (!validated.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: validated.error.errors },
-        { status: 400 }
-      );
-    }
+  if (!validated.success) {
+    return NextResponse.json(
+      { error: 'Invalid input', details: validated.error.issues },
+      { status: 400 }
+    );
+  }
 
-    const [newType] = await db
+  const [newType] = await db
       .insert(leaveTypes)
       .values(validated.data)
       .returning();
@@ -101,14 +101,14 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const validated = updateLeaveTypeSchema.safeParse(body);
 
-    if (!validated.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: validated.error.errors },
-        { status: 400 }
-      );
-    }
+  if (!validated.success) {
+    return NextResponse.json(
+      { error: 'Invalid input', details: validated.error.issues },
+      { status: 400 }
+    );
+  }
 
-    const [updatedType] = await db
+  const [updatedType] = await db
       .update(leaveTypes)
       .set({
         ...validated.data,

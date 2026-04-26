@@ -50,7 +50,10 @@ export async function executeScheduledWorkflows() {
                 console.log(`[Cron] Created assignment: ${assignment.id} for user: ${assignment.assignedTo}`);
 
                 // Send notification
-                await NotificationService.notifyWorkflowAssignment(assignment);
+                await NotificationService.notifyWorkflowAssignment({
+                    ...assignment,
+                    dueDate: assignment.dueDate?.toString(),
+                });
                 console.log(`[Cron] Notification sent to user: ${assignment.assignedTo}`);
 
                 // Calculate next execution time

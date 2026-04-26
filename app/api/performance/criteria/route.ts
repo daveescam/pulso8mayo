@@ -65,14 +65,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = createCriteriaSchema.safeParse(body);
 
-    if (!validated.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: validated.error.errors },
-        { status: 400 }
-      );
-    }
+  if (!validated.success) {
+    return NextResponse.json(
+      { error: 'Invalid input', details: validated.error.issues },
+      { status: 400 }
+    );
+  }
 
-    const [newCriteria] = await db
+  const [newCriteria] = await db
       .insert(performanceReviewCriteria)
       .values(validated.data)
       .returning();

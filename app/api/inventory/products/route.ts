@@ -7,7 +7,7 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAuth } from "@/lib/tenant-context";
-import { hasPermission } from "@/lib/permissions";
+import { hasPermission, type Role } from "@/lib/permissions";
 
 const productSchema = z.object({
     name: z.string().min(1),

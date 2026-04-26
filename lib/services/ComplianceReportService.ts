@@ -129,33 +129,33 @@ export interface NOM035ReportData {
 }
 
 export class ComplianceReportService {
-    // NOM-251 Template IDs - Higiene y Salud
-    private nom251Templates = [
-        'apertura-restaurante-v2-enhanced',
-        'cierre-restaurante-v2-enhanced',
-        'limpieza-sanitizacion-v2-enhanced',
-        'control-higiene-personal-v2-enhanced',
-        'recepcion-mercancia-v2-enhanced',
-        'control-temperaturas-v1',
-        'checklist-mantenimiento-v1',
-        'mantenimiento-equipos-v1',
-        'control-accesos-v1',
-        'seguridad-local-v1'
-    ];
+  // NOM-251 Template IDs - Higiene y Salud
+  private static nom251Templates = [
+    'apertura-restaurante-v2-enhanced',
+    'cierre-restaurante-v2-enhanced',
+    'limpieza-sanitizacion-v2-enhanced',
+    'control-higiene-personal-v2-enhanced',
+    'recepcion-mercancia-v2-enhanced',
+    'control-temperaturas-v1',
+    'checklist-mantenimiento-v1',
+    'mantenimiento-equipos-v1',
+    'control-accesos-v1',
+    'seguridad-local-v1'
+  ];
 
-    // Categories for NOM-251 compliance
-    private categoryMapping: Record<string, string> = {
-        'apertura-restaurante-v2-enhanced': 'Apertura y Preparación',
-        'cierre-restaurante-v2-enhanced': 'Cierre y Limpieza',
-        'limpieza-sanitizacion-v2-enhanced': 'Limpieza y Sanitización',
-        'control-higiene-personal-v2-enhanced': 'Higiene del Personal',
-        'recepcion-mercancia-v2-enhanced': 'Recepción de Mercancías',
-        'control-temperaturas-v1': 'Control de Temperaturas',
-        'checklist-mantenimiento-v1': 'Mantenimiento',
-        'mantenimiento-equipos-v1': 'Mantenimiento de Equipos',
-        'control-accesos-v1': 'Control de Accesos',
-        'seguridad-local-v1': 'Seguridad'
-    };
+  // Categories for NOM-251 compliance
+  private static categoryMapping: Record<string, string> = {
+    'apertura-restaurante-v2-enhanced': 'Apertura y Preparación',
+    'cierre-restaurante-v2-enhanced': 'Cierre y Limpieza',
+    'limpieza-sanitizacion-v2-enhanced': 'Limpieza y Sanitización',
+    'control-higiene-personal-v2-enhanced': 'Higiene del Personal',
+    'recepcion-mercancia-v2-enhanced': 'Recepción de Mercancías',
+    'control-temperaturas-v1': 'Control de Temperaturas',
+    'checklist-mantenimiento-v1': 'Mantenimiento',
+    'mantenimiento-equipos-v1': 'Mantenimiento de Equipos',
+    'control-accesos-v1': 'Control de Accesos',
+    'seguridad-local-v1': 'Seguridad'
+  };
 
     /**
      * Generates a NOM-251 compliance report in PDF format
@@ -182,7 +182,7 @@ export class ComplianceReportService {
         });
 
         // Filter to NOM-251 relevant templates
-        const nom251Instances = instances.filter(i => this.nom251Templates.includes(i.workflowTemplateId));
+        const nom251Instances = instances.filter(i => ComplianceReportService.nom251Templates.includes(i.workflowTemplateId));
 
         // Fetch steps for each instance and get assignee names
         const inspectionsWithSteps = await Promise.all(
@@ -212,7 +212,7 @@ export class ComplianceReportService {
                 return {
                     id: instance.id,
                     workflowName: template?.name || instance.workflowTemplateId,
-                    category: this.categoryMapping[instance.workflowTemplateId] || 'General',
+                    category: ComplianceReportService.categoryMapping[instance.workflowTemplateId] || 'General',
                     status: instance.status,
                     completedAt: instance.completedAt,
                     assigneeName,

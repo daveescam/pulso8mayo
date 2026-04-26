@@ -155,7 +155,7 @@ export default function ExecutePage() {
             return;
         }
 
-        setCreating(true);
+        setCreating("assigning");
         try {
             const res = await fetch("/api/workflows/assignments", {
                 method: "POST",

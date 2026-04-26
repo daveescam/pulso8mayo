@@ -32,6 +32,7 @@ interface EmployeeTableProps {
   onViewEmployee: (employeeId: string) => void;
   onEditEmployee: (employeeId: string) => void;
   onViewDocuments: (employeeId: string) => void;
+  canEdit: boolean;
   selectedEmployees?: string[];
   onSelectEmployee?: (employeeId: string, selected: boolean) => void;
   onSelectAll?: (selected: boolean) => void;

@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
         const role = searchParams.get('role') || undefined;
         const branchId = searchParams.get('branchId') || undefined;
 
-        const result = await UserService.listUsers(tenant.id, { page, limit, search, role, branchId });
+        const result = await UserService.listUsers(tenant.id, { page, limit, search, role: role as any, branchId });
         return ApiHandler.success(result);
     } catch (error) {
         return ApiHandler.error(error);

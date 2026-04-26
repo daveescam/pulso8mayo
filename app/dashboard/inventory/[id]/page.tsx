@@ -80,6 +80,7 @@ export default async function ProductDetailPage({ params }: Props) {
             </div>
 
             <StockManager
+                branchId={branchId}
                 item={item}
                 batches={batches}
                 movements={movements}

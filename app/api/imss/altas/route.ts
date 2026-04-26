@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { users, employeeProfiles } from "@/lib/db/schema";
+import { users, employeeProfiles, employeeContracts } from "@/lib/db/schema";
 import { eq, and, isNull, gte, lte, desc } from "drizzle-orm";
 import { requireTenant } from "@/lib/tenant-context";
 
@@ -50,26 +50,25 @@ export async function GET(req: NextRequest) {
             isNull(users.deletedAt),
         ];
 
-        const employees = await db
-            .select({
-                id: users.id,
-                name: users.name,
-                email: users.email,
-                role: users.role,
-                branchId: users.branchId,
-                department: employeeProfiles.department,
-                position: employeeProfiles.position,
-                nss: employeeProfiles.nss,
-                curp: employeeProfiles.curp,
-                rfc: employeeProfiles.rfc,
-                hireDate: employeeProfiles.hireDate,
-                employeeNumber: employeeProfiles.employeeNumber,
-                baseSalary: employeeProfiles.baseSalary,
-            })
-            .from(users)
-            .leftJoin(employeeProfiles, eq(users.id, employeeProfiles.userId))
-            .where(and(...conditions))
-            .orderBy(desc(users.createdAt));
+    const employees = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        role: users.role,
+        branchId: users.branchId,
+        department: employeeProfiles.department,
+        position: employeeProfiles.position,
+        nss: employeeProfiles.nss,
+        curp: employeeProfiles.curp,
+        rfc: employeeProfiles.rfc,
+        hireDate: employeeProfiles.hireDate,
+        employeeNumber: employeeProfiles.employeeNumber,
+      })
+      .from(users)
+      .leftJoin(employeeProfiles, eq(users.id, employeeProfiles.userId))
+      .where(and(...conditions))
+      .orderBy(desc(users.createdAt));
 
         // Build branch map
         const branchesAll = await db.query.branches.findMany({

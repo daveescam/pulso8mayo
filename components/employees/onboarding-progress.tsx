@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,7 +41,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   ORIENTATION: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
 };
 
-const STATUS_ICONS: Record<string, JSX.Element> = {
+const STATUS_ICONS: Record<string, React.ReactNode> = {
   PENDING: <Circle className="h-4 w-4 text-muted-foreground" />,
   IN_PROGRESS: <Clock className="h-4 w-4 text-yellow-600" />,
   COMPLETED: <CheckCircle className="h-4 w-4 text-green-600" />,
@@ -229,11 +230,10 @@ export function OnboardingProgress({
 
                 return (
                   <div key={category} className="text-center">
-                    <Badge
-                      className={CATEGORY_COLORS[category]}
-                      variant="secondary"
-                      className="mb-2"
-                    >
+            <Badge
+              className={`${CATEGORY_COLORS[category]} mb-2`}
+              variant="secondary"
+            >
                       {category}
                     </Badge>
                     <p className="text-2xl font-bold mt-2">

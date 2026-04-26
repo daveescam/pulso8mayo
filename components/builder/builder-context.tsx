@@ -109,29 +109,48 @@ export interface WorkflowStep {
     conditionalLogic?: Record<string, any>;
 }
 
+interface TemplateMeta {
+  id?: string;
+  name: string;
+  description?: string;
+  category?: string;
+}
+
 interface BuilderContextType {
-    steps: WorkflowStep[];
-    selectedStepId: string | null;
-    addStep: (type: StepType) => void;
-    updateStep: (id: string, updates: Partial<WorkflowStep>) => void;
-    removeStep: (id: string) => void;
-    selectStep: (id: string | null) => void;
-    moveStep: (activeId: string, overId: string) => void;
+  steps: WorkflowStep[];
+  selectedStepId: string | null;
+  addStep: (type: StepType) => void;
+  updateStep: (id: string, updates: Partial<WorkflowStep>) => void;
+  removeStep: (id: string) => void;
+  selectStep: (id: string | null) => void;
+  moveStep: (activeId: string, overId: string) => void;
+  templateMeta: TemplateMeta;
+  updateTemplateMeta: (updates: Partial<TemplateMeta>) => void;
 }
 
 const BuilderContext = createContext<BuilderContextType | undefined>(undefined);
 
-export function BuilderProvider({ children, initialSteps = [] }: { children: ReactNode, initialSteps?: WorkflowStep[] }) {
-    console.log('[BuilderProvider] Initializing with steps:', initialSteps.length, initialSteps);
-    const [steps, setSteps] = useState<WorkflowStep[]>(initialSteps);
-    const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
+export function BuilderProvider({ children, initialSteps = [], initialMeta }: { children: ReactNode, initialSteps?: WorkflowStep[], initialMeta?: Partial<TemplateMeta> }) {
+  console.log('[BuilderProvider] Initializing with steps:', initialSteps.length, initialSteps);
+  const [steps, setSteps] = useState<WorkflowStep[]>(initialSteps);
+  const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
+  const [templateMeta, setTemplateMeta] = useState<TemplateMeta>({
+    name: initialMeta?.name || "",
+    description: initialMeta?.description,
+    category: initialMeta?.category,
+    id: initialMeta?.id,
+  });
 
-    // Sync initialSteps prop changes with state (e.g., when navigating between templates)
-    useEffect(() => {
-        console.log('[BuilderProvider] useEffect triggered - initialSteps changed:', initialSteps.length, initialSteps);
-        setSteps(initialSteps);
-        setSelectedStepId(null); // Reset selection when template changes
-    }, [initialSteps]);
+  // Sync initialSteps prop changes with state (e.g. when navigating between templates)
+  useEffect(() => {
+    console.log('[BuilderProvider] useEffect triggered - initialSteps changed:', initialSteps.length, initialSteps);
+    setSteps(initialSteps);
+    setSelectedStepId(null); // Reset selection when template changes
+  }, [initialSteps]);
+
+  const updateTemplateMeta = (updates: Partial<TemplateMeta>) => {
+    setTemplateMeta(prev => ({ ...prev, ...updates }));
+  };
 
     const addStep = (type: StepType) => {
         const newStep: WorkflowStep = {
@@ -170,11 +189,11 @@ export function BuilderProvider({ children, initialSteps = [] }: { children: Rea
         });
     };
 
-    return (
-        <BuilderContext.Provider value={{ steps, selectedStepId, addStep, updateStep, removeStep, selectStep, moveStep }}>
-            {children}
-        </BuilderContext.Provider>
-    );
+  return (
+    <BuilderContext.Provider value={{ steps, selectedStepId, addStep, updateStep, removeStep, selectStep, moveStep, templateMeta, updateTemplateMeta }}>
+      {children}
+    </BuilderContext.Provider>
+  );
 }
 
 export const useBuilder = () => {

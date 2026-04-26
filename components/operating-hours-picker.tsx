@@ -9,9 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Clock } from "lucide-react";
 
 interface DayHours {
-    isOpen: boolean;
-    open?: string;
-    close?: string;
+  isOpen?: boolean;
+  open?: string;
+  close?: string;
 }
 
 interface OperatingHoursData {

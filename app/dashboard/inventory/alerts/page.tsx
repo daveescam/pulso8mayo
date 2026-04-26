@@ -165,13 +165,13 @@ export default function InventoryAlertsPage() {
         );
     };
 
-    const getSeverityBadge = (severity: string) => {
-        const variants: Record<string, { variant: "default" | "secondary" | "destructive", label: string, color: string }> = {
-            CRITICA: { variant: "destructive", label: "Crítica", color: "bg-red-500" },
-            ALTA: { variant: "destructive", label: "Alta", color: "bg-orange-500" },
-            MEDIA: { variant: "secondary", label: "Media", color: "bg-yellow-500" },
-            BAJA: { variant: "outline", label: "Baja", color: "bg-green-500" },
-        };
+const getSeverityBadge = (severity: string) => {
+  const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", label: string, color: string }> = {
+    CRITICA: { variant: "destructive", label: "Crítica", color: "bg-red-500" },
+    ALTA: { variant: "destructive", label: "Alta", color: "bg-orange-500" },
+    MEDIA: { variant: "secondary", label: "Media", color: "bg-yellow-500" },
+    BAJA: { variant: "outline", label: "Baja", color: "bg-green-500" },
+  };
 
         const config = variants[severity] || variants.BAJA;
         return (

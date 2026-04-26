@@ -6,7 +6,7 @@
  */
 
 import { db } from '@/lib/db';
-import { workflowAssignments, workflowInstances } from '@/lib/db/schema';
+import { workflowAssignments, workflowInstances, workflowTemplates } from '@/lib/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
 import { whatsappNotificationDispatcher } from '@/lib/whatsapp/notification-dispatcher';
 
@@ -16,16 +16,21 @@ export async function processOverdueWorkflows() {
 
         const now = new Date();
 
-        // Find assignments that are past due but still pending
+// Find assignments that are past due but still pending
         const overdueAssignments = await db
             .select({
                 assignment: workflowAssignments,
                 instance: workflowInstances,
+                template: workflowTemplates,
             })
             .from(workflowAssignments)
             .leftJoin(
                 workflowInstances,
                 eq(workflowAssignments.instanceId, workflowInstances.id)
+            )
+            .leftJoin(
+                workflowTemplates,
+                eq(workflowInstances.workflowTemplateId, workflowTemplates.id)
             )
             .where(
                 and(
@@ -38,7 +43,7 @@ export async function processOverdueWorkflows() {
         console.log(`[Cron] Found ${overdueAssignments.length} overdue assignments`);
 
         // Update status and send alerts
-        for (const { assignment, instance } of overdueAssignments) {
+        for (const { assignment, instance, template } of overdueAssignments) {
             try {
                 // Update status to OVERDUE
                 await db
@@ -53,8 +58,10 @@ export async function processOverdueWorkflows() {
                 await whatsappNotificationDispatcher.sendWorkflowOverdue(
                     assignment.assignedTo,
                     {
-                        ...assignment,
-                        instance,
+                        id: assignment.id,
+                        workflowName: template?.name || 'Workflow',
+                        dueDate: assignment.dueDate?.toISOString(),
+                        priority: assignment.priority,
                     }
                 );
 

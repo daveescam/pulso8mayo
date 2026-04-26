@@ -55,7 +55,7 @@ interface PayrollExportProps {
 export function PayrollExport({ companyId }: PayrollExportProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [records, setRecords] = useState<PayrollEmployeeRecord[]>([]);
+  const [records, setRecords] = useState<PayrollRecord[]>([]);
   const [summary, setSummary] = useState<PayrollSummary | null>(null);
   const [branches, setBranches] = useState<Array<{ id: string; name: string }>>([]);
 

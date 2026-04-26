@@ -24,16 +24,16 @@ export async function GET(request: NextRequest) {
         const conditions = [
             eq(workflowTemplates.companyId, session.user.companyId),
             eq(workflowInstances.workflowTemplateId, sql`cast(${workflowTemplates.id} as text)`),
-            eq(workflowInstanceSteps.workflowInstanceId, workflowInstances.id),
+            eq(workflowInstanceSteps.instanceId, workflowInstances.id),
         ];
 
-        if (dateFrom) {
-            conditions.push(gte(workflowInstanceSteps.createdAt, new Date(dateFrom)));
-        }
+if (dateFrom) {
+  conditions.push(gte(workflowInstances.createdAt, new Date(dateFrom)));
+}
 
-        if (dateTo) {
-            conditions.push(lte(workflowInstanceSteps.createdAt, new Date(dateTo)));
-        }
+if (dateTo) {
+  conditions.push(lte(workflowInstances.createdAt, new Date(dateTo)));
+}
 
         if (search) {
             conditions.push(
@@ -54,17 +54,17 @@ export async function GET(request: NextRequest) {
             assigneeId: workflowInstances.assigneeId,
             branchName: branches.name,
             branchId: workflowInstances.branchId,
-            createdAt: workflowInstanceSteps.createdAt,
+            createdAt: workflowInstances.createdAt,
             workflowInstanceId: workflowInstances.id,
             aiAnalysis: workflowInstanceSteps.aiAnalysis,
         })
             .from(workflowInstanceSteps)
-            .leftJoin(workflowInstances, eq(workflowInstanceSteps.workflowInstanceId, workflowInstances.id))
+            .leftJoin(workflowInstances, eq(workflowInstanceSteps.instanceId, workflowInstances.id))
             .leftJoin(workflowTemplates, eq(workflowInstances.workflowTemplateId, sql`cast(${workflowTemplates.id} as text)`))
             .leftJoin(users, eq(workflowInstances.assigneeId, users.id))
             .leftJoin(branches, eq(workflowInstances.branchId, branches.id))
             .where(validConditions.length > 0 ? and(...validConditions) : undefined)
-            .orderBy(desc(workflowInstanceSteps.createdAt))
+            .orderBy(desc(workflowInstances.createdAt))
             .limit(200);
 
         // Filter out steps without evidence

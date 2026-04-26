@@ -12,6 +12,8 @@ interface EmployeeCardProps {
   employee: Employee;
   onView: (id: string) => void;
   onEdit: (id: string) => void;
+  onViewDocuments?: (id: string) => void;
+  canEdit?: boolean;
 }
 
 const getStatusColor = (status: string | null) => {

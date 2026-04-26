@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { employeeAuditLogs, users } from '@/lib/db/schema';
-import { eq, desc, and, gte, lte } from 'drizzle-orm';
+import { eq, desc, and, gte, lte, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 
 // GET - Get audit logs for an employee or company
@@ -25,8 +25,47 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Build query
-    let query = db
+    // Build conditions array
+    const conditions = [];
+
+    if (userId) {
+      conditions.push(eq(employeeAuditLogs.userId, userId));
+    } else if (companyId) {
+      // Get all users in company
+      const companyUsers = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.companyId, companyId));
+      
+      const userIds = companyUsers.map(u => u.id);
+      
+      if (userIds.length > 0) {
+        conditions.push(inArray(employeeAuditLogs.userId, userIds));
+      }
+    }
+
+    if (entityType) {
+      conditions.push(eq(employeeAuditLogs.entityType, entityType));
+    }
+
+    if (action) {
+      conditions.push(eq(employeeAuditLogs.action, action as any));
+    }
+
+    if (isSensitive !== null && isSensitive !== undefined) {
+      conditions.push(eq(employeeAuditLogs.isSensitive, isSensitive === 'true'));
+    }
+
+    if (startDate) {
+      conditions.push(gte(employeeAuditLogs.performedAt, new Date(startDate)));
+    }
+
+    if (endDate) {
+      conditions.push(lte(employeeAuditLogs.performedAt, new Date(endDate)));
+    }
+
+    // Execute query with all conditions
+    const logs = await db
       .select({
         id: employeeAuditLogs.id,
         userId: employeeAuditLogs.userId,
@@ -51,37 +90,8 @@ export async function GET(request: NextRequest) {
       })
       .from(employeeAuditLogs)
       .leftJoin(users, eq(employeeAuditLogs.performedBy, users.id))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(employeeAuditLogs.performedAt));
-
-    // Apply filters
-    if (userId) {
-      query = query.where(eq(employeeAuditLogs.userId, userId));
-    } else if (companyId) {
-      // Get all users in company and filter by their audit logs
-      query = query.where(eq(employeeAuditLogs.userId, userId || ''));
-    }
-
-    if (entityType) {
-      query = query.where(eq(employeeAuditLogs.entityType, entityType));
-    }
-
-    if (action) {
-      query = query.where(eq(employeeAuditLogs.action, action as any));
-    }
-
-    if (isSensitive !== null && isSensitive !== undefined) {
-      query = query.where(eq(employeeAuditLogs.isSensitive, isSensitive === 'true'));
-    }
-
-    if (startDate) {
-      query = query.where(gte(employeeAuditLogs.performedAt, new Date(startDate)));
-    }
-
-    if (endDate) {
-      query = query.where(lte(employeeAuditLogs.performedAt, new Date(endDate)));
-    }
-
-    const logs = await query;
 
     // Pagination
     const offset = (page - 1) * limit;
@@ -158,7 +168,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: 'Validation error', details: error.issues },
         { status: 422 }
       );
     }

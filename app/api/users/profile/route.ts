@@ -13,9 +13,9 @@ export async function PATCH(req: NextRequest) {
             headers: await headers()
         });
 
-        if (!session?.user) {
-            return ApiHandler.unauthorized();
-        }
+    if (!session?.user) {
+      return ApiHandler.error(new Error("Unauthorized"), { status: 401 });
+    }
 
         const body = await req.json();
 

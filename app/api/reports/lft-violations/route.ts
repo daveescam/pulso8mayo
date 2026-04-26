@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { lftViolationDetector, LFTViolation } from '@/lib/reports/lft-violation-reporter';
+import { lftViolationDetector, LFTViolation, LFTViolationDetector } from '@/lib/reports/lft-violation-reporter';
 
 /**
  * GET /api/reports/lft-violations
@@ -33,9 +33,9 @@ export async function GET(req: NextRequest) {
             branchId || undefined
         );
 
-        // Return CSV if requested
-        if (format === 'csv') {
-            const csvContent = lftViolationDetector.exportToCSV(violations);
+// Return CSV if requested
+    if (format === 'csv') {
+      const csvContent = LFTViolationDetector.exportToCSV(violations);
             
             return new NextResponse(csvContent, {
                 headers: {

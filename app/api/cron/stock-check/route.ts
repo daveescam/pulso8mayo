@@ -71,11 +71,11 @@ export async function GET(req: NextRequest) {
             .from(inventoryItems)
             .where(inArray(inventoryItems.id, itemIds));
 
-            // Find items below min level
-            for (const item of items) {
-                const stock = stockLevels.find(s => s.itemId === item.itemId);
-                const currentStock = stock?.totalStock || 0;
-                const minLevel = item.minLevel || 0;
+    // Find items below min level
+    for (const item of items) {
+      const stock = stockLevels.find(s => s.itemId === item.id);
+      const currentStock = stock?.totalStock || 0;
+      const minLevel = item.minLevel || 0;
 
                 if (currentStock < minLevel) {
                     const shortage = minLevel - currentStock;
@@ -111,21 +111,24 @@ export async function GET(req: NextRequest) {
         let notificationsFailed = 0;
         
         if (alerts.length > 0) {
-            // Group alerts by company
-            const alertsByCompany = alerts.reduce((acc, alert) => {
-                if (!acc[alert.companyId]) {
-                    acc[alert.companyId] = [];
-                }
-                acc[alert.companyId].push(alert);
-                return acc;
-            }, {} as Record<string, typeof alerts>);
+    // Group alerts by company
+    const alertsByCompany = alerts.reduce((acc, alert) => {
+      if (!acc[alert.companyId]) {
+        acc[alert.companyId] = [];
+      }
+      acc[alert.companyId].push(alert);
+      return acc;
+    }, {} as Record<string, typeof alerts>);
 
-            // Send alerts for each company
-            for (const [companyId, companyAlerts] of Object.entries(alertsByCompany)) {
-                console.log(`[Stock Check] Sending alerts for company ${companyId}...`);
-                
-                // Convert to StockAlert format
-                const stockAlerts = companyAlerts.map(alert => ({
+    type AlertItem = typeof alerts[number];
+
+    // Send alerts for each company
+    for (const [companyId, companyAlerts] of Object.entries(alertsByCompany)) {
+      console.log(`[Stock Check] Sending alerts for company ${companyId}...`);
+
+      // Convert to StockAlert format
+      const typedAlerts = companyAlerts as AlertItem[];
+      const stockAlerts = typedAlerts.map(alert => ({
                     itemId: alert.itemId,
                     itemName: alert.itemName,
                     currentStock: alert.currentStock,

@@ -16,14 +16,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = exportSchema.safeParse(body);
 
-    if (!validated.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: validated.error.errors },
-        { status: 400 }
-      );
-    }
+  if (!validated.success) {
+    return NextResponse.json(
+      { error: 'Invalid input', details: validated.error.issues },
+      { status: 400 }
+    );
+  }
 
-    const { companyId, branchId, startDate, endDate, format } = validated.data;
+  const { companyId, branchId, startDate, endDate, format } = validated.data;
 
     // Calculate payroll data
     const records = await calculatePayrollData({

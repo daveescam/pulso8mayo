@@ -4,6 +4,12 @@ import { eq } from 'drizzle-orm';
 
 export interface EscalationLevel {
     afterMinutes: number;
+    triggerAfterMinutes?: number;
+    level?: number;
+    triggerCondition?: string;
+    notifyRoles?: string[];
+    message?: string;
+    channel?: string;
     role?: string;
     userId?: string;
     notificationTemplate?: string;

@@ -7,17 +7,17 @@ import { WorkflowTriggerService } from '@/lib/services/workflow-trigger-service'
 import { z } from 'zod';
 
 const scheduleSchema = z.object({
-    enabled: z.boolean(),
-    frequency: z.enum(['daily', 'weekly', 'monthly', 'on_demand']),
-    shiftTimes: z.record(z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)),
-    days: z.array(z.string()).optional(),
-    assignedRoles: z.array(z.string()).optional(),
-    assignedShifts: z.array(z.string()).optional(),
-    autoAssign: z.boolean(),
-    triggers: z.array(z.object({
-        eventName: z.string(),
-        conditions: z.record(z.any()).optional()
-    })).optional()
+  enabled: z.boolean(),
+  frequency: z.enum(['daily', 'weekly', 'monthly', 'on_demand']),
+  shiftTimes: z.record(z.string(), z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)),
+  days: z.array(z.string()).optional(),
+  assignedRoles: z.array(z.string()).optional(),
+  assignedShifts: z.array(z.string()).optional(),
+  autoAssign: z.boolean(),
+  triggers: z.array(z.object({
+    eventName: z.string(),
+    conditions: z.record(z.string(), z.any()).optional()
+  })).optional()
 });
 
 export async function GET(
@@ -195,15 +195,15 @@ export async function POST(
             });
         }
 
-        // Save Triggers
-        if (data.triggers) {
-            await WorkflowTriggerService.syncTriggers(
-                templateId,
-                branchId,
-                data.triggers,
-                user.id
-            );
-        }
+  // Save Triggers
+    if (data.triggers) {
+      await WorkflowTriggerService.syncTriggers(
+        templateId,
+        branchId,
+        data.triggers.map(t => ({ ...t, conditions: t.conditions || {} })),
+        user.id
+      );
+    }
 
         return NextResponse.json({ success: true });
 

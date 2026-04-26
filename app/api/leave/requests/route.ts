@@ -112,16 +112,16 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = createLeaveRequestSchema.safeParse(body);
 
-    if (!validated.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: validated.error.errors },
-        { status: 400 }
-      );
-    }
+  if (!validated.success) {
+    return NextResponse.json(
+      { error: 'Invalid input', details: validated.error.issues },
+      { status: 400 }
+    );
+  }
 
-    const data = validated.data;
+  const data = validated.data;
 
-    // Check leave balance
+  // Check leave balance
     const [balance] = await db
       .select()
       .from(leaveBalances)
@@ -195,31 +195,31 @@ export async function PATCH(request: NextRequest) {
       updatedAt: new Date(),
     };
 
-    if (action === 'approve') {
-      const validated = approveLeaveRequestSchema.safeParse(body);
-      if (!validated.success) {
-        return NextResponse.json(
-          { error: 'Invalid input', details: validated.error.errors },
-          { status: 400 }
-        );
-      }
+  if (action === 'approve') {
+    const validated = approveLeaveRequestSchema.safeParse(body);
+    if (!validated.success) {
+      return NextResponse.json(
+        { error: 'Invalid input', details: validated.error.issues },
+        { status: 400 }
+      );
+    }
 
-      updateData = {
+    updateData = {
         ...updateData,
         status: 'APPROVED',
         approvedBy: validated.data.approvedBy,
         approvedAt: new Date(),
       };
-    } else if (action === 'reject') {
-      const validated = rejectLeaveRequestSchema.safeParse(body);
-      if (!validated.success) {
-        return NextResponse.json(
-          { error: 'Invalid input', details: validated.error.errors },
-          { status: 400 }
-        );
-      }
+  } else if (action === 'reject') {
+    const validated = rejectLeaveRequestSchema.safeParse(body);
+    if (!validated.success) {
+      return NextResponse.json(
+        { error: 'Invalid input', details: validated.error.issues },
+        { status: 400 }
+      );
+    }
 
-      updateData = {
+    updateData = {
         ...updateData,
         status: 'REJECTED',
         rejectedBy: validated.data.rejectedBy,

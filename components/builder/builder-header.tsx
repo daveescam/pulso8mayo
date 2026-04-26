@@ -27,7 +27,7 @@ import {
 import Link from 'next/link';
 
 export function BuilderHeader() {
-    const { elements, templateMeta, updateTemplateMeta } = useBuilder();
+  const { steps: elements, templateMeta, updateTemplateMeta } = useBuilder();
     const [saving, setSaving] = useState(false);
     const [openSaveDialog, setOpenSaveDialog] = useState(false);
 

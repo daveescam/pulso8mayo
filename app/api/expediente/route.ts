@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { requireTenant } from "@/lib/tenant-context";
 import { db } from "@/lib/db";
-import { users, employeeProfiles, branches } from "@/lib/db/schema";
+import { users, employeeProfiles, branches, employeeDocuments } from "@/lib/db/schema";
 import { eq, and, isNull, inArray } from "drizzle-orm";
 
 export interface EmployeeDocument {
@@ -91,12 +91,12 @@ export async function GET(req: NextRequest) {
         const userIds = employees.map(e => e.id);
         let allDocuments: any[] = [];
         if (userIds.length > 0) {
-            allDocuments = await db.query.employeeDocuments.findMany({
-                where: and(
-                    eq(users.companyId, tenant.id as string),
-                    inArray(users.userId, userIds)
-                )
-            });
+    allDocuments = await db.query.employeeDocuments.findMany({
+      where: and(
+        eq(employeeDocuments.companyId, tenant.id as string),
+        inArray(employeeDocuments.userId, userIds)
+      )
+    });
         }
 
         // Get branch info

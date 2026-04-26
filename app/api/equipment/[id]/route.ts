@@ -13,7 +13,7 @@ const updateEquipmentSchema = z.object({
   assetTag: z.string().optional(),
   location: z.string().optional(),
   area: z.string().optional(),
-  specifications: z.record(z.unknown()).optional(),
+  specifications: z.record(z.string(), z.unknown()).optional(),
   purchaseDate: z.string().datetime().optional(),
   purchasePrice: z.number().optional(),
   vendor: z.string().optional(),

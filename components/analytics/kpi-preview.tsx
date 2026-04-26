@@ -6,19 +6,20 @@ import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 interface KpiPreviewProps {
-    values: {
-        name?: string;
-        description?: string;
-        formula?: string;
-        metricType?: string;
-        target?: number;
-        warningThreshold?: number;
-        criticalThreshold?: number;
-        thresholdType?: string;
-        unit?: string;
-        decimalPlaces?: number;
-        category?: string;
-    };
+  values: {
+    name?: string;
+    description?: string;
+    formula?: string;
+    metricType?: string;
+    target?: string | number;
+    warningThreshold?: string | number;
+    criticalThreshold?: string | number;
+    thresholdType?: string;
+    unit?: string;
+    decimalPlaces?: string | number;
+    category?: string;
+    frequency?: string;
+  };
 }
 
 export function KpiPreview({ values }: KpiPreviewProps) {
@@ -29,40 +30,43 @@ export function KpiPreview({ values }: KpiPreviewProps) {
         ? 25.3
         : 142;
 
-    const formatValue = (value: number) => {
-        const decimals = values.decimalPlaces || 2;
-        const unit = values.unit || "";
+const formatValue = (value: number | string) => {
+    const numValue = typeof value === "string" ? parseFloat(value) : value;
+    const decimals = typeof values.decimalPlaces === "string" ? parseInt(values.decimalPlaces) : (values.decimalPlaces || 2);
+    const unit = values.unit || "";
 
-        if (values.metricType === "PERCENTAGE") {
-            return `${value.toFixed(decimals)}%`;
-        } else if (values.metricType === "TIME") {
-            return `${value.toFixed(decimals)} ${unit || "hrs"}`;
-        } else {
-            return `${value.toFixed(decimals)} ${unit}`;
-        }
-    };
+    if (values.metricType === "PERCENTAGE") {
+      return `${numValue.toFixed(decimals)}%`;
+    } else if (values.metricType === "TIME") {
+      return `${numValue.toFixed(decimals)} ${unit || "hrs"}`;
+    } else {
+      return `${numValue.toFixed(decimals)} ${unit}`;
+    }
+  };
 
-    const getStatusColor = () => {
-        if (!values.target) return "bg-blue-500";
+  const getStatusColor = () => {
+    if (!values.target) return "bg-blue-500";
 
-        const target = values.target;
-        const warningRange = values.warningThreshold || (target * 0.1);
-        const criticalRange = values.criticalThreshold || (target * 0.2);
+    const target = typeof values.target === "string" ? parseFloat(values.target) : values.target;
+    const warningThreshold = values.warningThreshold ? (typeof values.warningThreshold === "string" ? parseFloat(values.warningThreshold) : values.warningThreshold) : undefined;
+    const criticalThreshold = values.criticalThreshold ? (typeof values.criticalThreshold === "string" ? parseFloat(values.criticalThreshold) : values.criticalThreshold) : undefined;
+    const warningRange = warningThreshold || (target * 0.1);
+    const criticalRange = criticalThreshold || (target * 0.2);
 
-        if (values.thresholdType === "MIN") {
-            if (mockValue < target - criticalRange) return "bg-red-500";
-            if (mockValue < target - warningRange) return "bg-yellow-500";
-            return "bg-green-500";
-        } else if (values.thresholdType === "MAX") {
-            if (mockValue > target + criticalRange) return "bg-red-500";
-            if (mockValue > target + warningRange) return "bg-yellow-500";
-            return "bg-green-500";
-        } else {
-            if (Math.abs(mockValue - target) > criticalRange) return "bg-red-500";
-            if (Math.abs(mockValue - target) > warningRange) return "bg-yellow-500";
-            return "bg-green-500";
-        }
-    };
+    if (values.thresholdType === "MIN") {
+      if (mockValue < target - criticalRange) return "bg-red-500";
+      if (mockValue < target - warningRange) return "bg-yellow-500";
+      return "bg-green-500";
+    } else if (values.thresholdType === "MAX") {
+      if (mockValue > target + criticalRange) return "bg-red-500";
+      if (mockValue > target + warningRange) return "bg-yellow-500";
+      return "bg-green-500";
+    } else {
+      if (Math.abs(mockValue - target) > criticalRange) return "bg-red-500";
+      if (Math.abs(mockValue - target) > warningRange) return "bg-yellow-500";
+      return "bg-green-500";
+    }
+  };
 
     const getStatusIcon = () => {
         const statusColor = getStatusColor();

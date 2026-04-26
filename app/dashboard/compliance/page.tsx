@@ -14,8 +14,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileText, Shield, TrendingUp, AlertTriangle, ClipboardCheck, Brain, Building2, DollarSign, ShieldCheck } from "lucide-react";
 
 interface Branch {
-    branchId: string;
-    name: string;
+  id?: string;
+  branchId?: string;
+  name: string;
 }
 
 export default function CompliancePage() {

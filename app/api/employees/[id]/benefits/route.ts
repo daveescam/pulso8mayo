@@ -86,20 +86,21 @@ export async function POST(
             return NextResponse.json({ error: "Company info missing" }, { status: 400 });
         }
 
-        const newBenefit = await db.insert(employeeBenefits).values({
-            userId: employeeId,
-            companyId: companyId,
-            benefitType: body.benefitType,
-            provider: body.provider || null,
-            policyNumber: body.policyNumber || null,
-            coverageAmount: body.coverageAmount ? Number(body.coverageAmount) : null,
-            isActive: body.isActive !== undefined ? body.isActive : true,
-            startDate: new Date(body.startDate || new Date()),
-            endDate: body.endDate ? new Date(body.endDate) : null,
-            employeeContribution: body.employeeContribution ? Number(body.employeeContribution) : 0,
-            employerContribution: body.employerContribution ? Number(body.employerContribution) : 0,
-            beneficiaries: body.beneficiaries || []
-        }).returning();
+    const newBenefit = await db.insert(employeeBenefits).values({
+      userId: employeeId,
+      companyId: companyId,
+      benefitType: body.benefitType,
+      provider: body.provider || null,
+      policyNumber: body.policyNumber || null,
+      coverageAmount: body.coverageAmount ? Number(body.coverageAmount) : null,
+      isActive: body.isActive !== undefined ? body.isActive : true,
+      startDate: new Date(body.startDate || new Date()),
+      endDate: body.endDate ? new Date(body.endDate) : null,
+      employeeContribution: body.employeeContribution ? Number(body.employeeContribution) : 0,
+      employerContribution: body.employerContribution ? Number(body.employerContribution) : 0,
+      beneficiaries: body.beneficiaries || [],
+      createdBy: session.user.id
+    }).returning();
 
         return NextResponse.json({
             data: newBenefit[0],

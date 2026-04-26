@@ -19,9 +19,9 @@ const updatePreferencesSchema = z.object({
 });
 
 export async function GET(req: NextRequest) {
-    try {
-        const session = await auth.api.getSession({ headers: await headers() });
-        if (!session?.user) return ApiHandler.unauthorized();
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user) return ApiHandler.error(new Error("Unauthorized"), { status: 401 });
 
         const userId = session.user.id;
 
@@ -53,9 +53,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-    try {
-        const session = await auth.api.getSession({ headers: await headers() });
-        if (!session?.user) return ApiHandler.unauthorized();
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user) return ApiHandler.error(new Error("Unauthorized"), { status: 401 });
 
         const userId = session.user.id;
         const body = await req.json();
@@ -94,10 +94,10 @@ export async function PATCH(req: NextRequest) {
             ...updatedPrefs,
             whatsappPhone: whatsappPhone !== undefined ? whatsappPhone : undefined
         });
-    } catch (error) {
-        if (error instanceof z.ZodError) {
-            return ApiHandler.error(new Error(`Validation failed: ${error.errors.map(e => e.message).join(", ")}`), { status: 400 });
-        }
-        return ApiHandler.error(error);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return ApiHandler.error(new Error(`Validation failed: ${error.issues.map(e => e.message).join(", ")}`), { status: 400 });
     }
+    return ApiHandler.error(error);
+  }
 }

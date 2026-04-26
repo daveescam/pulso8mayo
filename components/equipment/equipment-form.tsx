@@ -72,7 +72,7 @@ const formSchema = z.object({
   invoiceNumber: z.string().optional(),
   maintenanceFrequency: z.string().optional(),
   nextMaintenanceDate: z.string().optional(),
-  isCritical: z.boolean().default(false),
+  isCritical: z.boolean(),
   notes: z.string().optional(),
 });
 
@@ -118,10 +118,10 @@ export function EquipmentForm({ initialData, onSuccess }: EquipmentFormProps) {
       const response = await fetch("/api/equipment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...data,
-          purchasePrice: data.purchasePrice ? parseInt(data.purchasePrice) * 100 : undefined,
-        }),
+      body: JSON.stringify({
+        ...data,
+        purchasePrice: data.purchasePrice ? parseInt(String(data.purchasePrice)) * 100 : undefined,
+      }),
       });
 
       if (!response.ok) {

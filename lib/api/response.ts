@@ -20,45 +20,54 @@ export class ApiHandler {
         );
     }
 
-    static error(error: unknown) {
-        console.error("API Error:", error);
+  static error(error: unknown, statusCodeOrOptions?: number | { status: number }) {
+    console.error("API Error:", error);
 
-        if (error instanceof ApiError) {
-            return NextResponse.json(
-                {
-                    success: false,
-                    error: {
-                        message: error.message,
-                        details: error.details,
-                    },
-                } as ApiResponse<null>,
-                { status: error.statusCode }
-            );
-        }
-
-        if (error instanceof ZodError) {
-            return NextResponse.json(
-                {
-                    success: false,
-                    error: {
-                        message: "Validation Error",
-                        details: error.flatten(),
-                    },
-                } as ApiResponse<null>,
-                { status: 400 }
-            );
-        }
-
-        return NextResponse.json(
-            {
-                success: false,
-                error: {
-                    message: "Internal Server Error",
-                },
-            } as ApiResponse<null>,
-            { status: 500 }
-        );
+    // Extract status code from second argument
+    let overrideStatus: number | undefined;
+    if (typeof statusCodeOrOptions === 'number') {
+      overrideStatus = statusCodeOrOptions;
+    } else if (statusCodeOrOptions && typeof statusCodeOrOptions === 'object') {
+      overrideStatus = statusCodeOrOptions.status;
     }
+
+    if (error instanceof ApiError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            message: error.message,
+            details: error.details,
+          },
+        } as ApiResponse<null>,
+        { status: overrideStatus || error.statusCode }
+      );
+    }
+
+    if (error instanceof ZodError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            message: "Validation Error",
+            details: error.flatten(),
+          },
+        } as ApiResponse<null>,
+        { status: overrideStatus || 400 }
+      );
+    }
+
+    const message = error instanceof Error ? error.message : "Internal Server Error";
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          message: message,
+        },
+      } as ApiResponse<null>,
+      { status: overrideStatus || 500 }
+    );
+  }
 }
 
 /**

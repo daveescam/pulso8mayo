@@ -9,6 +9,9 @@ export interface LogicRule {
     action?: string;
     description?: string;
     remediationStepId?: string;
+    message?: string;
+    remediationProtocol?: unknown;
+    escalationChain?: unknown;
 }
 
 export interface WorkflowStep {

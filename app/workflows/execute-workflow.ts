@@ -18,12 +18,12 @@ const POLLING_INTERVAL = "1m"; // Check every minute
 export async function executeWorkflow(instanceId: string, userId: string) {
     "use workflow";
 
-    // 1. Load Instance
-    const instance = await loadWorkflowInstance(instanceId);
-    if (!instance) {
-        console.error(`Workflow instance ${instanceId} not found`);
-        return;
-    }
+// 1. Load Instance
+  const instance = await loadWorkflowInstance(instanceId) as any;
+  if (!instance) {
+    console.error(`Workflow instance ${instanceId} not found`);
+    return;
+  }
 
     // 2. Mark Started
     await markWorkflowStarted(instanceId);

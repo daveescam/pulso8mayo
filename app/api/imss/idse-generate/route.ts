@@ -29,23 +29,22 @@ export async function POST(req: NextRequest) {
 
         const movementCode = movementType === "08" ? "08" : movementType === "02" ? "02" : "07";
 
-        const employees = await db
-            .select({
-                id: users.id,
-                name: users.name,
-                nss: employeeProfiles.nss,
-                curp: employeeProfiles.curp,
-                rfc: employeeProfiles.rfc,
-                baseSalary: employeeProfiles.baseSalary,
-                hireDate: employeeProfiles.hireDate,
-                terminationDate: employeeProfiles.terminationDate,
-            })
-            .from(users)
-            .leftJoin(employeeProfiles, eq(users.id, employeeProfiles.userId))
-            .where(and(
-                eq(users.companyId, tenant.id as string),
-                inArray(users.id, employeeIds)
-            ));
+    const employees = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        nss: employeeProfiles.nss,
+        curp: employeeProfiles.curp,
+        rfc: employeeProfiles.rfc,
+        hireDate: employeeProfiles.hireDate,
+        terminationDate: employeeProfiles.terminationDate,
+      })
+      .from(users)
+      .leftJoin(employeeProfiles, eq(users.id, employeeProfiles.userId))
+      .where(and(
+        eq(users.companyId, tenant.id as string),
+        inArray(users.id, employeeIds)
+      ));
 
         const validEmployees = employees.filter(e =>
             e.nss && e.nss.length === 11 && e.curp && e.curp.length === 18
@@ -63,12 +62,13 @@ export async function POST(req: NextRequest) {
 
         lines.push(`HD|${tenant.id?.slice(0, 11).padEnd(11, " ")}|${validEmployees.length.toString().padStart(5, "0")}|${today}|PULSO_SISTEMA`);
 
-        for (const emp of validEmployees) {
-            const nameParts = (emp.name || "").split(" ");
-            const sdiFactor = 1.0452;
-            const baseSalary = (emp as any).baseSalary || 0;
-            const sdi = Math.round(baseSalary * sdiFactor * 100) / 100;
-            const sdiCents = Math.round(sdi * 100).toString().padStart(7, "0");
+    for (const emp of validEmployees) {
+      const nameParts = (emp.name || "").split(" ");
+      const sdiFactor = 1.0452;
+      // baseSalary should come from employee_contracts, using default for now
+      const baseSalary = 0;
+      const sdi = Math.round(baseSalary * sdiFactor * 100) / 100;
+      const sdiCents = Math.round(sdi * 100).toString().padStart(7, "0");
 
             const hireDateFormatted = (emp as any).hireDate
                 ? new Date((emp as any).hireDate)

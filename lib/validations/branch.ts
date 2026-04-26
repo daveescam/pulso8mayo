@@ -2,41 +2,41 @@ import { z } from "zod";
 
 // Schema for operating hours configuration
 export const operatingHoursSchema = z.object({
-    monday: z.object({
-        open: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
-        close: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
-        isOpen: z.boolean().default(true)
-    }).optional(),
-    tuesday: z.object({
-        open: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
-        close: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
-        isOpen: z.boolean().default(true)
-    }).optional(),
-    wednesday: z.object({
-        open: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
-        close: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
-        isOpen: z.boolean().default(true)
-    }).optional(),
-    thursday: z.object({
-        open: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
-        close: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
-        isOpen: z.boolean().default(true)
-    }).optional(),
-    friday: z.object({
-        open: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
-        close: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
-        isOpen: z.boolean().default(true)
-    }).optional(),
-    saturday: z.object({
-        open: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
-        close: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
-        isOpen: z.boolean().default(true)
-    }).optional(),
-    sunday: z.object({
-        open: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
-        close: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
-        isOpen: z.boolean().default(true)
-    }).optional()
+  monday: z.object({
+    open: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
+    close: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
+    isOpen: z.boolean().optional()
+  }).optional(),
+  tuesday: z.object({
+    open: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
+    close: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
+    isOpen: z.boolean().optional()
+  }).optional(),
+  wednesday: z.object({
+    open: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
+    close: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
+    isOpen: z.boolean().optional()
+  }).optional(),
+  thursday: z.object({
+    open: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
+    close: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
+    isOpen: z.boolean().optional()
+  }).optional(),
+  friday: z.object({
+    open: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
+    close: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
+    isOpen: z.boolean().optional()
+  }).optional(),
+  saturday: z.object({
+    open: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
+    close: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
+    isOpen: z.boolean().optional()
+  }).optional(),
+  sunday: z.object({
+    open: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
+    close: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
+    isOpen: z.boolean().optional()
+  }).optional()
 });
 
 export const locationSchema = z.object({

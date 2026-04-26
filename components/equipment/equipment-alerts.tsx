@@ -70,7 +70,8 @@ const severityConfig: Record<string, { color: string; icon: React.ReactNode }> =
 
 export function EquipmentAlerts() {
   const { toast } = useToast();
-  const { branchId } = useTenant();
+  const { tenant } = useTenant();
+  const branchId = tenant?.branchId;
   const [alerts, setAlerts] = useState<EquipmentAlert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 

@@ -21,7 +21,7 @@ export interface CreateKpiInput {
     warningThreshold?: number;
     criticalThreshold?: number;
     thresholdType?: typeof kpiThresholdTypeEnum.enumValues[number];
-    frequency?: typeof kpiFrequencyTypeEnum.enumValues[number];
+    frequency?: typeof kpiFrequencyEnum.enumValues[number];
     dataRetentionDays?: number;
     unit?: string;
     decimalPlaces?: number;

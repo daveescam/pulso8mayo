@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { employeeOnboarding, onboardingSteps, employeeOffboarding, users } from '@/lib/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, SQL } from 'drizzle-orm';
 import { z } from 'zod';
 
 // Onboarding validation schema
@@ -67,18 +67,20 @@ export async function GET(request: NextRequest) {
 
     // Get onboarding records
     if (!type || type === 'onboarding') {
-      let onboardingQuery = db
-        .select()
-        .from(employeeOnboarding)
-        .orderBy(desc(employeeOnboarding.startDate));
-
+      // Build conditions array
+      const onboardingConditions: SQL[] = [];
+      
       if (userId) {
-        onboardingQuery = onboardingQuery.where(eq(employeeOnboarding.userId, userId));
+        onboardingConditions.push(eq(employeeOnboarding.userId, userId));
       } else if (companyId) {
-        onboardingQuery = onboardingQuery.where(eq(employeeOnboarding.companyId, companyId));
+        onboardingConditions.push(eq(employeeOnboarding.companyId, companyId));
       }
 
-      const onboardings = await onboardingQuery;
+      const onboardings = await db
+        .select()
+        .from(employeeOnboarding)
+        .where(onboardingConditions.length > 0 ? and(...onboardingConditions) : undefined)
+        .orderBy(desc(employeeOnboarding.startDate));
 
       // Get steps for each onboarding
       for (const onboarding of onboardings) {
@@ -96,18 +98,22 @@ export async function GET(request: NextRequest) {
 
     // Get offboarding records
     if (!type || type === 'offboarding') {
-      let offboardingQuery = db
-        .select()
-        .from(employeeOffboarding)
-        .orderBy(desc(employeeOffboarding.createdAt));
-
+      // Build conditions array
+      const offboardingConditions: SQL[] = [];
+      
       if (userId) {
-        offboardingQuery = offboardingQuery.where(eq(employeeOffboarding.userId, userId));
+        offboardingConditions.push(eq(employeeOffboarding.userId, userId));
       } else if (companyId) {
-        offboardingQuery = offboardingQuery.where(eq(employeeOffboarding.companyId, companyId));
+        offboardingConditions.push(eq(employeeOffboarding.companyId, companyId));
       }
 
-      result.offboardings = await offboardingQuery;
+      const offboardings = await db
+        .select()
+        .from(employeeOffboarding)
+        .where(offboardingConditions.length > 0 ? and(...offboardingConditions) : undefined)
+        .orderBy(desc(employeeOffboarding.createdAt));
+
+      result.offboardings = offboardings;
     }
 
     return NextResponse.json({
@@ -128,6 +134,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const validatedData = onboardingSchema.parse(body);
+    const createdBy = request.headers.get('x-user-id') || validatedData.userId;
 
     // Check if onboarding already exists
     const existingOnboarding = await db
@@ -151,65 +158,49 @@ export async function POST(request: NextRequest) {
         companyId: validatedData.companyId,
         branchId: validatedData.branchId,
         startDate: new Date(validatedData.startDate),
-        targetEndDate: validatedData.targetEndDate ? new Date(validatedData.targetEndDate) : undefined,
+        targetEndDate: validatedData.targetEndDate ? new Date(validatedData.targetEndDate) : null,
         assignedBuddyId: validatedData.assignedBuddyId,
         assignedMentorId: validatedData.assignedMentorId,
+        status: 'IN_PROGRESS',
         notes: validatedData.notes,
         hrNotes: validatedData.hrNotes,
-        status: 'IN_PROGRESS',
-        createdBy: request.headers.get('x-user-id') || validatedData.userId,
-        updatedBy: request.headers.get('x-user-id') || validatedData.userId,
+        createdBy: createdBy,
       })
       .returning();
 
     // Create default onboarding steps
     const defaultSteps = [
-      { name: 'Complete personal information', category: 'DOCUMENTS' },
-      { name: 'Upload identification documents', category: 'DOCUMENTS' },
-      { name: 'Sign employment contract', category: 'COMPLIANCE' },
-      { name: 'Complete tax forms', category: 'COMPLIANCE' },
-      { name: 'Provide bank information', category: 'SETUP' },
-      { name: 'Attend orientation session', category: 'ORIENTATION' },
-      { name: 'Complete safety training', category: 'TRAINING' },
-      { name: 'Receive uniform and equipment', category: 'SETUP' },
-      { name: 'Meet team members', category: 'ORIENTATION' },
-      { name: 'Review employee handbook', category: 'ORIENTATION' },
+      { stepName: 'Documentación requerida', description: 'Subir documentos obligatorios', stepCategory: 'DOCUMENTS', dueDays: 3 },
+      { stepName: 'Firma de contrato', description: 'Firma del contrato de trabajo', stepCategory: 'DOCUMENTS', dueDays: 1 },
+      { stepName: 'Alta en IMSS', description: 'Registro en el Instituto Mexicano del Seguro Social', stepCategory: 'COMPLIANCE', dueDays: 5 },
+      { stepName: 'Capacitación de seguridad', description: 'Entrenamiento en protocolos de seguridad', stepCategory: 'TRAINING', dueDays: 7 },
+      { stepName: 'Asignación de equipo', description: 'Entrega de uniforme y herramientas de trabajo', stepCategory: 'SETUP', dueDays: 1 },
+      { stepName: 'Introducción al equipo', description: 'Conocer al equipo de trabajo', stepCategory: 'ORIENTATION', dueDays: 3 },
     ];
 
-    const stepsToCreate = defaultSteps.map((step, index) => ({
-      onboardingId: newOnboarding.id,
-      stepName: step.name,
-      stepCategory: step.category,
-      status: 'PENDING' as const,
-      dueDate: new Date(new Date(validatedData.startDate).getTime() + (index + 1) * 24 * 60 * 60 * 1000),
-    }));
+    const startDate = new Date(validatedData.startDate);
+    for (const step of defaultSteps) {
+      const dueDate = new Date(startDate);
+      dueDate.setDate(dueDate.getDate() + step.dueDays);
 
-    if (stepsToCreate.length > 0) {
-      await db.insert(onboardingSteps).values(stepsToCreate);
-
-      // Update totals
-      await db
-        .update(employeeOnboarding)
-        .set({
-          totalSteps: stepsToCreate.length,
-          completedSteps: 0,
-          progressPercentage: 0,
-        })
-        .where(eq(employeeOnboarding.id, newOnboarding.id));
+      await db.insert(onboardingSteps).values({
+        onboardingId: newOnboarding.id,
+        stepName: step.stepName,
+        description: step.description,
+        stepCategory: step.stepCategory,
+        status: 'PENDING',
+        dueDate: dueDate,
+      });
     }
 
-    return NextResponse.json(
-      {
-        success: true,
-        data: newOnboarding,
-        message: 'Onboarding created successfully',
-      },
-      { status: 201 }
-    );
+    return NextResponse.json({
+      success: true,
+      data: newOnboarding,
+    }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: 'Validation error', details: error.issues },
         { status: 422 }
       );
     }
@@ -222,207 +213,145 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PATCH - Update onboarding step status
+// PATCH - Update onboarding status or complete step
 export async function PATCH(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const type = searchParams.get('type');
+    const body = await request.json();
+    const { onboardingId, stepId, action, notes, completedBy } = body;
 
-    if (type === 'onboarding-step') {
-      const body = await request.json();
-      const { stepId, status, completedBy } = body;
+    if (!onboardingId || !action) {
+      return NextResponse.json(
+        { error: 'onboardingId and action are required' },
+        { status: 400 }
+      );
+    }
 
-      if (!stepId || !status) {
-        return NextResponse.json(
-          { error: 'stepId and status are required' },
-          { status: 400 }
-        );
-      }
-
-      // Update step
+    // Complete a step
+    if (action === 'complete_step' && stepId) {
       const [updatedStep] = await db
         .update(onboardingSteps)
         .set({
-          status,
-          completedDate: status === 'COMPLETED' ? new Date() : undefined,
-          completedBy,
-          updatedAt: new Date(),
+          status: 'COMPLETED',
+          completedDate: new Date(),
+          completedBy: completedBy,
+          notes: notes,
         })
         .where(eq(onboardingSteps.id, stepId))
         .returning();
 
-      if (!updatedStep) {
-        return NextResponse.json(
-          { error: 'Step not found' },
-          { status: 404 }
-        );
-      }
+      // Check if all required steps are completed
+      const steps = await db
+        .select()
+        .from(onboardingSteps)
+        .where(eq(onboardingSteps.onboardingId, onboardingId));
+
+      const requiredSteps = steps.filter(s => s.stepCategory !== 'ORIENTATION'); // ORIENTATION steps are not required
+      const completedRequiredSteps = requiredSteps.filter(s => s.status === 'COMPLETED');
 
       // Update onboarding progress
-      const onboarding = await db
-        .select()
-        .from(employeeOnboarding)
-        .where(eq(employeeOnboarding.id, updatedStep.onboardingId))
-        .limit(1);
+      const progressPercentage = Math.round((completedRequiredSteps.length / requiredSteps.length) * 100);
+      const allRequiredCompleted = completedRequiredSteps.length === requiredSteps.length;
 
-      if (onboarding && onboarding.length > 0) {
-        const completedSteps = await db
-          .select()
-          .from(onboardingSteps)
-          .where(
-            and(
-              eq(onboardingSteps.onboardingId, updatedStep.onboardingId),
-              eq(onboardingSteps.status, 'COMPLETED')
-            )
-          );
-
-        const progressPercentage = Math.round(
-          (completedSteps.length / onboarding[0].totalSteps) * 100
-        );
-
-        await db
-          .update(employeeOnboarding)
-          .set({
-            completedSteps: completedSteps.length,
-            progressPercentage,
-            status: progressPercentage === 100 ? 'COMPLETED' : 'IN_PROGRESS',
-            completedDate: progressPercentage === 100 ? new Date() : undefined,
-            updatedAt: new Date(),
-          })
-          .where(eq(employeeOnboarding.id, updatedStep.onboardingId));
-      }
+      await db
+        .update(employeeOnboarding)
+        .set({
+          progressPercentage,
+          status: allRequiredCompleted ? 'COMPLETED' : 'IN_PROGRESS',
+          updatedAt: new Date(),
+        })
+        .where(eq(employeeOnboarding.id, onboardingId));
 
       return NextResponse.json({
         success: true,
         data: updatedStep,
-        message: 'Step updated successfully',
+        progress: progressPercentage,
       });
     }
 
-    // Update offboarding
-    if (type === 'offboarding') {
-      const body = await request.json();
-      const validatedData = offboardingSchema.partial().parse(body);
-      const offboardingId = body.offboardingId;
-
-      if (!offboardingId) {
-        return NextResponse.json(
-          { error: 'offboardingId is required' },
-          { status: 400 }
-        );
-      }
-
-      const [updatedOffboarding] = await db
-        .update(employeeOffboarding)
+    // Mark onboarding as completed
+    if (action === 'complete_onboarding') {
+      const [updatedOnboarding] = await db
+        .update(employeeOnboarding)
         .set({
-          ...validatedData,
-          resignationDate: validatedData.resignationDate ? new Date(validatedData.resignationDate) : undefined,
-          lastWorkingDay: validatedData.lastWorkingDay ? new Date(validatedData.lastWorkingDay) : undefined,
-          finalPayDate: validatedData.finalPayDate ? new Date(validatedData.finalPayDate) : undefined,
-          assetsReturnDate: validatedData.assetsReturnDate ? new Date(validatedData.assetsReturnDate as any) : undefined,
-          exitInterviewDate: validatedData.exitInterviewDate ? new Date(validatedData.exitInterviewDate as any) : undefined,
-          accessRevokedDate: validatedData.accessRevokedDate ? new Date(validatedData.accessRevokedDate as any) : undefined,
-          completedDate: validatedData.status === 'COMPLETED' ? new Date() : undefined,
-          updatedBy: request.headers.get('x-user-id'),
+          status: 'COMPLETED',
+          completedDate: new Date(),
+          progressPercentage: 100,
           updatedAt: new Date(),
         })
-        .where(eq(employeeOffboarding.id, offboardingId))
+        .where(eq(employeeOnboarding.id, onboardingId))
         .returning();
+
+      // Update user status
+      await db
+        .update(users)
+        .set({
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, updatedOnboarding.userId));
 
       return NextResponse.json({
         success: true,
-        data: updatedOffboarding,
-        message: 'Offboarding updated successfully',
+        data: updatedOnboarding,
       });
     }
 
     return NextResponse.json(
-      { error: 'Invalid type parameter' },
+      { error: 'Invalid action' },
       { status: 400 }
     );
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
-        { status: 422 }
-      );
-    }
-
-    console.error('Error updating record:', error);
+    console.error('Error updating onboarding:', error);
     return NextResponse.json(
-      { error: 'Failed to update record' },
+      { error: 'Failed to update onboarding' },
       { status: 500 }
     );
   }
 }
 
-// POST - Create offboarding (separate endpoint)
-export async function PUT(request: NextRequest) {
+// DELETE - Cancel onboarding
+export async function DELETE(request: NextRequest) {
   try {
-    const body = await request.json();
-    const validatedData = offboardingSchema.parse(body);
+    const { searchParams } = new URL(request.url);
+    const onboardingId = searchParams.get('onboardingId');
 
-    // Check if offboarding already exists
-    const existingOffboarding = await db
+    if (!onboardingId) {
+      return NextResponse.json(
+        { error: 'onboardingId is required' },
+        { status: 400 }
+      );
+    }
+
+    // Get the onboarding to find the user
+    const [onboarding] = await db
       .select()
-      .from(employeeOffboarding)
-      .where(eq(employeeOffboarding.userId, validatedData.userId))
+      .from(employeeOnboarding)
+      .where(eq(employeeOnboarding.id, onboardingId))
       .limit(1);
 
-    if (existingOffboarding && existingOffboarding.length > 0) {
+    if (!onboarding) {
       return NextResponse.json(
-        { error: 'Offboarding already exists for this user' },
-        { status: 409 }
+        { error: 'Onboarding not found' },
+        { status: 404 }
       );
     }
 
-    // Create offboarding
-    const [newOffboarding] = await db
-      .insert(employeeOffboarding)
-      .values({
-        userId: validatedData.userId,
-        companyId: validatedData.companyId,
-        branchId: validatedData.branchId,
-        reason: validatedData.reason,
-        reasonDetails: validatedData.reasonDetails,
-        resignationDate: validatedData.resignationDate ? new Date(validatedData.resignationDate) : undefined,
-        lastWorkingDay: new Date(validatedData.lastWorkingDay),
-        finalPayDate: validatedData.finalPayDate ? new Date(validatedData.finalPayDate) : undefined,
-        accruedVacationDays: validatedData.accruedVacationDays || 0,
-        vacationPay: validatedData.vacationPay || 0,
-        seniorityBonus: validatedData.seniorityBonus || 0,
-        severancePay: validatedData.severancePay || 0,
-        finalPayAmount: validatedData.finalPayAmount || 0,
-        deductions: validatedData.deductions || 0,
-        assetsToReturn: validatedData.assetsToReturn as any,
-        exitInterviewNotes: validatedData.exitInterviewNotes,
-        hrNotes: validatedData.hrNotes,
-        notes: validatedData.notes,
-        status: 'IN_PROGRESS',
-        createdBy: request.headers.get('x-user-id') || validatedData.userId,
-        updatedBy: request.headers.get('x-user-id') || validatedData.userId,
+    // Update onboarding status to cancelled
+    await db
+      .update(employeeOnboarding)
+      .set({
+        status: 'CANCELLED',
+        updatedAt: new Date(),
       })
-      .returning();
+      .where(eq(employeeOnboarding.id, onboardingId));
 
-    return NextResponse.json(
-      {
-        success: true,
-        data: newOffboarding,
-        message: 'Offboarding created successfully',
-      },
-      { status: 201 }
-    );
+    return NextResponse.json({
+      success: true,
+      message: 'Onboarding cancelled successfully',
+    });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
-        { status: 422 }
-      );
-    }
-
-    console.error('Error creating offboarding:', error);
+    console.error('Error cancelling onboarding:', error);
     return NextResponse.json(
-      { error: 'Failed to create offboarding' },
+      { error: 'Failed to cancel onboarding' },
       { status: 500 }
     );
   }

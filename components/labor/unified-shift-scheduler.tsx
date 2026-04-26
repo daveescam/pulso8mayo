@@ -86,6 +86,8 @@ interface User {
     image?: string
     role: string
     branchId: string
+    branchName?: string
+    email?: string
 }
 
 interface Branch {

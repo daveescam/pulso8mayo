@@ -30,18 +30,18 @@ import { KpiFormulaEditor } from "./kpi-formula-editor";
 import { KpiPreview } from "./kpi-preview";
 
 const kpiFormSchema = z.object({
-    name: z.string().min(3, "Name must be at least 3 characters"),
-    description: z.string().optional(),
-    formula: z.string().min(1, "Formula is required"),
-    metricType: z.enum(["PERCENTAGE", "COUNT", "AVERAGE", "SUM", "TIME", "RATIO"]),
-    target: z.coerce.number().optional(),
-    warningThreshold: z.coerce.number().optional(),
-    criticalThreshold: z.coerce.number().optional(),
-    thresholdType: z.enum(["MIN", "MAX", "TARGET", "RANGE"]).default("TARGET"),
-    frequency: z.enum(["REALTIME", "HOURLY", "DAILY", "WEEKLY", "MONTHLY"]).default("DAILY"),
-    unit: z.string().optional(),
-    decimalPlaces: z.coerce.number().min(0).max(4).default(2),
-    category: z.enum(["OPERATIONS", "COMPLIANCE", "LABOR", "INVENTORY"]).default("OPERATIONS"),
+  name: z.string().min(3, "Name must be at least 3 characters"),
+  description: z.string().optional(),
+  formula: z.string().min(1, "Formula is required"),
+  metricType: z.enum(["PERCENTAGE", "COUNT", "AVERAGE", "SUM", "TIME", "RATIO"]),
+  target: z.string().optional(),
+  warningThreshold: z.string().optional(),
+  criticalThreshold: z.string().optional(),
+  thresholdType: z.enum(["MIN", "MAX", "TARGET", "RANGE"]),
+  frequency: z.enum(["REALTIME", "HOURLY", "DAILY", "WEEKLY", "MONTHLY"]),
+  unit: z.string().optional(),
+  decimalPlaces: z.string(),
+  category: z.enum(["OPERATIONS", "COMPLIANCE", "LABOR", "INVENTORY"]),
 });
 
 type KpiFormValues = z.infer<typeof kpiFormSchema>;
@@ -57,17 +57,20 @@ export function KpiForm({ onSuccess }: KpiFormProps) {
 
     const form = useForm<KpiFormValues>({
         resolver: zodResolver(kpiFormSchema),
-        defaultValues: {
-            name: "",
-            description: "",
-            formula: "",
-            metricType: "PERCENTAGE",
-            thresholdType: "TARGET",
-            frequency: "DAILY",
-            unit: "",
-            decimalPlaces: 2,
-            category: "OPERATIONS",
-        },
+    defaultValues: {
+      name: "",
+      description: "",
+      formula: "",
+      metricType: "PERCENTAGE",
+      target: "",
+      warningThreshold: "",
+      criticalThreshold: "",
+      thresholdType: "TARGET",
+      frequency: "DAILY",
+      unit: "",
+      decimalPlaces: "2",
+      category: "OPERATIONS",
+    },
     });
 
     const onSubmit = async (data: KpiFormValues) => {

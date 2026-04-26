@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { equipmentMaintenanceHistory, branchEquipments } from "@/lib/db/schema";
-import { eq, and, desc, asc } from "drizzle-orm";
+import { eq, and, desc, asc, gte, lte, or, isNull } from "drizzle-orm";
+import { addDays } from "date-fns";
 
 export async function GET(request: Request) {
   try {

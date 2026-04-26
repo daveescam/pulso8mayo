@@ -115,14 +115,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = createReviewSchema.safeParse(body);
 
-    if (!validated.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: validated.error.errors },
-        { status: 400 }
-      );
-    }
+  if (!validated.success) {
+    return NextResponse.json(
+      { error: 'Invalid input', details: validated.error.issues },
+      { status: 400 }
+    );
+  }
 
-    const data = validated.data;
+  const data = validated.data;
 
     const [newReview] = await db
       .insert(performanceReviews)
@@ -162,14 +162,14 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const validated = updateReviewSchema.safeParse(body);
 
-    if (!validated.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: validated.error.errors },
-        { status: 400 }
-      );
-    }
+  if (!validated.success) {
+    return NextResponse.json(
+      { error: 'Invalid input', details: validated.error.issues },
+      { status: 400 }
+    );
+  }
 
-    const updateData = {
+    const updateData: any = {
       ...validated.data,
       updatedAt: new Date(),
     };

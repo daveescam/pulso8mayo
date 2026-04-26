@@ -42,33 +42,39 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "Branch not found" }, { status: 404 });
         }
 
-        // Generate report
-        const reportData = await ComplianceReportService.generateReport({
-            type: type as "NOM-251" | "NOM-035" | "LABOR_LAW",
-            filters: {
-                startDate: new Date(startDate),
-                endDate: new Date(endDate),
-                branchId,
-                companyId: session.user.companyId
-            }
-        });
+// Generate report
+    const service = new ComplianceReportService();
+    const reportData = await service.generateReport(
+      type as "NOM-251" | "NOM-035" | "LABOR_LAW",
+      {
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        branchId,
+        companyId: session.user.companyId
+      }
+    );
 
-        if (format === "pdf") {
-            // Generate PDF
-            const pdfBytes = await ComplianceReportService.generatePDF(
-                reportData,
-                type as "NOM-251" | "NOM-035"
-            );
+    // For JSON format, we need to get the data object
+    // The service returns Uint8Array (PDF bytes), so for JSON we need to call the specific method
+    if (type === "NOM-251") {
+      const data = await service.generateNOM251Report({
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        branchId,
+        companyId: session.user.companyId
+      });
+      return NextResponse.json(data);
+    } else if (type === "NOM-035") {
+      const data = await service.generateNOM035Report({
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        branchId,
+        companyId: session.user.companyId
+      });
+      return NextResponse.json(data);
+    }
 
-            return new NextResponse(pdfBytes, {
-                headers: {
-                    "Content-Type": "application/pdf",
-                    "Content-Disposition": `attachment; filename="${type}-report-${branchId}-${startDate}.pdf"`
-                }
-            });
-        }
-
-        return NextResponse.json(reportData);
+    return NextResponse.json({ error: "Report type not supported for JSON format" }, { status: 400 });
 
     } catch (error) {
         console.error("[Compliance Reports API] Error:", error);
@@ -108,30 +114,24 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Branch not found" }, { status: 404 });
         }
 
-        // Generate report
-        const reportData = await ComplianceReportService.generateReport({
-            type,
-            filters: {
-                startDate: new Date(startDate),
-                endDate: new Date(endDate),
-                branchId,
-                companyId: session.user.companyId
-            }
-        });
+    // Generate report
+    const service = new ComplianceReportService();
+    const pdfBytes = await service.generateReport(
+      type,
+      {
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        branchId,
+        companyId: session.user.companyId
+      }
+    );
 
-        // Generate PDF
-        const pdfBytes = await ComplianceReportService.generatePDF(
-            reportData,
-            type
-        );
-
-        // TODO: Send email with PDF attachment
-        // For now, return success
-        return NextResponse.json({
-            success: true,
-            message: "Report generated successfully. Email functionality pending.",
-            reportData
-        });
+    // TODO: Send email with PDF attachment
+    // For now, return success
+    return NextResponse.json({
+      success: true,
+      message: "Report generated successfully. Email functionality pending."
+    });
 
     } catch (error) {
         console.error("[Compliance Reports API] Error:", error);

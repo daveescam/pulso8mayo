@@ -6,8 +6,8 @@
  */
 
 import { db } from '@/lib/db';
-import { workflowAssignments, workflowInstances } from '@/lib/db/schema';
-import { and, eq, between, sql } from 'drizzle-orm';
+import { workflowAssignments } from '@/lib/db/schema';
+import { and, eq, sql } from 'drizzle-orm';
 import { whatsappNotificationDispatcher } from '@/lib/whatsapp/notification-dispatcher';
 
 export async function sendWorkflowReminders() {
@@ -19,43 +19,36 @@ export async function sendWorkflowReminders() {
 
         // Find assignments due within 24 hours
         const dueSoonAssignments = await db
-            .select({
-                assignment: workflowAssignments,
-                instance: workflowInstances,
-            })
+            .select()
             .from(workflowAssignments)
-            .leftJoin(
-                workflowInstances,
-                eq(workflowAssignments.instanceId, workflowInstances.id)
-            )
             .where(
                 and(
                     eq(workflowAssignments.status, 'PENDING'),
                     sql`${workflowAssignments.dueDate} IS NOT NULL`,
                     sql`${workflowAssignments.dueDate} > ${now}`,
-                    sql`${workflowAssignments.dueDate} <= ${tomorrow}`,
-                    // Only send reminder once (check if we haven't sent in last 23 hours)
-                    sql`(${workflowAssignments.lastReminderSent} IS NULL OR ${workflowAssignments.lastReminderSent} < ${new Date(now.getTime() - 23 * 60 * 60 * 1000)})`
+                    sql`${workflowAssignments.dueDate} <= ${tomorrow}`
                 )
             );
 
         console.log(`[Cron] Found ${dueSoonAssignments.length} assignments due soon`);
 
         // Send reminders
-        for (const { assignment, instance } of dueSoonAssignments) {
+        for (const assignment of dueSoonAssignments) {
             try {
                 await whatsappNotificationDispatcher.sendWorkflowDueSoon(
                     assignment.assignedTo,
                     {
-                        ...assignment,
-                        instance,
+                        id: assignment.id,
+                        workflowName: 'Workflow',
+                        dueDate: assignment.dueDate?.toISOString(),
+                        priority: assignment.priority,
                     }
                 );
 
-                // Update last reminder sent timestamp
+                // Update notifiedAt to track that reminder was sent
                 await db
                     .update(workflowAssignments)
-                    .set({ lastReminderSent: new Date() })
+                    .set({ notifiedAt: new Date() })
                     .where(eq(workflowAssignments.id, assignment.id));
 
                 console.log(`[Cron] Reminder sent for assignment ${assignment.id}`);

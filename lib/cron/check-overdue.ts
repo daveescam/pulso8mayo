@@ -37,7 +37,10 @@ export async function checkOverdueAssignments() {
                 console.log(`[Cron] Marked assignment ${assignment.id} as overdue`);
 
                 // Send overdue notification
-                await NotificationService.notifyWorkflowOverdue(assignment);
+                await NotificationService.notifyWorkflowOverdue({
+                    ...assignment,
+                    dueDate: assignment.dueDate?.toString(),
+                });
                 console.log(`[Cron] Sent overdue notification for assignment ${assignment.id}`);
 
                 successCount++;

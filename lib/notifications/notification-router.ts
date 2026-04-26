@@ -1,4 +1,4 @@
-import { NotificationDispatcher, NotificationPayload, NotificationEventType, NotificationChannel } from "./notification-dispatcher";
+import { NotificationDispatcher, NotificationPayload, NotificationEventType, NotificationChannel } from "@/lib/services/notification-dispatcher";
 
 export interface RoutingRule {
     eventType: NotificationEventType;

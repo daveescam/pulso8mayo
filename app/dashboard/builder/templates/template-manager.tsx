@@ -14,19 +14,20 @@ import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 
 interface TemplateManagerProps {
-    userTemplates: Array<{
-        id: string;
-        name: string;
-        description?: string;
-        category: string;
-        steps?: Array<{
-            id: string;
-            type: string;
-            title: string;
-            required?: boolean;
-            options?: string[];
-        }>;
+  userTemplates: Array<{
+    id: string;
+    name: string;
+    description?: string;
+    category: string;
+    steps?: Array<{
+      id: string;
+      type: string;
+      title: string;
+      required?: boolean;
+      options?: string[];
     }>;
+    createdAt?: Date;
+  }>;
 }
 
 export function TemplateManager({ userTemplates }: TemplateManagerProps) {

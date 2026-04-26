@@ -272,7 +272,7 @@ export function PsychosocialDashboard({ branchId }: PsychosocialDashboardProps) 
                     <CardContent>
                         <div className="text-2xl font-bold">{data.averageScore}</div>
                         <p className="text-xs text-muted-foreground mt-1">
-                            Riesgo: {getRiskLevelName(data.averageScore as RiskLevel)}
+                            Riesgo: {getRiskLevelName(data.averageScore)}
                         </p>
                     </CardContent>
                 </Card>

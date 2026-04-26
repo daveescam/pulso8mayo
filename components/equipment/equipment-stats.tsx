@@ -26,7 +26,8 @@ interface EquipmentStats {
 
 export function EquipmentStats() {
   const { toast } = useToast();
-  const { branchId } = useTenant();
+  const { tenant } = useTenant();
+  const branchId = tenant?.branchId;
   const [stats, setStats] = useState<EquipmentStats>({
     total: 0,
     active: 0,

@@ -23,12 +23,12 @@ import { AlertCircle, AlertTriangle, XCircle, CheckCircle2, ExternalLink } from 
 import { format } from 'date-fns';
 
 interface Incident {
-    id: string;
-    severity: 'CRITICAL' | 'WARNING' | 'FATAL';
-    title: string;
-    status: 'DETECTED' | 'IN_REMEDIATION' | 'RESOLVED' | 'ESCALATED';
-    createdAt: Date;
-    workflowInstanceId: string;
+  id: string;
+  severity: 'CRITICAL' | 'WARNING' | 'FATAL';
+  title: string;
+  status: 'DETECTED' | 'IN_REMEDIATION' | 'RESOLVED' | 'ESCALATED';
+  createdAt: Date;
+  instanceId: string;
 }
 
 interface IncidentListProps {

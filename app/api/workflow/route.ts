@@ -1,4 +1,6 @@
 import { start } from "workflow/api";
+
+type WorkflowFunction<TArgs extends unknown[], TResult> = (...args: TArgs) => Promise<TResult>;
 import { NextResponse } from "next/server";
 
 // Import all workflows
@@ -10,14 +12,14 @@ import { handleClockOutWorkflow } from "@/app/workflows/handle-clock-out";
 import { handleBreakStartWorkflow } from "@/app/workflows/handle-break-start";
 import { handleBreakEndWorkflow } from "@/app/workflows/handle-break-end";
 
-const WORKFLOW_MAP: Record<string, Function> = {
-    'executeWorkflow': executeWorkflow,
-    'handleIncidentWorkflow': handleIncidentWorkflow,
-    'incidentEscalationWorkflow': incidentEscalationWorkflow,
-    'handleClockInWorkflow': handleClockInWorkflow,
-    'handleClockOutWorkflow': handleClockOutWorkflow,
-    'handleBreakStartWorkflow': handleBreakStartWorkflow,
-    'handleBreakEndWorkflow': handleBreakEndWorkflow,
+const WORKFLOW_MAP: Record<string, WorkflowFunction<any[], unknown>> = {
+  'executeWorkflow': executeWorkflow as WorkflowFunction<any[], unknown>,
+  'handleIncidentWorkflow': handleIncidentWorkflow as WorkflowFunction<any[], unknown>,
+  'incidentEscalationWorkflow': incidentEscalationWorkflow as WorkflowFunction<any[], unknown>,
+  'handleClockInWorkflow': handleClockInWorkflow as WorkflowFunction<any[], unknown>,
+  'handleClockOutWorkflow': handleClockOutWorkflow as WorkflowFunction<any[], unknown>,
+  'handleBreakStartWorkflow': handleBreakStartWorkflow as WorkflowFunction<any[], unknown>,
+  'handleBreakEndWorkflow': handleBreakEndWorkflow as WorkflowFunction<any[], unknown>,
 };
 
 export async function POST(req: Request) {

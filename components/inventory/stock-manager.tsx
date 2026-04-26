@@ -11,14 +11,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { addBatch, recordUsage } from "@/app/actions/inventory-transactions";
 import { format } from "date-fns";
-import { PackagePlus, MinusCircle } from "lucide-react";
+import { PackagePlus, MinusCircle, AlertTriangle } from "lucide-react";
+import Link from "next/link";
 
 interface Props {
-    item: any;
-    batches: any[];
-    movements: any[];
-    priceHistory: any[];
-    totalStock: number;
+  item: any;
+  batches: any[];
+  movements: any[];
+  priceHistory: any[];
+  totalStock: number;
+  branchId: string;
 }
 
 export function StockManager({ item, batches, movements, priceHistory, totalStock }: Props) {
@@ -120,11 +122,18 @@ export function StockManager({ item, batches, movements, priceHistory, totalStoc
                             </div>
                             <Button type="submit" variant="destructive" className="w-full">Registrar Salida</Button>
                         </form>
-                    </DialogContent>
-                </Dialog>
-            </div>
+</DialogContent>
+      </Dialog>
 
-            <Tabs defaultValue="batches" className="w-full">
+      <Link href={`/dashboard/inventory/waste?item=${item.id}`}>
+        <Button variant="outline" className="border-amber-200 hover:bg-amber-50 hover:text-amber-900">
+          <AlertTriangle className="w-4 h-4 mr-2 text-amber-600" />
+          Registrar Merma
+        </Button>
+      </Link>
+    </div>
+
+    <Tabs defaultValue="batches" className="w-full">
                 <TabsList>
                     <TabsTrigger value="batches">Lotes (Batches)</TabsTrigger>
                     <TabsTrigger value="movements">Historial de Movimientos</TabsTrigger>

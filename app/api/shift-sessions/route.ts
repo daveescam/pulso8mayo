@@ -18,15 +18,16 @@ const createShiftSessionSchema = z.object({
 });
 
 const updateShiftSessionSchema = z.object({
-    id: z.string().uuid(),
-    checkInTime: z.string().datetime().optional(),
-    checkOutTime: z.string().datetime().optional(),
-    totalBreakMinutes: z.number().optional(),
-    lateMinutes: z.number().optional(),
-    earlyDepartureMinutes: z.number().optional(),
-    requiresApproval: z.boolean().optional(),
-    status: z.enum(["PENDING", "ACTIVE", "COMPLETED", "NO_SHOW", "CANCELLED"]).optional(),
-    notes: z.string().optional(),
+  id: z.string().uuid(),
+  checkInTime: z.string().datetime().optional(),
+  checkOutTime: z.string().datetime().optional(),
+  totalBreakMinutes: z.number().optional(),
+  totalWorkMinutes: z.number().optional(),
+  lateMinutes: z.number().optional(),
+  earlyDepartureMinutes: z.number().optional(),
+  requiresApproval: z.boolean().optional(),
+  status: z.enum(["PENDING", "ACTIVE", "COMPLETED", "NO_SHOW", "CANCELLED"]).optional(),
+  notes: z.string().optional(),
 });
 
 const logBreakSchema = z.object({
@@ -222,13 +223,13 @@ export async function PUT(req: NextRequest) {
             updateData.overtimeMinutes = overtime.totalMinutes;
             updateData.endedAt = new Date();
             
-            if (!breakValidation.isCompliant) {
-                updateData.complianceFlags = {
-                    ...existing.complianceFlags,
-                    missedBreak: true,
-                    breakNotes: breakValidation.message,
-                };
-            }
+      if (!breakValidation.isCompliant) {
+        updateData.complianceFlags = {
+          ...(existing.complianceFlags as object || {}),
+          missedBreak: true,
+          breakNotes: breakValidation.message,
+        };
+      }
             
             if (workedMinutes > 480) {
                 updateData.requiresApproval = true;

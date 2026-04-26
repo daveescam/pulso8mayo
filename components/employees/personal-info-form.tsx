@@ -22,7 +22,7 @@ const personalInfoSchema = z.object({
   gender: z.enum(["MALE", "FEMALE", "OTHER", "PREFER_NOT_TO_SAY"]).optional(),
   maritalStatus: z.enum(["SINGLE", "MARRIED", "DIVORCED", "WIDOWED", "COMMON_LAW"]).optional(),
   bloodType: z.enum(["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]).optional(),
-  nationality: z.string().default("MEXICANA"),
+  nationality: z.string(),
 });
 
 const contactInfoSchema = z.object({

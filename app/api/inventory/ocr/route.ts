@@ -59,12 +59,12 @@ Devuelve el resultado ESTRICTAMENTE en formato JSON plano con la siguiente estru
 
     } catch (error) {
         console.error("OCR endpoint error:", error);
-        if (error instanceof z.ZodError) {
-            return NextResponse.json(
-                { error: "Datos inválidos", details: error.errors },
-                { status: 400 }
-            );
-        }
+  if (error instanceof z.ZodError) {
+    return NextResponse.json(
+      { error: "Datos inválidos", details: error.issues },
+      { status: 400 }
+    );
+  }
         return NextResponse.json(
             { error: "Fallo al procesar la imagen con OCR" },
             { status: 500 }

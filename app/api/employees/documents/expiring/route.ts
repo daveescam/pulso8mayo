@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { employeeDocuments } from '@/lib/db/schema';
-import { eq, and, lt, gte } from 'drizzle-orm';
+import { eq, and, lt, gte, lte, isNotNull } from 'drizzle-orm';
 
 // GET - Get expiring documents
 export async function GET(request: NextRequest) {
@@ -29,17 +29,17 @@ export async function GET(request: NextRequest) {
         documentName: employeeDocuments.documentName,
         expirationDate: employeeDocuments.expirationDate,
         status: employeeDocuments.status,
-        uploadedAt: employeeDocuments.uploadedAt,
+        createdAt: employeeDocuments.createdAt,
       })
       .from(employeeDocuments)
-      .where(
-        and(
-          eq(employeeDocuments.companyId, companyId),
-          employeeDocuments.expirationDate !== null,
-          gte(employeeDocuments.expirationDate, now),
-          lte(employeeDocuments.expirationDate, futureDate)
-        )
-      );
+    .where(
+      and(
+        eq(employeeDocuments.companyId, companyId),
+        isNotNull(employeeDocuments.expirationDate),
+        gte(employeeDocuments.expirationDate, now),
+        lte(employeeDocuments.expirationDate, futureDate)
+      )
+    );
 
     return NextResponse.json({
       expiringDocuments,
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
 
     const conditions = [
       eq(employeeDocuments.companyId, companyId),
-      employeeDocuments.expirationDate !== null,
+      isNotNull(employeeDocuments.expirationDate),
       gte(employeeDocuments.expirationDate, now),
       lte(employeeDocuments.expirationDate, futureDate),
     ];

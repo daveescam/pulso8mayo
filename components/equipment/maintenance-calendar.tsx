@@ -38,7 +38,8 @@ interface MaintenanceEvent {
 
 export function MaintenanceCalendar() {
   const { toast } = useToast();
-  const { branchId } = useTenant();
+  const { tenant } = useTenant();
+  const branchId = tenant?.branchId;
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<MaintenanceEvent[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());

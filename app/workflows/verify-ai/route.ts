@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { workflowInstanceSteps } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { NotificationService } from "@/lib/services/notification-service";
-import { EscalationService } from "@/lib/services/escalation-service";
+import { EscalationService, EscalationLevel } from "@/lib/services/escalation-service";
 
 /**
  * POST /workflows/verify-ai
@@ -122,25 +122,19 @@ export async function POST(req: NextRequest) {
             // Create incident for failed verification
             const incidentId = `inc_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
             
-            // Get escalation chain from workflow template or use default
-            const escalationChain = [
-                {
-                    level: 1,
-                    triggerAfterMinutes: 0,
-                    notifyRoles: ['SUPERVISOR'],
-                    channel: 'whatsapp',
-                    message: `⚠️ Verificación AI fallida: Workflow ${instance.id}. Se requiere revisión manual.`,
-                    triggerCondition: 'verification_failed'
-                },
-                {
-                    level: 2,
-                    triggerAfterMinutes: 30,
-                    notifyRoles: ['GERENTE'],
-                    channel: 'whatsapp',
-                    message: `🔴 Escalamiento: Verificación AI sin resolver por 30min. Workflow ${instance.id}.`,
-                    triggerCondition: 'not_resolved_after_time'
-                }
-            ];
+    // Get escalation chain from workflow template or use default
+    const escalationChain: EscalationLevel[] = [
+      {
+        afterMinutes: 0,
+        role: 'SUPERVISOR',
+        notificationTemplate: `⚠️ Verificación AI fallida: Workflow ${instance.id}. Se requiere revisión manual.`
+      },
+      {
+        afterMinutes: 30,
+        role: 'GERENTE',
+        notificationTemplate: `🔴 Escalamiento: Verificación AI sin resolver por 30min. Workflow ${instance.id}.`
+      }
+    ];
 
             // Trigger escalation
             await EscalationService.executeEscalationLevel(incidentId, escalationChain[0]);

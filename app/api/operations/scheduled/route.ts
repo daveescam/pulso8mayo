@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
         nextWeek.setDate(today.getDate() + 7);
 
         const conditions = [
-            eq(workflowInstances.companyId, tenant.id),
+            eq(workflowTemplates.companyId, tenant.id),
             isNotNull(workflowAssignments.scheduleId), // Only scheduled assignments
             gte(workflowAssignments.dueDate, today), // Upcoming
             lte(workflowAssignments.dueDate, nextWeek), // Within next week

@@ -518,20 +518,20 @@ function StepperContent({ useStepper, steps, initialStep, token, executionId, ex
                             <Input type="number" value={value} onChange={e => setValue(e.target.value)} placeholder="0.00" />
                             {currentStepDef.config?.min !== undefined && currentStepDef.config?.max !== undefined && (
                                 <p className="text-xs text-muted-foreground">
-                                    Rango: {currentStepDef.config.min} - {currentStepDef.config.max}
-                                    {currentStepDef.config.unit && ` ${currentStepDef.config.unit}`}
+              Rango: {currentStepDef.config.min as number} - {currentStepDef.config.max as number}
+              {currentStepDef.config.unit && ` ${currentStepDef.config.unit}`}
                                 </p>
                             )}
                         </div>
                     )}
 
-                    {/* ===== SELECT (Radio ≤5, Dropdown >5) ===== */}
-                    {currentStepDef.type === 'SELECT' && (
-                        <div className="space-y-3">
-                            <Label>Selecciona una opción</Label>
-                            {(currentStepDef.config?.options || []).length <= 5 ? (
-                                <RadioGroup value={value} onValueChange={setValue} className="space-y-2">
-                                    {(currentStepDef.config?.options || []).map((opt: any, idx: number) => {
+      {/* ===== SELECT (Radio ≤5, Dropdown >5) ===== */}
+      {currentStepDef.type === 'SELECT' && (
+        <div className="space-y-3">
+          <Label>Selecciona una opción</Label>
+          {((currentStepDef.config?.options as any[]) || []).length <= 5 ? (
+            <RadioGroup value={value} onValueChange={setValue} className="space-y-2">
+              {((currentStepDef.config?.options as any[]) || []).map((opt: any, idx: number) => {
                                         const optValue = typeof opt === 'string' ? opt : opt.value || opt.label;
                                         const optLabel = typeof opt === 'string' ? opt : opt.label || opt.value;
                                         return (
@@ -548,24 +548,24 @@ function StepperContent({ useStepper, steps, initialStep, token, executionId, ex
                                         <SelectValue placeholder="Selecciona..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {(currentStepDef.config?.options || []).map((opt: any, idx: number) => {
-                                            const optValue = typeof opt === 'string' ? opt : opt.value || opt.label;
-                                            const optLabel = typeof opt === 'string' ? opt : opt.label || opt.value;
-                                            return (
-                                                <SelectItem key={idx} value={optValue}>{optLabel}</SelectItem>
-                                            );
-                                        })}
+              {((currentStepDef.config?.options as any[]) || []).map((opt: any, idx: number) => {
+                const optValue = typeof opt === 'string' ? opt : opt.value || opt.label;
+                const optLabel = typeof opt === 'string' ? opt : opt.label || opt.value;
+                return (
+                  <SelectItem key={idx} value={optValue}>{optLabel}</SelectItem>
+                );
+              })}
                                     </SelectContent>
                                 </Select>
                             )}
                         </div>
                     )}
 
-                    {/* ===== CHECKBOX (Checklist) ===== */}
-                    {currentStepDef.type === 'CHECKBOX' && (
-                        <div className="space-y-3">
-                            <Label>Marca los elementos completados</Label>
-                            {(currentStepDef.config?.options || currentStepDef.config?.items || []).map((item: any, idx: number) => {
+      {/* ===== CHECKBOX (Checklist) ===== */}
+      {currentStepDef.type === 'CHECKBOX' && (
+        <div className="space-y-3">
+          <Label>Marca los elementos completados</Label>
+          {((currentStepDef.config?.options || currentStepDef.config?.items || []) as any[]).map((item: any, idx: number) => {
                                 const itemLabel = typeof item === 'string' ? item : item.label || item.value;
                                 const itemKey = typeof item === 'string' ? item : (item.value || item.label || `item-${idx}`);
                                 return (
@@ -600,7 +600,7 @@ function StepperContent({ useStepper, steps, initialStep, token, executionId, ex
                         <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg flex gap-3 text-blue-700 dark:text-blue-300">
                             <Info className="h-5 w-5 shrink-0 mt-0.5" />
                             <div className="text-sm space-y-2">
-                                <p>{currentStepDef.config?.content || currentStepDef.description || "Lee esta información antes de continuar."}</p>
+                                <p>{String(currentStepDef.config?.content ?? "") || currentStepDef.description || "Lee esta información antes de continuar."}</p>
                             </div>
                         </div>
                     )}
@@ -690,7 +690,7 @@ function StepperContent({ useStepper, steps, initialStep, token, executionId, ex
                             <div className="flex flex-col items-center justify-center space-y-4">
                                 <Label className="text-muted-foreground uppercase tracking-wider text-xs">Temporizador</Label>
                                 <RemediationTimer
-                                    seconds={currentStepDef.config?.durationSeconds || 60}
+                                    seconds={Number(currentStepDef.config?.durationSeconds) || 60}
                                     onComplete={() => setValue("TIMER_COMPLETED")}
                                 />
                                 <p className="text-sm text-muted-foreground">Espera a que el temporizador termine.</p>

@@ -141,11 +141,11 @@ export async function sendWhatsAppNotification(userId: string, message: string) 
 
     try {
         const client = new WasenderClient();
-        await client.sendMessage({
-            sessionId: session.sessionId,
-            phone: user.whatsappPhone,
-            message: message
-        });
+    await client.sendMessage({
+      sessionId: session.sessionId,
+      to: user.whatsappPhone,
+      message: message
+    });
         return { sent: true };
     } catch (error) {
         console.error("Failed to send WhatsApp message via workflow step:", error);

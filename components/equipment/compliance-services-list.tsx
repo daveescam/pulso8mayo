@@ -82,7 +82,8 @@ const frequencyLabels: Record<string, string> = {
 
 export function ComplianceServicesList() {
   const { toast } = useToast();
-  const { branchId } = useTenant();
+  const { tenant } = useTenant();
+  const branchId = tenant?.branchId;
   const [services, setServices] = useState<ComplianceService[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");

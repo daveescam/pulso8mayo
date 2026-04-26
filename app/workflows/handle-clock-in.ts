@@ -78,12 +78,12 @@ export async function createWorkflowInstanceStep(
 }
 
 // Step 4: Generate Smart Link
-export async function generateSmartLinkStep(instanceId: string, workflowTemplateId: string) {
-    "use step";
-    if (!instanceId || !workflowTemplateId) {
-        return null;
-    }
-    return await SmartLinkService.createSmartLink(instanceId, workflowTemplateId);
+export async function generateSmartLinkStep(instanceId: string, workflowTemplateId: string, sessionId: string) {
+  "use step";
+  if (!instanceId || !workflowTemplateId || !sessionId) {
+    return null;
+  }
+  return await SmartLinkService.createSmartLink(instanceId, workflowTemplateId, sessionId);
 }
 
 // Step 5: Send WhatsApp Message
@@ -127,9 +127,9 @@ export async function handleClockInWorkflow(
             session.id
         );
 
-        if (instance) {
-            // 5. Generate Smart Link
-            const link = await generateSmartLinkStep(instance.id, workflowTemplate.id);
+    if (instance) {
+      // 5. Generate Smart Link
+      const link = await generateSmartLinkStep(instance.id, workflowTemplate.id, session.id);
 
             if (link) {
                 // 6. Send WhatsApp with workflow link

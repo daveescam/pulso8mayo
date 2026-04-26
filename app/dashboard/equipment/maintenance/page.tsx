@@ -23,6 +23,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Wrench, Calendar, Clock, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { MaintenanceForm } from "@/components/equipment/maintenance-form";
 
 interface MaintenanceRecord {
   id: string;
@@ -40,6 +41,7 @@ export default function EquipmentMaintenancePage() {
   const [records, setRecords] = useState<MaintenanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -89,20 +91,18 @@ export default function EquipmentMaintenancePage() {
           <h1 className="text-2xl font-bold">Mantenimiento de Equipos</h1>
           <p className="text-muted-foreground">Historial y programación de mantenimientos</p>
         </div>
-        <Dialog>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="w-4 h-4 mr-2" />
               Nuevo Mantenimiento
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Programar Mantenimiento</DialogTitle>
             </DialogHeader>
-            <p className="text-sm text-muted-foreground">
-              Selecciona un equipo y programa el mantenimiento
-            </p>
+            <MaintenanceForm onSuccess={() => { setIsDialogOpen(false); fetchMaintenance(); }} />
           </DialogContent>
         </Dialog>
       </div>

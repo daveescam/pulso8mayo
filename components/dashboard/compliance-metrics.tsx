@@ -48,17 +48,19 @@ export function ComplianceMetrics() {
 
     if (!metrics) return null;
 
-    const getSentimentColor = (sentiment: string) => {
-        switch (sentiment) {
-            case 'Bueno':
-            case 'Normal':
-            case 'Bajo' && metrics.openIncidents === 0: return 'success';
-            case 'Regular':
-            case 'Atención': return 'warning';
-            case 'Crítico': return 'danger';
-            default: return 'default';
-        }
+  const getSentimentColor = (sentiment: string) => {
+    switch (sentiment) {
+      case 'Bueno':
+      case 'Normal':
+      case 'Bajo':
+        if (metrics.openIncidents === 0) return 'success';
+        return 'warning';
+      case 'Regular':
+      case 'Atención': return 'warning';
+      case 'Crítico': return 'danger';
+      default: return 'default';
     }
+  }
 
     return (
         <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 md:grid-cols-2 lg:grid-cols-4">

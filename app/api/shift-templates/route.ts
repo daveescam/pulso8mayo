@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
         const branchId = searchParams.get("branchId");
         const isActive = searchParams.get("isActive");
 
-        const conditions = [eq(shiftTemplates.companyId, tenant.companyId)];
+        const conditions = [eq(shiftTemplates.companyId, tenant.id)];
         
         if (branchId) {
             conditions.push(eq(shiftTemplates.branchId, branchId));
@@ -99,13 +99,13 @@ export async function POST(req: NextRequest) {
         }).returning();
 
         return ApiHandler.success(newTemplate);
-    } catch (error) {
-        console.error("Error creating template:", error);
-        if (error instanceof z.ZodError) {
-            return ApiHandler.error(new Error(`Validación: ${error.errors.map(e => e.message).join(", ")}`), { status: 400 });
-        }
-        return ApiHandler.error(error);
+  } catch (error) {
+    console.error("Error creating template:", error);
+    if (error instanceof z.ZodError) {
+      return ApiHandler.error(new Error(`Validación: ${error.issues.map(e => e.message).join(", ")}`), { status: 400 });
     }
+    return ApiHandler.error(error);
+  }
 }
 
 /**

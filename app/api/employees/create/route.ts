@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 422 });
+      return NextResponse.json({ error: 'Validation error', details: error.issues }, { status: 422 });
     }
     console.error('Error creating employee:', error);
     return NextResponse.json({ error: error.message || 'Failed to create employee' }, { status: 500 });

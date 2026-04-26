@@ -69,20 +69,20 @@ export async function POST(request: NextRequest) {
                     .leftJoin(branches, eq(workflowInstances.branchId, branches.id))
                     .where(and(...conditions));
 
-                reportData = {
-                    title: reportId === "workflow-summary" ? "Resumen de Workflows" : "Reporte Detallado de Workflows",
-                    company: session.user.companyName,
-                    generatedAt: new Date(),
-                    dateRange: { from: dateFrom, to: dateTo },
-                    workflows,
-                    summary: {
-                        total: workflows.length,
-                        completed: workflows.filter(w => w.status === "COMPLETED").length,
-                        inProgress: workflows.filter(w => w.status === "IN_PROGRESS").length,
-                        pending: workflows.filter(w => w.status === "PENDING").length,
-                        avgScore: workflows.filter(w => w.score !== null).reduce((acc, w) => acc + (w.score || 0), 0) / workflows.filter(w => w.score !== null).length || 0,
-                    }
-                };
+    reportData = {
+      title: reportId === "workflow-summary" ? "Resumen de Workflows" : "Reporte Detallado de Workflows",
+      company: session.user.name || "Empresa",
+      generatedAt: new Date(),
+      dateRange: { from: dateFrom, to: dateTo },
+      workflows,
+      summary: {
+        total: workflows.length,
+        completed: workflows.filter(w => w.status === "COMPLETED").length,
+        inProgress: workflows.filter(w => w.status === "IN_PROGRESS").length,
+        pending: workflows.filter(w => w.status === "PENDING").length,
+        avgScore: workflows.filter(w => w.score !== null).reduce((acc, w) => acc + (w.score || 0), 0) / workflows.filter(w => w.score !== null).length || 0,
+      }
+    };
                 break;
 
             case "evidence-report":

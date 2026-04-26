@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
-import { BarcodeScanner } from "@capacitor-mlkit/barcode-scanning";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,44 +30,37 @@ export function BarcodeScannerComponent({ onScan, onClose }: BarcodeScannerProps
     const videoRef = useRef<HTMLVideoElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
 
-    // Check permissions on mount
     const checkPermissions = useCallback(async () => {
         try {
-            const status = await BarcodeScanner.checkPermissions();
-            setHasPermission(status.camera === "granted");
-        } catch (error) {
-            console.error("Permission check error:", error);
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            setHasPermission(true);
+            stream.getTracks().forEach(track => track.stop());
+        } catch {
             setHasPermission(false);
         }
     }, []);
 
-    // Request permissions
     const requestPermissions = useCallback(async () => {
         try {
-            const status = await BarcodeScanner.requestPermissions();
-            setHasPermission(status.camera === "granted");
-            
-            if (status.camera === "granted") {
-                startScanning();
-            } else {
-                toast.error("Permiso de cámara denegado. Por favor, habilita el acceso a la cámara en la configuración de tu dispositivo.");
-            }
-        } catch (error) {
-            console.error("Permission request error:", error);
-            toast.error("Error al solicitar permisos de cámara");
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment' }
+            });
+            setHasPermission(true);
+            stream.getTracks().forEach(track => track.stop());
+            startScanning();
+        } catch {
+            setHasPermission(false);
+            toast.error("Permiso de cámara denegado. Por favor, habilita el acceso a la cámara en la configuración de tu dispositivo.");
         }
     }, []);
 
-    // Start scanning
     const startScanning = useCallback(async () => {
         try {
             setIsScanning(true);
             
-            // Check if running in browser (not Capacitor)
             if (typeof navigator !== 'undefined' && 'mediaDevices' in navigator) {
-                // Use browser's getUserMedia for web
                 const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment' } // Use back camera
+                    video: { facingMode: 'environment' }
                 });
                 
                 if (videoRef.current) {
@@ -77,11 +68,7 @@ export function BarcodeScannerComponent({ onScan, onClose }: BarcodeScannerProps
                     streamRef.current = stream;
                 }
                 
-                // Start scanning with browser API
                 startBrowserScanning();
-            } else {
-                // Use Capacitor for native apps
-                await startCapacitorScanning();
             }
         } catch (error) {
             console.error("Start scanning error:", error);
@@ -90,13 +77,9 @@ export function BarcodeScannerComponent({ onScan, onClose }: BarcodeScannerProps
         }
     }, []);
 
-    // Browser-based scanning using BarcodeDetector API (experimental)
     const startBrowserScanning = useCallback(() => {
-        // Note: BarcodeDetector is experimental and not available in all browsers
-        // For production, consider using a library like html5-qrcode
-        
         if ('BarcodeDetector' in window) {
-            const barcodeDetector = new (window as any).BarcodeDetector({
+            const barcodeDetector = new (window as unknown as { BarcodeDetector: new (options: { formats: string[] }) => { detect: (image: ImageBitmap | ImageData | HTMLVideoElement) => Promise<{ rawValue: string }[]> } }).BarcodeDetector({
                 formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'qr_code']
             });
 
@@ -111,199 +94,125 @@ export function BarcodeScannerComponent({ onScan, onClose }: BarcodeScannerProps
                         console.error("Detection error:", error);
                     }
                     
-                    // Continue scanning
                     requestAnimationFrame(detectBarcode);
                 }
             };
 
             detectBarcode();
         } else {
-            // Fallback: Use html5-qrcode library or show message
             toast.info("Tu navegador no soporta detección automática. Usa un dispositivo móvil o ingresa el código manualmente.");
         }
     }, [isScanning]);
 
-    // Capacitor-based scanning (for native apps)
-    const startCapacitorScanning = useCallback(async () => {
-        try {
-            await BarcodeScanner.startScan();
-            
-            const listener = await BarcodeScanner.addListener('barcodeScanned', async (event) => {
-                handleBarcodeDetected(event.barcode.rawValue);
-            });
-
-            // Store listener for cleanup
-            return () => listener.remove();
-        } catch (error) {
-            console.error("Capacitor scanning error:", error);
-            throw error;
-        }
-    }, []);
-
-    // Handle barcode detected
     const handleBarcodeDetected = useCallback((value: string) => {
         if (value && value !== lastScanned) {
             setLastScanned(value);
             toast.success(`Código escaneado: ${value}`);
             onScan(value);
-            
-            // Stop scanning after successful scan
             stopScanning();
         }
     }, [lastScanned, onScan]);
 
-    // Stop scanning
     const stopScanning = useCallback(() => {
         setIsScanning(false);
         
-        // Stop browser camera stream
         if (streamRef.current) {
             streamRef.current.getTracks().forEach(track => track.stop());
             streamRef.current = null;
         }
-        
-        // Stop Capacitor scanning
-        BarcodeScanner.stopScan().catch(console.error);
     }, []);
 
-    // Toggle flashlight
     const toggleTorch = useCallback(async () => {
-        try {
-            if (typeof navigator !== 'undefined' && 'mediaDevices' in navigator) {
-                // Browser doesn't support torch control easily
-                toast.info("Control de flash no disponible en navegador");
-                return;
-            }
-            
-            await BarcodeScanner.toggleTorch();
-            setTorchOn(!torchOn);
-        } catch (error) {
-            console.error("Torch toggle error:", error);
-        }
-    }, [torchOn]);
+        toast.info("Control de flash no disponible en navegador");
+    }, []);
 
-    // Cleanup on unmount
-    useState(() => {
+    const cleanup = useCallback(() => {
+        stopScanning();
+        setHasPermission(null);
+    }, [stopScanning]);
+
+    useCallback(() => {
         checkPermissions();
-        
-        return () => {
-            stopScanning();
-        };
-    });
+    }, [checkPermissions]);
 
     return (
-        <DialogContent className="max-w-md">
-            <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                    <Scan className="w-5 h-5" />
-                    Escanear Código de Barras
-                </DialogTitle>
-                <DialogDescription>
-                    Apunta la cámara hacia el código de barras para escanearlo
-                </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4">
-                {/* Camera View */}
-                <Card>
-                    <CardContent className="p-0 relative aspect-square bg-black rounded-lg overflow-hidden">
+        <Dialog open onOpenChange={(open) => !open && onClose()}>
+            <DialogContent className="max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Escanear Código de Barras</DialogTitle>
+                    <DialogDescription>
+                        Apunta la cámara al código de barras del producto.
+                    </DialogDescription>
+                </DialogHeader>
+                
+                <div className="space-y-4">
+                    {hasPermission === false && (
+                        <Alert variant="destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription>
+                                Se requiere acceso a la cámara para escanear códigos.
+                            </AlertDescription>
+                        </Alert>
+                    )}
+                    
+                    <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
                         {isScanning ? (
                             <>
-                                <video
+                                <video 
                                     ref={videoRef}
-                                    autoPlay
+                                    autoPlay 
                                     playsInline
                                     muted
                                     className="w-full h-full object-cover"
                                 />
-                                {/* Scanning overlay */}
-                                <div className="absolute inset-0 border-2 border-primary/50 rounded-lg">
-                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 border-2 border-primary rounded-lg">
-                                        <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-primary" />
-                                        <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-primary" />
-                                        <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-primary" />
-                                        <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-primary" />
-                                    </div>
-                                </div>
-                                
-                                {/* Controls */}
-                                <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
-                                    <Button
-                                        size="icon"
-                                        variant="secondary"
-                                        onClick={toggleTorch}
-                                        className="rounded-full"
-                                    >
-                                        <Flashlight className="w-5 h-5" />
-                                    </Button>
-                                    <Button
-                                        size="icon"
-                                        variant="destructive"
-                                        onClick={stopScanning}
-                                        className="rounded-full"
-                                    >
-                                        <X className="w-5 h-5" />
-                                    </Button>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="w-64 h-32 border-2 border-white/50 rounded-lg" />
                                 </div>
                             </>
                         ) : (
-                            <div className="flex flex-col items-center justify-center h-full text-white p-8">
-                                <CameraIcon className="w-16 h-16 mb-4 opacity-50" />
-                                <p className="text-center text-sm mb-4">
-                                    {hasPermission === false 
-                                        ? "Permiso de cámara denegado"
-                                        : "Presiona iniciar para escanear"
-                                    }
-                                </p>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted text-muted-foreground">
+                                <CameraIcon className="h-12 w-12 mb-2" />
+                                <p>Cámara no activa</p>
                             </div>
                         )}
-                    </CardContent>
-                </Card>
-
-                {/* Last scanned */}
-                {lastScanned && (
-                    <Alert>
-                        <CheckCircle className="h-4 w-4" />
-                        <AlertDescription>
-                            Último código escaneado: <strong>{lastScanned}</strong>
-                        </AlertDescription>
-                    </Alert>
-                )}
-
-                {/* Permissions warning */}
-                {hasPermission === false && (
-                    <Alert variant="destructive">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>
-                            Se requiere permiso de cámara para escanear códigos de barras.
-                        </AlertDescription>
-                    </Alert>
-                )}
-            </div>
-
-            <DialogFooter className="gap-2">
-                {!isScanning ? (
-                    hasPermission === false ? (
-                        <Button onClick={requestPermissions} className="gap-2">
-                            <CameraIcon className="w-4 h-4" />
-                            Solicitar Permiso
-                        </Button>
+                    </div>
+                    
+                    {lastScanned && (
+                        <Alert>
+                            <CheckCircle className="h-4 w-4" />
+                            <AlertDescription>
+                                Último escaneado: <Badge variant="outline">{lastScanned}</Badge>
+                            </AlertDescription>
+                        </Alert>
+                    )}
+                </div>
+                
+                <DialogFooter className="flex gap-2">
+                    {!isScanning ? (
+                        <>
+                            <Button variant="outline" onClick={onClose}>
+                                <X className="h-4 w-4 mr-2" />
+                                Cancelar
+                            </Button>
+                            <Button onClick={hasPermission === null ? requestPermissions : startScanning}>
+                                <Scan className="h-4 w-4 mr-2" />
+                                Escanear
+                            </Button>
+                        </>
                     ) : (
-                        <Button onClick={startScanning} className="gap-2">
-                            <Scan className="w-4 h-4" />
-                            Iniciar Escaneo
-                        </Button>
-                    )
-                ) : (
-                    <Button variant="outline" onClick={stopScanning} className="gap-2">
-                        <X className="w-4 h-4" />
-                        Detener
-                    </Button>
-                )}
-                <Button variant="outline" onClick={onClose}>
-                    Cerrar
-                </Button>
-            </DialogFooter>
-        </DialogContent>
+                        <>
+                            <Button variant="outline" onClick={toggleTorch}>
+                                <Flashlight className="h-4 w-4 mr-2" />
+                                Flash
+                            </Button>
+                            <Button variant="destructive" onClick={stopScanning}>
+                                <X className="h-4 w-4 mr-2" />
+                                Detener
+                            </Button>
+                        </>
+                    )}
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 }

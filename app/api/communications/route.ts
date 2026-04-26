@@ -3,6 +3,8 @@ import { db } from '@/lib/db';
 import { employeeCommunications, communicationReadReceipts, messageTemplates, users } from '@/lib/db/schema';
 import { eq, and, desc, or, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
+import { auth } from '@/lib/auth';
+import { headers } from 'next/headers';
 
 // Validation schemas
 const createCommunicationSchema = z.object({
@@ -107,12 +109,23 @@ export async function GET(request: NextRequest) {
 // POST - Create a new communication
 export async function POST(request: NextRequest) {
   try {
+    const session = await auth.api.getSession({
+      headers: await headers()
+    });
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const validated = createCommunicationSchema.safeParse(body);
 
     if (!validated.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: validated.error.errors },
+        { error: 'Invalid input', details: validated.error.issues },
         { status: 400 }
       );
     }
@@ -124,6 +137,7 @@ export async function POST(request: NextRequest) {
       .values({
         ...data,
         status: 'DRAFT',
+        createdBy: session.user.id,
       })
       .returning();
 
@@ -153,7 +167,7 @@ export async function PATCH(request: NextRequest) {
 
       if (!validated.success) {
         return NextResponse.json(
-          { error: 'Invalid input', details: validated.error.errors },
+          { error: 'Invalid input', details: validated.error.issues },
           { status: 400 }
         );
       }
@@ -186,7 +200,7 @@ export async function PATCH(request: NextRequest) {
 
       if (!validated.success) {
         return NextResponse.json(
-          { error: 'Invalid input', details: validated.error.errors },
+          { error: 'Invalid input', details: validated.error.issues },
           { status: 400 }
         );
       }

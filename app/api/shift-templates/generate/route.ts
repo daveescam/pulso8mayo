@@ -20,9 +20,12 @@ const generateFromTemplateSchema = z.object({
  * Genera turnos concretos desde una plantilla para un rango de fechas
  */
 export async function POST(req: NextRequest) {
-    try {
-        const tenant = await requireTenant();
-        const body = await req.json();
+  try {
+    const tenant = await requireTenant();
+    if (!tenant.id) {
+      return ApiHandler.error(new Error("No company assigned"), { status: 403 });
+    }
+    const body = await req.json();
         const data = generateFromTemplateSchema.parse(body);
 
         // Obtener la plantilla
@@ -53,17 +56,17 @@ export async function POST(req: NextRequest) {
             for (const date of validDates) {
                 const dateStr = format(date, "yyyy-MM-dd");
 
-                shiftsToCreate.push({
-                    userId,
-                    branchId: template.branchId || tenant.companyId, // Fallback a company si no hay branch
-                    shiftDate: dateStr,
-                    startTime: template.startTime,
-                    endTime: template.endTime,
-                    role: template.role,
-                    templateId: template.id,
-                    status: "DRAFT" as const,
-                    createdBy: tenant.userId,
-                });
+      shiftsToCreate.push({
+        userId,
+        branchId: template.branchId || tenant.id!, // Fallback a company si no hay branch
+        shiftDate: dateStr,
+        startTime: template.startTime,
+        endTime: template.endTime,
+        role: template.role,
+        templateId: template.id,
+        status: "DRAFT" as const,
+        createdBy: tenant.userId,
+      });
             }
         }
 
@@ -81,11 +84,11 @@ export async function POST(req: NextRequest) {
             datesGenerated: validDates.length,
             usersCount: data.userIds.length,
         });
-    } catch (error) {
-        console.error("Error generating shifts from template:", error);
-        if (error instanceof z.ZodError) {
-            return ApiHandler.error(new Error(`Validación: ${error.errors.map(e => e.message).join(", ")}`), { status: 400 });
-        }
-        return ApiHandler.error(error);
+  } catch (error) {
+    console.error("Error generating shifts from template:", error);
+    if (error instanceof z.ZodError) {
+      return ApiHandler.error(new Error(`Validación: ${error.issues.map(e => e.message).join(", ")}`), { status: 400 });
     }
+    return ApiHandler.error(error);
+  }
 }

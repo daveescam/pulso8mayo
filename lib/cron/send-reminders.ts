@@ -50,7 +50,11 @@ export async function sendDueSoonReminders() {
             try {
                 console.log(`[Cron] Sending reminder for assignment: ${assignment.id}`);
 
-                await NotificationService.notifyWorkflowDueSoon(assignment);
+                const assignmentData = {
+                    ...assignment,
+                    dueDate: assignment.dueDate?.toISOString(),
+                };
+                await NotificationService.notifyWorkflowDueSoon(assignmentData);
                 console.log(`[Cron] Reminder sent for assignment ${assignment.id}`);
 
                 successCount++;

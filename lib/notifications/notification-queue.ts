@@ -60,7 +60,7 @@ export class NotificationQueue {
             try {
                 await client.publish({
                     url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/notifications/process`,
-                    body: queuePayload,
+                    body: JSON.stringify(queuePayload),
                     headers: {
                         "Content-Type": "application/json"
                     },

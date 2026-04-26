@@ -124,19 +124,19 @@ export async function PUT(req: NextRequest) {
             });
         } else {
             // Create new preferences
-            const [created] = await db
-                .insert(notificationPreferences)
-                .set({
-                    userId,
-                    whatsappEnabled: body.whatsappEnabled ?? true,
-                    emailEnabled: body.emailEnabled ?? true,
-                    inAppEnabled: body.inAppEnabled ?? true,
-                    workflowAssignments: body.workflowAssignments ?? true,
-                    workflowDueSoon: body.workflowDueSoon ?? true,
-                    workflowOverdue: body.workflowOverdue ?? true,
-                    incidents: body.incidents ?? true
-                })
-                .returning();
+    const [created] = await db
+      .insert(notificationPreferences)
+      .values({
+        userId,
+        whatsappEnabled: body.whatsappEnabled ?? true,
+        emailEnabled: body.emailEnabled ?? true,
+        inAppEnabled: body.inAppEnabled ?? true,
+        workflowAssignments: body.workflowAssignments ?? true,
+        workflowDueSoon: body.workflowDueSoon ?? true,
+        workflowOverdue: body.workflowOverdue ?? true,
+        incidents: body.incidents ?? true
+      })
+      .returning();
 
             return NextResponse.json({
                 data: {

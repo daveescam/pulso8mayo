@@ -82,50 +82,59 @@ export async function GET(request: NextRequest) {
             filters: { companyId, branchId, dateFrom, dateTo },
         };
 
-        // Execute report based on data source
-        switch (reportDef.dataSource) {
-            case 'employees':
-                const employeeQuery = db
-                    .select({
-                        employeeNumber: employeeProfiles.employeeNumber,
-                        name: sql<string>`u.name`,
-                        department: employeeProfiles.department,
-                        position: employeeProfiles.position,
-                        employeeStatus: employeeProfiles.employeeStatus,
-                        hireDate: employeeProfiles.hireDate,
-                        terminationDate: employeeProfiles.terminationDate,
-                        terminationReason: employeeProfiles.terminationReason,
-                        branchId: employeeProfiles.branchId,
-                    })
-                    .from(employeeProfiles)
-                    .leftJoin(sql`users u`, eq(employeeProfiles.userId, sql`u.id`))
-                    .where(eq(sql`u."company_id"`, companyId));
+// Execute report based on data source
+    switch (reportDef.dataSource) {
+      case 'employees':
+        // Build conditions array dynamically
+        const conditions = [eq(sql`u."company_id"`, companyId)];
+        
+        // Apply date filter
+        if (dateFrom) {
+          conditions.push(gte(employeeProfiles.hireDate, new Date(dateFrom)));
+        }
+        if (dateTo) {
+          conditions.push(lte(employeeProfiles.hireDate, new Date(dateTo)));
+        }
 
-                // Apply date filter
-                if (dateFrom) {
-                    employeeQuery.where(gte(employeeProfiles.hireDate, new Date(dateFrom)));
-                }
-                if (dateTo) {
-                    employeeQuery.where(lte(employeeProfiles.hireDate, new Date(dateTo)));
-                }
+        // Apply branch filter
+        if (branchId && branchId !== 'all') {
+          conditions.push(eq(sql`u.branch_id`, branchId));
+        }
 
-                // Apply branch filter
-                if (branchId && branchId !== 'all') {
-                    employeeQuery.where(eq(employeeProfiles.branchId, branchId));
-                }
+        // Apply report-specific filters
+        if ('filters' in reportDef && reportDef.filters?.employeeStatus) {
+          conditions.push(sql`employee_profiles.employee_status IN (${sql.join(reportDef.filters.employeeStatus.map(s => sql`'${s}'`), sql`, `)})`);
+        }
 
-                // Apply report-specific filters
-                if (reportDef.filters?.employeeStatus) {
-                    employeeQuery.where(sql`employee_profiles.employee_status IN (${sql.join(reportDef.filters.employeeStatus.map(s => sql`'${s}'`), sql`, `)})`);
-                }
+        // Build the query
+        let employeeQuery = db
+          .select({
+            employeeNumber: employeeProfiles.employeeNumber,
+            name: sql<string>`u.name`,
+            department: employeeProfiles.department,
+            position: employeeProfiles.position,
+            employeeStatus: employeeProfiles.employeeStatus,
+            hireDate: employeeProfiles.hireDate,
+            terminationDate: employeeProfiles.terminationDate,
+            terminationReason: employeeProfiles.terminationReason,
+            branchId: sql<string>`u.branch_id`,
+          })
+          .from(employeeProfiles)
+          .leftJoin(sql`users u`, eq(employeeProfiles.userId, sql`u.id`))
+          .where(and(...conditions));
 
-                // Apply grouping
-                if (reportDef.groupBy) {
-                    employeeQuery.groupBy(...reportDef.groupBy.map(field => employeeProfiles[field as keyof typeof employeeProfiles]));
-                }
+        // Apply grouping
+        if ('groupBy' in reportDef && reportDef.groupBy) {
+          const groupByColumns = reportDef.groupBy.map(field => {
+            if (field === 'department') return employeeProfiles.department;
+            if (field === 'employeeStatus') return employeeProfiles.employeeStatus;
+            return sql.raw(field);
+          });
+          employeeQuery = employeeQuery.groupBy(...groupByColumns) as typeof employeeQuery;
+        }
 
-                data = await employeeQuery;
-                break;
+        data = await employeeQuery;
+        break;
 
             case 'contracts':
                 data = await db

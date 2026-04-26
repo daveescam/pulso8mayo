@@ -76,22 +76,23 @@ export async function POST(
             return NextResponse.json({ error: "Company info missing" }, { status: 400 });
         }
 
-        const newTraining = await db.insert(employeeTraining).values({
-            userId: employeeId,
-            companyId: companyId,
-            trainingName: body.trainingName,
-            trainingType: body.trainingType || 'TRAINING',
-            provider: body.provider || null,
-            startDate: new Date(body.startDate || new Date()),
-            endDate: body.endDate ? new Date(body.endDate) : null,
-            completionDate: body.completionDate ? new Date(body.completionDate) : null,
-            expirationDate: body.expirationDate ? new Date(body.expirationDate) : null,
-            status: body.status || 'SCHEDULED',
-            certificationNumber: body.certificationNumber || null,
-            isMandatory: body.isMandatory !== undefined ? body.isMandatory : false,
-            cost: body.cost ? Number(body.cost) : 0,
-            notes: body.notes || null,
-        }).returning();
+    const newTraining = await db.insert(employeeTraining).values({
+      userId: employeeId,
+      companyId: companyId,
+      trainingName: body.trainingName,
+      trainingType: body.trainingType || 'TRAINING',
+      provider: body.provider || null,
+      startDate: new Date(body.startDate || new Date()),
+      endDate: body.endDate ? new Date(body.endDate) : null,
+      completionDate: body.completionDate ? new Date(body.completionDate) : null,
+      expirationDate: body.expirationDate ? new Date(body.expirationDate) : null,
+      status: body.status || 'SCHEDULED',
+      certificationNumber: body.certificationNumber || null,
+      isMandatory: body.isMandatory !== undefined ? body.isMandatory : false,
+      cost: body.cost ? Number(body.cost) : 0,
+      notes: body.notes || null,
+      createdBy: session.user.id
+    }).returning();
 
         return NextResponse.json({
             data: newTraining[0],

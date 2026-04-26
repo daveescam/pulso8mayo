@@ -7,16 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { 
-  CheckCircle2, 
-  Circle, 
-  FileUp, 
-  Clock, 
-  Calendar, 
-  Sparkles, 
+import {
+  CheckCircle2,
+  Circle,
+  FileUp,
+  Clock,
+  Calendar,
+  Sparkles,
   ChevronRight,
   Info,
-  Loader2
+  Loader2,
+  Users
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";

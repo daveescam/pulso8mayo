@@ -74,7 +74,7 @@ export class EmployeeService {
 
     if (branchId) filters.push(eq(users.branchId, branchId));
     if (department) filters.push(eq(employeeProfiles.department, department));
-    if (status) filters.push(eq(employeeProfiles.employeeStatus, status));
+    if (status) filters.push(eq(employeeProfiles.employeeStatus, status as any));
 
     // Search filter
     if (search) {
@@ -240,6 +240,9 @@ export class EmployeeService {
       const employee: EmployeeData = {
         ...result[0],
         userId: result[0].id,
+        userName: result[0].name ?? null,
+        userEmail: result[0].email ?? null,
+        userRole: result[0].role ?? null,
         address: result[0].address || {},
         languages: result[0].languages || [],
         skills: result[0].skills || [],
@@ -274,7 +277,7 @@ export class EmployeeService {
 
         if (onboarding && onboarding.length > 0) {
           employee.onboarding = onboarding[0];
-          employee.onboarding.steps = await db
+          employee.onboarding!.steps = await db
             .select()
             .from(onboardingSteps)
             .where(eq(onboardingSteps.onboardingId, onboarding[0].id))

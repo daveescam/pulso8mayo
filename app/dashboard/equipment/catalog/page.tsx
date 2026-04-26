@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Plus, Search, Wrench } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { EquipmentCatalogForm } from "@/components/equipment/equipment-catalog-form";
 
 interface CatalogItem {
   id: string;
@@ -81,13 +82,11 @@ export default function EquipmentCatalogPage() {
               Agregar al Catálogo
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Agregar al Catálogo</DialogTitle>
             </DialogHeader>
-            <p className="text-sm text-muted-foreground">
-              Formulario de catálogo próximamente
-            </p>
+            <EquipmentCatalogForm onSuccess={() => { window.location.reload(); }} />
           </DialogContent>
         </Dialog>
       </div>

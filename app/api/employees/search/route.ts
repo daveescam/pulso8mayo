@@ -54,9 +54,9 @@ export async function GET(request: NextRequest) {
             conditions.push(eq(employeeProfiles.employeeStatus, status as any));
         }
 
-        if (branchId && branchId !== 'all') {
-            conditions.push(eq(employeeProfiles.branchId, branchId));
-        }
+    if (branchId && branchId !== 'all') {
+      conditions.push(eq(sql`u."branch_id"`, branchId));
+    }
 
         if (city) {
             conditions.push(ilike(employeeProfiles.city, `%${city}%`));
@@ -85,31 +85,39 @@ export async function GET(request: NextRequest) {
         const totalPages = Math.ceil(total / limit);
         const offset = (page - 1) * limit;
 
-        // Build order by
-        const orderBy = sortOrder === 'desc'
-            ? desc(employeeProfiles[sortBy as keyof typeof employeeProfiles] || employeeProfiles.name)
-            : asc(employeeProfiles[sortBy as keyof typeof employeeProfiles] || employeeProfiles.name);
+    // Build order by - use employeeProfiles columns for sorting
+    const validSortColumns: Record<string, any> = {
+      userId: employeeProfiles.userId,
+      employeeNumber: employeeProfiles.employeeNumber,
+      department: employeeProfiles.department,
+      position: employeeProfiles.position,
+      hireDate: employeeProfiles.hireDate,
+      createdAt: employeeProfiles.createdAt,
+    };
+    const orderBy = sortOrder === 'desc'
+      ? desc(validSortColumns[sortBy] || employeeProfiles.userId)
+      : asc(validSortColumns[sortBy] || employeeProfiles.userId);
 
-        // Fetch employees
-        const employees = await db
-            .select({
-                id: employeeProfiles.id,
-                userId: employeeProfiles.userId,
-                employeeNumber: employeeProfiles.employeeNumber,
-                name: sql<string>`u.name`,
-                email: sql<string>`u.email`,
-                image: sql<string>`u.image`,
-                department: employeeProfiles.department,
-                position: employeeProfiles.position,
-                employeeStatus: employeeProfiles.employeeStatus,
-                hireDate: employeeProfiles.hireDate,
-                branchId: employeeProfiles.branchId,
-                city: employeeProfiles.city,
-                state: employeeProfiles.state,
-                profilePhotoUrl: employeeProfiles.profilePhotoUrl,
-            })
-            .from(employeeProfiles)
-            .leftJoin(sql`users u`, eq(employeeProfiles.userId, sql`u.id`))
+    // Fetch employees
+    const employees = await db
+      .select({
+        id: employeeProfiles.id,
+        userId: employeeProfiles.userId,
+        employeeNumber: employeeProfiles.employeeNumber,
+        name: sql<string>`u.name`,
+        email: sql<string>`u.email`,
+        image: sql<string>`u.image`,
+        department: employeeProfiles.department,
+        position: employeeProfiles.position,
+        employeeStatus: employeeProfiles.employeeStatus,
+        hireDate: employeeProfiles.hireDate,
+        branchId: sql<string>`u.branch_id`,
+        city: employeeProfiles.city,
+        state: employeeProfiles.state,
+        profilePhotoUrl: employeeProfiles.profilePhotoUrl,
+      })
+      .from(employeeProfiles)
+      .leftJoin(sql`users u`, eq(employeeProfiles.userId, sql`u.id`))
             .where(and(...conditions))
             .orderBy(orderBy)
             .limit(limit)

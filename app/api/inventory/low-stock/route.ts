@@ -3,7 +3,7 @@ import { getSession } from "@/lib/auth";
 import { InventoryService } from "@/lib/services/inventory-service";
 import { db } from "@/lib/db";
 import { inventoryItems, inventoryBatches, branches } from "@/lib/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, inArray } from "drizzle-orm";
 
 /**
  * GET /api/inventory/low-stock
@@ -58,11 +58,11 @@ export async function GET(req: NextRequest) {
         .from(inventoryItems)
         .where(inArray(inventoryItems.id, itemIds));
 
-        // Map stock to items
-        const itemsWithStock = items.map(item => {
-            const stock = stockLevels.find(s => s.itemId === item.itemId);
-            const currentStock = stock?.totalStock || 0;
-            const minLevel = item.minLevel || 0;
+  // Map stock to items
+  const itemsWithStock = items.map(item => {
+    const stock = stockLevels.find(s => s.itemId === item.id);
+    const currentStock = stock?.totalStock || 0;
+    const minLevel = item.minLevel || 0;
             
             return {
                 ...item,

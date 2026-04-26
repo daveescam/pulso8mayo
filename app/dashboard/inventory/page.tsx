@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Loader2, Package, PackagePlus, ArrowRight } from "lucide-react";
+import { Plus, Search, Loader2, Package, PackagePlus, ArrowRight, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 
@@ -76,8 +76,8 @@ export default function InventoryPage() {
                 </div>
             </div>
 
-            {/* Quick Actions */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+{/* Quick Actions */}
+  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Link href="/dashboard/inventory/receiving">
                     <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -110,23 +110,40 @@ export default function InventoryPage() {
                     </CardContent>
                 </Card>
 
-                <Link href="/dashboard/inventory/suppliers">
-                    <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                                Suppliers
-                            </CardTitle>
-                            <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">Manage</div>
-                            <p className="text-xs text-muted-foreground">
-                                View and manage suppliers
-                            </p>
-                        </CardContent>
-                    </Card>
-                </Link>
-            </div>
+<Link href="/dashboard/inventory/suppliers">
+      <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">
+            Suppliers
+          </CardTitle>
+          <ArrowRight className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">Manage</div>
+          <p className="text-xs text-muted-foreground">
+            View and manage suppliers
+          </p>
+        </CardContent>
+      </Card>
+    </Link>
+
+    <Link href="/dashboard/inventory/waste">
+      <Card className="cursor-pointer hover:bg-muted/50 transition-colors border-amber-200">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-amber-700">
+            Register Waste
+          </CardTitle>
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold text-amber-900">Waste</div>
+          <p className="text-xs text-muted-foreground">
+            Register expired, damaged, or quality issues
+          </p>
+        </CardContent>
+      </Card>
+    </Link>
+  </div>
 
             <div className="flex items-center gap-2 mb-4">
                 <div className="relative flex-1 max-w-sm">

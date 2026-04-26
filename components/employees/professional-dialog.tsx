@@ -47,8 +47,8 @@ const professionalSchema = z.object({
   standardHoursPerWeek: z.number().min(1).max(168).optional(),
   
   // Skills & Languages
-  skills: z.array(z.string()).optional().default([]),
-  languages: z.array(z.string()).optional().default([]),
+  skills: z.array(z.string()),
+  languages: z.array(z.string()),
   notes: z.string().optional().or(z.literal("")),
 });
 

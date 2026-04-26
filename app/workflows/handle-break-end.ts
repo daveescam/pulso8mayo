@@ -3,7 +3,7 @@ import { ShiftService } from "@/lib/services/shift-service";
 import { ShiftWorkflowService } from "@/lib/services/shift-workflow-service";
 import { WhatsAppService } from "@/lib/services/whatsapp-service";
 import { db } from "@/lib/db";
-import { breakLogs } from "@/lib/db/schema";
+import { breakLogs, shiftSessions } from "@/lib/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 
 // Step 1: End Break with optional geolocation

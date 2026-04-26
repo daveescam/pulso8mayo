@@ -35,10 +35,10 @@ export async function endSessionStep(
                 .where(eq(shiftSessions.id, session.id));
         }
 
-        // End the session (calculates work time, overtime, etc.)
-        const [updatedSession] = await ShiftService.endSession(userId);
+  // End the session (calculates work time, overtime, etc.)
+  const updatedSession = await ShiftService.endSession(userId);
 
-        return { success: true, session: updatedSession };
+  return { success: true, session: updatedSession };
     } catch (e: any) {
         return { success: false, error: e.message };
     }

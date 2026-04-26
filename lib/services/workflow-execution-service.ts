@@ -73,12 +73,21 @@ export class WorkflowExecutionService {
             where: eq(workflowTemplates.id, instance.workflowTemplateId)
         });
 
-        return {
-            ...instance,
-            steps,
-            assignee,
-            template
-        };
+return {
+    ...instance,
+    templateId: instance.workflowTemplateId,
+    assignedTo: instance.assigneeId,
+    createdAt: instance.createdAt?.toISOString(),
+    completedAt: instance.completedAt?.toISOString(),
+    steps: steps.map(s => ({
+      ...s,
+      value: s.value as string || "",
+      status: s.status as "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED",
+      completedAt: s.completedAt?.toISOString()
+    })),
+    assignee,
+    template
+  };
     }
 
     static async updateStep(

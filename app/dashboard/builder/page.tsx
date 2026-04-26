@@ -16,10 +16,25 @@ export default async function BuilderPage() {
         redirect("/sign-in");
     }
 
-    const templates = await db.select()
-        .from(workflowTemplates)
-        .where(eq(workflowTemplates.companyId, session.user.companyId || ""))
-        .orderBy(desc(workflowTemplates.updatedAt));
+const rawTemplates = await db.select({
+    id: workflowTemplates.id,
+    name: workflowTemplates.name,
+    description: workflowTemplates.description,
+    category: workflowTemplates.category,
+    steps: workflowTemplates.steps,
+  })
+  .from(workflowTemplates)
+  .where(eq(workflowTemplates.companyId, session.user.companyId || ""))
+  .orderBy(desc(workflowTemplates.updatedAt));
+
+  const templates = rawTemplates as unknown as Array<{
+    id: string;
+    name: string;
+    description?: string;
+    category: string;
+    steps?: Array<{ id: string; type: string; title: string; required?: boolean; options?: string[] }>;
+    createdAt?: Date;
+  }>;
 
     return (
         <div className="container mx-auto py-8">

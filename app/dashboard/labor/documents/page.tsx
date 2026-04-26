@@ -34,23 +34,31 @@ export default async function LaborDocumentsPage() {
 
         const tenant = await requireTenant()
         
-        // Get document stats
-        const docs = await db.query.employeeDocuments.findMany({
-            where: eq(employeeDocuments.companyId, tenant.companyId)
-        })
+// Get document stats
+const docsRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || ''}/api/employee-documents?companyId=${tenant.id}`, {
+  headers: await headers()
+});
+const docsData = await docsRes.json();
+const docs = docsData.documents || [];
 
         const totalDocuments = docs.length
         const validDocuments = docs.filter(d => d.isValid && d.status === 'VALIDATED').length
         const pendingDocuments = docs.filter(d => d.status === 'PENDING').length
         const expiredDocuments = docs.filter(d => d.status === 'EXPIRED' || !d.isValid).length
 
-        // Get employee count
-        const employees = await db.query.users.findMany({
-            where: and(
-                eq(users.companyId, tenant.companyId),
-                isNull(users.deletedAt)
-            )
-        })
+// Get employee count
+const employees: any[] = []
+try {
+  const empRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || ''}/api/employees?companyId=${tenant.id}`, {
+    headers: await headers()
+  });
+  const empData = await empRes.json();
+  if (empData.employees) {
+    employees.push(...empData.employees);
+  }
+} catch (e) {
+  console.error("Error fetching employees:", e);
+}
 
         // Calculate missing required documents
         const requiredTypes = ['CONTRACT', 'ID', 'TAX_ID', 'BANK_INFO']

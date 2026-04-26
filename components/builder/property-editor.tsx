@@ -223,7 +223,7 @@ export function PropertyEditor() {
             )}
 
             {/* Type specific config */}
-            {(step.type === 'photo' || step.type === 'PhotoField' || step.type === 'Photo') && (
+            {(step.type === 'photo' || step.type === 'PhotoField') && (
                 <div className="space-y-4 border-t pt-4">
                     <h4 className="font-medium text-sm">AI Verification</h4>
 
@@ -301,7 +301,7 @@ export function PropertyEditor() {
             )}
 
             {/* Conditional Branches */}
-            {(step.type === 'yes_no' || step.type === 'Select' || step.type === 'Checklist' || step.type === 'multiple_choice') && (
+            {(step.type === 'yes_no' || step.type === 'multiple_choice' || step.type === 'checklist') && (
                 <div className="space-y-4 border-t pt-4">
                     <h4 className="font-medium text-sm">Conditional Branches</h4>
                     <p className="text-xs text-muted-foreground">
@@ -373,7 +373,7 @@ export function PropertyEditor() {
             )}
 
             {/* Checklist Options */}
-            {(step.type === 'checklist' || step.type === 'ChecklistField' || step.type === 'Checklist') && (
+            {step.type === 'checklist' && (
                 <div className="space-y-4 border-t pt-4">
                     <div className="flex items-center justify-between">
                         <h4 className="font-medium text-sm">Checklist Options</h4>
@@ -430,7 +430,7 @@ export function PropertyEditor() {
             )}
 
             {/* Select Options */}
-            {(step.type === 'multiple_choice' || step.type === 'ChoiceField' || step.type === 'Choice' || step.type === 'SelectField' || step.type === 'Select') && (
+            {step.type === 'multiple_choice' && (
                 <div className="space-y-4 border-t pt-4">
                     <div className="flex items-center justify-between">
                         <h4 className="font-medium text-sm">Choice Options</h4>

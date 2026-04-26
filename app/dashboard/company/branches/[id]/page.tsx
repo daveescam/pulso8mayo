@@ -32,11 +32,12 @@ interface Branch {
     managerId: string | null;
     inviteToken: string;
     active: boolean;
-    manager?: {
-        id: string;
-        name: string | null;
-        email: string;
-    } | null;
+manager?: {
+    id: string;
+    name: string | null;
+    email: string;
+    role: string;
+  } | null;
 }
 
 interface Employee {

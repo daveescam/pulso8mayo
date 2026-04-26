@@ -33,18 +33,21 @@ const managerDecisionSchema = z.object({
  * Query params: status, userId, branchId
  */
 export async function GET(req: NextRequest) {
-    try {
-        const tenant = await requireTenant();
-        const searchParams = req.nextUrl.searchParams;
-        const status = searchParams.get("status");
-        const userId = searchParams.get("userId");
-        const branchId = searchParams.get("branchId");
+  try {
+    const tenant = await requireTenant();
+    if (!tenant.id) {
+      return ApiHandler.error(new Error("No company assigned"), { status: 403 });
+    }
+    const searchParams = req.nextUrl.searchParams;
+    const status = searchParams.get("status");
+    const userId = searchParams.get("userId");
+    const branchId = searchParams.get("branchId");
 
-        const conditions = [eq(shiftChangeRequests.companyId, tenant.companyId)];
+    const conditions = [eq(shiftChangeRequests.companyId, tenant.id)];
 
-        if (status) {
-            conditions.push(eq(shiftChangeRequests.status, status));
-        }
+    if (status) {
+      conditions.push(eq(shiftChangeRequests.status, status as 'PENDING' | 'CANCELLED' | 'APPROVED' | 'REJECTED'));
+    }
 
         if (branchId) {
             conditions.push(eq(shiftChangeRequests.branchId, branchId));
@@ -107,9 +110,12 @@ export async function GET(req: NextRequest) {
  * Crea una nueva solicitud de cambio de turno
  */
 export async function POST(req: NextRequest) {
-    try {
-        const tenant = await requireTenant();
-        const body = await req.json();
+  try {
+    const tenant = await requireTenant();
+    if (!tenant.id) {
+      return ApiHandler.error(new Error("No company assigned"), { status: 403 });
+    }
+    const body = await req.json();
         const data = createShiftChangeRequestSchema.parse(body);
 
         // Verificar que el turno solicitado existe y pertenece a la compañía
@@ -151,11 +157,11 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // Crear la solicitud
-        const newRequest = await db.insert(shiftChangeRequests).values({
-            companyId: tenant.companyId,
-            branchId: requestedShift.branchId,
-            requestedBy: tenant.userId,
+    // Crear la solicitud
+    const newRequest = await db.insert(shiftChangeRequests).values({
+      companyId: tenant.id,
+      branchId: requestedShift.branchId,
+      requestedBy: tenant.userId,
             requestedShiftId: data.requestedShiftId,
             counterpartyId: data.counterpartyId,
             counterpartyShiftId: data.counterpartyShiftId || null,
@@ -165,13 +171,13 @@ export async function POST(req: NextRequest) {
         }).returning();
 
         return ApiHandler.success(newRequest[0], 201);
-    } catch (error) {
-        console.error("Error creating shift change request:", error);
-        if (error instanceof z.ZodError) {
-            return ApiHandler.error(new Error(`Validación: ${error.errors.map(e => e.message).join(", ")}`), { status: 400 });
-        }
-        return ApiHandler.error(error);
+  } catch (error) {
+    console.error("Error creating shift change request:", error);
+    if (error instanceof z.ZodError) {
+      return ApiHandler.error(new Error(`Validación: ${error.issues.map(e => e.message).join(", ")}`), { status: 400 });
     }
+    return ApiHandler.error(error);
+  }
 }
 
 /**
@@ -243,13 +249,13 @@ export async function PUT(req: NextRequest) {
         }
 
         return ApiHandler.error(new Error("Acción no válida"), { status: 400 });
-    } catch (error) {
-        console.error("Error updating shift change request:", error);
-        if (error instanceof z.ZodError) {
-            return ApiHandler.error(new Error(`Validación: ${error.errors.map(e => e.message).join(", ")}`), { status: 400 });
-        }
-        return ApiHandler.error(error);
+  } catch (error) {
+    console.error("Error updating shift change request:", error);
+    if (error instanceof z.ZodError) {
+      return ApiHandler.error(new Error(`Validación: ${error.issues.map(e => e.message).join(", ")}`), { status: 400 });
     }
+    return ApiHandler.error(error);
+  }
 }
 
 /**
