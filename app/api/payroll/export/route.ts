@@ -1,72 +1,114 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { calculatePayrollData, payrollToCSV } from '@/lib/services/compliance/payroll-calculator';
-import { z } from 'zod';
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { users, employeeProfiles, employeeContracts } from "@/lib/db/schema";
+import { eq, and, isNull } from "drizzle-orm";
+import { requireTenant } from "@/lib/tenant-context";
 
-const exportSchema = z.object({
-  companyId: z.string().uuid(),
-  branchId: z.string().uuid().optional(),
-  startDate: z.string(), // YYYY-MM-DD
-  endDate: z.string(),   // YYYY-MM-DD
-  format: z.enum(['generic', 'contpaqi', 'noi']).default('generic'),
-});
+export async function POST(req: NextRequest) {
+    try {
+        const session = await auth.api.getSession({ headers: req.headers });
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+        }
 
-// POST - Generate payroll export
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const validated = exportSchema.safeParse(body);
+        const tenant = await requireTenant();
+        const body = await req.json();
+        const { startDate, endDate } = body;
 
-  if (!validated.success) {
-    return NextResponse.json(
-      { error: 'Invalid input', details: validated.error.issues },
-      { status: 400 }
-    );
-  }
+        if (!startDate || !endDate) {
+            return NextResponse.json(
+                { error: "startDate y endDate requeridos" },
+                { status: 400 }
+            );
+        }
 
-  const { companyId, branchId, startDate, endDate, format } = validated.data;
+        const employeeData = await db
+            .select({
+                userId: users.id,
+                name: users.name,
+                employeeNumber: employeeProfiles.employeeNumber,
+                nss: employeeProfiles.nss,
+                curp: employeeProfiles.curp,
+                rfc: employeeProfiles.rfc,
+                hireDate: employeeProfiles.hireDate,
+                position: employeeProfiles.position,
+                department: employeeProfiles.department,
+                baseSalary: employeeContracts.baseSalary,
+                contractType: employeeContracts.contractType,
+            })
+            .from(users)
+            .leftJoin(employeeProfiles, eq(users.id, employeeProfiles.userId))
+            .leftJoin(employeeContracts, and(
+                eq(employeeContracts.userId, users.id),
+                isNull(employeeContracts.endDate)
+            ))
+            .where(eq(users.companyId, tenant.id as string));
 
-    // Calculate payroll data
-    const records = await calculatePayrollData({
-      companyId,
-      branchId,
-      startDate,
-      endDate,
-    });
+        const records = employeeData.map(emp => {
+            const baseSalary = Number(emp.baseSalary || 0) / 100;
+            const dailyRate = baseSalary / 30;
+            const workDays = 15;
+            const grossPay = dailyRate * workDays;
+            const imssEmployee = grossPay * 0.02375;
+            const isrEstimate = grossPay * 0.03;
+            const netPay = grossPay - imssEmployee - isrEstimate;
 
-    // Return as JSON for preview, or as CSV for download
-    const { searchParams } = new URL(request.url);
-    const output = searchParams.get('output') || 'json';
+            const hireDateVal = emp.hireDate;
+            const hireDateStr = hireDateVal 
+                ? new Date(hireDateVal as unknown as string).toISOString().slice(0, 10) 
+                : "";
 
-    if (output === 'csv') {
-      const csv = payrollToCSV(records, format);
-      const formatLabel = format === 'contpaqi' ? 'CONTPAQi' : format === 'noi' ? 'NOI' : 'General';
-      const filename = `nomina_${formatLabel}_${startDate}_${endDate}.csv`;
+            return [
+                emp.employeeNumber || emp.userId.slice(0, 8),
+                emp.name || "",
+                emp.nss || "",
+                emp.curp || "",
+                emp.rfc || "",
+                emp.position || "",
+                emp.department || "",
+                hireDateStr,
+                emp.contractType || "FIJO",
+                workDays,
+                baseSalary.toFixed(2),
+                dailyRate.toFixed(2),
+                grossPay.toFixed(2),
+                imssEmployee.toFixed(2),
+                isrEstimate.toFixed(2),
+                netPay.toFixed(2),
+                0,
+            ];
+        });
 
-      return new NextResponse(csv, {
-        headers: {
-          'Content-Type': 'text/csv; charset=utf-8',
-          'Content-Disposition': `attachment; filename="${filename}"`,
-        },
-      });
+        const headers = [
+            "NumeroEmpleado", "Nombre", "NSS", "CURP", "RFC", 
+            "Puesto", "Departamento", "FechaAlta", "TipoContrato",
+            "DiasTrabajados", "SalarioBase", "SalarioDiario",
+            "PercepcionBruta", "IMSS", "ISR", "PercepcionNeta", "HorasExtra"
+        ];
+
+        const csvRows = records.map(row => 
+            row.map(cell => {
+                const str = String(cell);
+                return str.includes(",") || str.includes('"') 
+                    ? `"${str.replace(/"/g, '""')}"` 
+                    : str;
+            }).join(",")
+        );
+
+        const content = [headers.join(","), ...csvRows].join("\r\n");
+        const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
+
+        const filename = `NOMINA_${startDate}_${endDate}.csv`;
+
+        return new Response(blob, {
+            headers: {
+                "Content-Type": "text/csv",
+                "Content-Disposition": `attachment; filename="${filename}"`,
+            },
+        });
+    } catch (error) {
+        console.error("Error generating payroll export:", error);
+        return NextResponse.json({ error: "Error interno" }, { status: 500 });
     }
-
-    return NextResponse.json({
-      records,
-      summary: {
-        totalEmployees: records.length,
-        totalDaysWorked: records.reduce((s, r) => s + r.daysWorked, 0),
-        totalOvertimeHours: records.reduce((s, r) => s + r.overtimeHours, 0),
-        totalVacationDays: records.reduce((s, r) => s + r.vacationDays, 0),
-        totalLeaveDays: records.reduce((s, r) => s + r.sickDays + r.otherLeaveDays, 0),
-        period: { startDate, endDate },
-        format,
-      },
-    });
-  } catch (error) {
-    console.error('Error generating payroll export:', error);
-    return NextResponse.json(
-      { error: 'Failed to generate payroll export' },
-      { status: 500 }
-    );
-  }
 }

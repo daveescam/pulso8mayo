@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { vacationRequests, users, notificationPreferences, notifications } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import { NotificationService } from "@/lib/services/notification-service";
 
 async function createNotification(
     userId: string,
@@ -32,30 +33,22 @@ async function sendVacationNotification(
     vacationId: string
 ) {
     try {
-        // Get user preferences
-        const prefs = await db.query.notificationPreferences.findFirst({
-            where: eq(notificationPreferences.userId, userId)
+        const prefs = await NotificationService.getUserNotificationPreferences(userId);
+        
+        await NotificationService.sendInAppNotification(userId, {
+            title: subject,
+            message,
+            type: "info",
+            actionUrl: `/dashboard/labor/vacations?id=${vacationId}`,
+            actionLabel: "Ver detalles",
         });
 
-        // Create in-app notification
-        await createNotification(
-            userId,
-            subject,
-            message,
-            "info",
-            `/dashboard/labor/vacations?id=${vacationId}`
-        );
-
-        // TODO: Send WhatsApp notification if enabled
-        if (prefs?.whatsappEnabled) {
-            // Integration with WhatsApp service would go here
-            console.log(`Would send WhatsApp to ${userId}: ${subject}`);
+        if (prefs.whatsappEnabled) {
+            await NotificationService.sendWhatsAppNotification(userId, message);
         }
 
-        // TODO: Send email notification if enabled
-        if (prefs?.emailEnabled) {
-            // Integration with email service would go here
-            console.log(`Would send email to ${userId}: ${subject}`);
+        if (prefs.emailEnabled) {
+            await NotificationService.sendEmailNotification(userId, subject, message);
         }
     } catch (error) {
         console.error("Error sending notification:", error);

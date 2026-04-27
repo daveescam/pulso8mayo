@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { ChevronsUpDown, Plus, Building2, Check } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 import {
   DropdownMenu,
@@ -24,7 +25,7 @@ import { useBranch } from "@/lib/branch-context"
 import { toast } from "sonner"
 
 export function NavCompany({
-  company = { name: "Loading...", plan: "" },
+  company: propCompany = { name: "", plan: "" },
   branches: propBranches = [],
   currentBranchId: initialBranchId
 }: {
@@ -42,6 +43,11 @@ export function NavCompany({
   const router = useRouter()
   const [isPending, startTransition] = React.useTransition()
   const { selectedBranchId, setSelectedBranchId, setBranches } = useBranch()
+  const t = useTranslations("navigation")
+  const tSuccess = useTranslations("success")
+  const tErrors = useTranslations("errors")
+
+  const company = propCompany.name ? propCompany : { name: t("selectBranch"), plan: "" }
 
   // Initialize branches in context
   React.useEffect(() => {
@@ -58,10 +64,10 @@ export function NavCompany({
       try {
         await switchBranch(branchId);
         setSelectedBranchId(branchId);
-        toast.success("Sucursal cambiada correctamente");
+        toast.success(tSuccess("saved"));
         router.refresh();
       } catch (error) {
-        toast.error("Error al cambiar de sucursal");
+        toast.error(tErrors("services.branchSwitch"));
         console.error(error);
       }
     });
@@ -81,10 +87,10 @@ export function NavCompany({
                             <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                                 <Building2 className="size-4" />
                             </div>
-                            <div className="grid flex-1 text-left text-sm leading-tight">
-                                <span className="truncate font-semibold">{activeBranch?.name || "Select Branch"}</span>
-                                <span className="truncate text-xs">{company.name} ({company.plan})</span>
-                            </div>
+            <div className="grid flex-1 text-left text-sm leading-tight">
+              <span className="truncate font-semibold">{activeBranch?.name || t("selectBranch")}</span>
+              <span className="truncate text-xs">{company.name}{company.plan ? ` (${company.plan})` : ""}</span>
+            </div>
                             <ChevronsUpDown className="ml-auto" />
                         </SidebarMenuButton>
                     </DropdownMenuTrigger>
@@ -111,12 +117,12 @@ export function NavCompany({
             </DropdownMenuItem>
                         ))}
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="gap-2 p-2" disabled>
-                            <div className="flex size-6 items-center justify-center rounded-md border bg-background">
-                                <Plus className="size-4" />
-                            </div>
-                            <div className="font-medium text-muted-foreground">Add branch</div>
-                        </DropdownMenuItem>
+            <DropdownMenuItem className="gap-2 p-2" disabled>
+              <div className="flex size-6 items-center justify-center rounded-md border bg-background">
+                <Plus className="size-4" />
+              </div>
+              <div className="font-medium text-muted-foreground">{t("addBranch")}</div>
+            </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             </SidebarMenuItem>

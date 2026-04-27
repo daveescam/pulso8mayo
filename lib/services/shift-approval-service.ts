@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { shiftApprovals, shiftSessions, users, branches } from "@/lib/db/schema";
-import { eq, and, or, desc, inArray } from "drizzle-orm";
+import { eq, and, or, desc } from "drizzle-orm";
+import { NotificationDispatcher } from "./notification-dispatcher";
 
 export type ApprovalType = 'OVERTIME' | 'SCHEDULE_CHANGE' | 'TIME_OFF' | 'SHIFT_SWAP' | 'EARLY_DEPARTURE';
 export type ApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
@@ -53,10 +54,10 @@ export class ShiftApprovalService {
             status: 'PENDING'
         }).returning();
 
-        // TODO: Send notification to managers
-        // await this.notifyManagers(approval);
+    // Notify managers about the new approval request
+    await this.notifyManagers(data);
 
-        return approval;
+    return approval;
     }
 
     /**
@@ -137,10 +138,10 @@ export class ShiftApprovalService {
             await this.handleApprovedApproval(approval);
         }
 
-        // TODO: Send notification to requester
-        // await this.notifyDecision(approval, decision);
+    // Notify requester about the decision
+    await this.notifyDecision(approval, decision);
 
-        return approval;
+    return approval;
     }
 
     /**

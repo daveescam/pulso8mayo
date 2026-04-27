@@ -8,8 +8,10 @@ import { workflowInstances, workflowTemplates, users, employeeCommunications } f
 import { eq, desc, and, sql } from "drizzle-orm";
 import { RecentWorkflowsTable } from "@/components/dashboard/recent-workflows-table";
 import { ComplianceReportGenerator } from "@/components/compliance/report-generator";
+import { getTranslations } from "next-intl/server";
 
 export default async function Page() {
+  const t = await getTranslations("dashboard.executive");
   const session = await auth.api.getSession({
     headers: await headers()
   });
@@ -31,8 +33,8 @@ export default async function Page() {
 
   const formattedWorkflows = recentWorkflows.map(workflow => ({
     ...workflow,
-    templateName: workflow.templateName || "Sin nombre",
-    assigneeName: workflow.assigneeName || "Sin asignar"
+    templateName: workflow.templateName || t("noName"),
+    assigneeName: workflow.assigneeName || t("unassigned")
   }));
 
   const pinnedAnnouncements = session?.user?.companyId ? await db.select({
@@ -57,12 +59,10 @@ export default async function Page() {
           {/* Executive Header Section */}
           <div className="border-b bg-card">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between px-4 lg:px-6 py-6 gap-4 max-w-7xl mx-auto w-full">
-              <div>
-                <h2 className="text-3xl font-bold tracking-tight text-foreground">Dashboard Ejecutivo</h2>
-                <p className="text-muted-foreground mt-1">
-                  Control operativo, cumplimiento normativo y gestión de labor.
-                </p>
-              </div>
+            <div>
+              <h2 className="text-3xl font-bold tracking-tight text-foreground">{t("title")}</h2>
+              <p className="text-muted-foreground mt-1">{t("subtitle")}</p>
+            </div>
               <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
                 <DashboardFilters />
                 <div className="hidden sm:block h-8 w-px bg-border mx-1" />
@@ -80,9 +80,9 @@ export default async function Page() {
                     <div key={announcement.id} className="bg-primary/5 border border-primary/10 rounded-xl p-4 relative overflow-hidden group hover:bg-primary/10 transition-all cursor-pointer shadow-sm">
                       <div className="absolute top-0 left-0 w-1 h-full bg-primary/40"></div>
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                          {announcement.communicationType === 'ANNOUNCEMENT' ? 'Anuncio' : announcement.communicationType === 'NOTIFICATION' ? 'Notificación' : 'Mensaje'}
-                        </span>
+                    <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                      {announcement.communicationType === 'ANNOUNCEMENT' ? t("announcement") : announcement.communicationType === 'NOTIFICATION' ? t("notification") : t("message")}
+                    </span>
                       </div>
                       <h3 className="font-bold text-base mb-1 group-hover:text-primary transition-colors">{announcement.title}</h3>
                       <p className="text-sm text-muted-foreground line-clamp-2">{announcement.content}</p>
@@ -102,10 +102,10 @@ export default async function Page() {
 
             {/* Recent Activity Section */}
             <div className="px-4 lg:px-6">
-              <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b bg-muted/30">
-                  <h3 className="text-lg font-bold">Actividad Reciente</h3>
-                </div>
+            <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b bg-muted/30">
+                <h3 className="text-lg font-bold">{t("recentActivity")}</h3>
+              </div>
                 <div className="p-0">
                   <RecentWorkflowsTable workflows={formattedWorkflows} />
                 </div>

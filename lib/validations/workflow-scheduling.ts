@@ -23,46 +23,46 @@ export const assignmentStatusSchema = z.enum(['PENDING', 'NOTIFIED', 'STARTED', 
  * Create Schedule Schema
  */
 export const createScheduleSchema = z.object({
-    templateId: z.string().min(1, 'Template ID is required'),
-    branchId: z.string().uuid('Invalid branch ID'),
-    assignmentType: assignmentTypeSchema,
-    assignedRole: roleSchema.optional(),
-    assignedUserId: z.string().optional(),
-    frequency: scheduleFrequencySchema,
-    dayOfWeek: z.number().min(0).max(6).optional(), // 0-6 (Sunday-Saturday)
-    dayOfMonth: z.number().min(1).max(31).optional(), // 1-31
-    timeOfDay: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM)').optional(),
-    startDate: z.string().datetime().or(z.date()),
-    endDate: z.string().datetime().or(z.date()).optional(),
-    title: z.string().min(1, 'Title is required').max(200),
-    description: z.string().max(500).optional(),
-    priority: prioritySchema.optional(),
+  templateId: z.string().min(1, 'El ID de la plantilla es requerido'),
+  branchId: z.string().uuid('ID de sucursal inválido'),
+  assignmentType: assignmentTypeSchema,
+  assignedRole: roleSchema.optional(),
+  assignedUserId: z.string().optional(),
+  frequency: scheduleFrequencySchema,
+  dayOfWeek: z.number().min(0).max(6).optional(), // 0-6 (Sunday-Saturday)
+  dayOfMonth: z.number().min(1).max(31).optional(), // 1-31
+  timeOfDay: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Formato de hora inválido (HH:MM)').optional(),
+  startDate: z.string().datetime().or(z.date()),
+  endDate: z.string().datetime().or(z.date()).optional(),
+  title: z.string().min(1, 'El título es requerido').max(200),
+  description: z.string().max(500).optional(),
+  priority: prioritySchema.optional(),
 }).refine((data) => {
-    // If assignmentType is ROLE, assignedRole must be provided
-    if (data.assignmentType === 'ROLE' && !data.assignedRole) {
-        return false;
-    }
-    // If assignmentType is USER, assignedUserId must be provided
-    if (data.assignmentType === 'USER' && !data.assignedUserId) {
-        return false;
-    }
-    return true;
+  // If assignmentType is ROLE, assignedRole must be provided
+  if (data.assignmentType === 'ROLE' && !data.assignedRole) {
+    return false;
+  }
+  // If assignmentType is USER, assignedUserId must be provided
+  if (data.assignmentType === 'USER' && !data.assignedUserId) {
+    return false;
+  }
+  return true;
 }, {
-    message: 'assignedRole required for ROLE type, assignedUserId required for USER type',
-    path: ['assignmentType'],
+  message: 'El rol asignado es requerido para el tipo ROL, el ID de usuario es requerido para el tipo USUARIO',
+  path: ['assignmentType'],
 }).refine((data) => {
-    // WEEKLY requires dayOfWeek
-    if (data.frequency === 'WEEKLY' && data.dayOfWeek === undefined) {
-        return false;
-    }
-    // MONTHLY requires dayOfMonth
-    if (data.frequency === 'MONTHLY' && data.dayOfMonth === undefined) {
-        return false;
-    }
-    return true;
+  // WEEKLY requires dayOfWeek
+  if (data.frequency === 'WEEKLY' && data.dayOfWeek === undefined) {
+    return false;
+  }
+  // MONTHLY requires dayOfMonth
+  if (data.frequency === 'MONTHLY' && data.dayOfMonth === undefined) {
+    return false;
+  }
+  return true;
 }, {
-    message: 'dayOfWeek required for WEEKLY, dayOfMonth required for MONTHLY',
-    path: ['frequency'],
+  message: 'Día de la semana requerido para SEMANAL, día del mes requerido para MENSUAL',
+  path: ['frequency'],
 });
 
 /**

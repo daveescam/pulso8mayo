@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useTranslations } from "next-intl"
 import { format, addDays, startOfWeek, endOfWeek, isSameDay, parseISO, differenceInDays } from "date-fns"
 import { es } from "date-fns/locale"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -87,6 +88,9 @@ interface WeeklyShiftPlannerProps {
 }
 
 export function WeeklyShiftPlanner({ employees: propEmployees, branches: propBranches }: WeeklyShiftPlannerProps) {
+  const t = useTranslations("labor")
+  const tCommon = useTranslations("common")
+
   // State
   const [currentDate, setCurrentDate] = React.useState(new Date())
   const [shifts, setShifts] = React.useState<Shift[]>([])
@@ -188,13 +192,13 @@ export function WeeklyShiftPlanner({ employees: propEmployees, branches: propBra
                     detectConflicts(shiftsData.filter((s: any) => s.status !== "CANCELLED"))
                 }
             }
-        } catch (e) {
-            console.error(e)
-            toast.error("Error cargando datos")
-        } finally {
-            setLoading(false)
-        }
-    }
+  } catch (e) {
+    console.error(e)
+    toast.error(tCommon("errors.loading"))
+  } finally {
+    setLoading(false)
+  }
+}
 
     const detectConflicts = (shiftList: Shift[]) => {
         const newConflicts: Conflict[] = []
@@ -285,22 +289,22 @@ export function WeeklyShiftPlanner({ employees: propEmployees, branches: propBra
 
             const result = await response.json()
 
-            if (response.ok) {
-                const newShift = result.data.shifts[0]
-                setShifts([...shifts, newShift])
-                detectConflicts([...shifts, newShift])
-                toast.success("Turno guardado correctamente")
-                setOpenDialog(false)
-                setShiftNotes("")
-                loadData() // Reload to get fresh data
-            } else {
-                toast.error(result.message || "Error guardando turno")
-            }
-        } catch (e) {
-            console.error(e)
-            toast.error("Error guardando turno")
-        }
+    if (response.ok) {
+      const newShift = result.data.shifts[0]
+      setShifts([...shifts, newShift])
+      detectConflicts([...shifts, newShift])
+      toast.success(tCommon("success.saved"))
+      setOpenDialog(false)
+      setShiftNotes("")
+      loadData() // Reload to get fresh data
+    } else {
+      toast.error(result.message || tCommon("errors.saving"))
     }
+  } catch (e) {
+    console.error(e)
+    toast.error(tCommon("errors.saving"))
+  }
+}
 
     const getShiftsForCell = (userId: string, day: Date) => {
         return shifts.filter(s => s.userId === userId && s.shiftDate === format(day, "yyyy-MM-dd"))
@@ -348,11 +352,11 @@ export function WeeklyShiftPlanner({ employees: propEmployees, branches: propBra
                     loadData()
                 }
             }
-        } catch (e) {
-            toast.error("Error copiando turnos")
-        }
-        setCopyDialogOpen(false)
-    }
+  } catch (e) {
+    toast.error(t("shifts.copyError"))
+  }
+  setCopyDialogOpen(false)
+}
 
     const handleDeleteShift = async (shiftId: string) => {
         try {
@@ -360,16 +364,16 @@ export function WeeklyShiftPlanner({ employees: propEmployees, branches: propBra
                 method: "DELETE",
             })
 
-            if (response.ok) {
-                setShifts(shifts.filter(s => s.id !== shiftId))
-                toast.success("Turno eliminado")
-                loadData()
-            } else {
-                toast.error("Error eliminando turno")
-            }
-        } catch (e) {
-            toast.error("Error eliminando turno")
-        }
+  if (response.ok) {
+    setShifts(shifts.filter(s => s.id !== shiftId))
+    toast.success(tCommon("success.deleted"))
+    loadData()
+  } else {
+    toast.error(tCommon("errors.deleting"))
+  }
+} catch (e) {
+  toast.error(tCommon("errors.deleting"))
+}
     }
 
     const handleSaveAllShifts = async () => {

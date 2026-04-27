@@ -8,6 +8,7 @@ import {
   LogOut,
   Sparkles,
 } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 import {
   Avatar,
@@ -43,6 +44,7 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
   const router = useRouter();
+  const t = useTranslations("navigation");
 
   return (
     <SidebarMenu>
@@ -83,35 +85,35 @@ export function NavUser({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Sparkles className="mr-2" />
-                Upgrade to Pro
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheck className="mr-2" />
-                Account
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCard className="mr-2" />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell className="mr-2" />
-                Notifications
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={async () => {
-              await authClient.signOut();
-              router.push("/sign-in");
-            }}>
-              <LogOut className="mr-2" />
-              Log out
+          <DropdownMenuGroup>
+            <DropdownMenuItem>
+              <Sparkles className="mr-2" />
+              {t("upgradeToPro")}
             </DropdownMenuItem>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
+            <DropdownMenuItem>
+              <BadgeCheck className="mr-2" />
+              {t("account")}
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <CreditCard className="mr-2" />
+              {t("billing")}
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Bell className="mr-2" />
+              {t("notifications")}
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={async () => {
+            await authClient.signOut();
+            router.push("/sign-in");
+          }}>
+            <LogOut className="mr-2" />
+            {t("logout")}
+          </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>

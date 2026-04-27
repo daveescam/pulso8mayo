@@ -29,23 +29,23 @@ import { Loader2 } from "lucide-react";
 
 const professionalSchema = z.object({
   // Employment Details
-  employeeNumber: z.string().min(1, "Employee number is required"),
-  position: z.string().min(1, "Position is required"),
-  department: z.string().min(1, "Department is required"),
-  hireDate: z.string().min(1, "Hire date is required"),
+  employeeNumber: z.string().min(1, "El número de empleado es requerido"),
+  position: z.string().min(1, "El puesto es requerido"),
+  department: z.string().min(1, "El departamento es requerido"),
+  hireDate: z.string().min(1, "La fecha de contratación es requerida"),
   seniorityDate: z.string().optional().or(z.literal("")),
   probationEndDate: z.string().optional().or(z.literal("")),
-  
+
   // Employment Status
   employeeStatus: z.enum(["ONBOARDING", "ACTIVE", "ON_LEAVE", "SUSPENDED", "TERMINATED", "RESIGNED"]).optional(),
   isActive: z.boolean(),
   rehireEligible: z.boolean().optional(),
   terminationDate: z.string().optional().or(z.literal("")),
   terminationReason: z.enum(["VOLUNTARY_RESIGNATION", "TERMINATION_WITH_CAUSE", "TERMINATION_WITHOUT_CAUSE", "CONTRACT_EXPIRED", "RETIREMENT", "DEATH", "MUTUAL_AGREEMENT", "OTHER"]).optional(),
-  
+
   // Work Schedule
   standardHoursPerWeek: z.number().min(1).max(168).optional(),
-  
+
   // Skills & Languages
   skills: z.array(z.string()),
   languages: z.array(z.string()),
@@ -99,10 +99,10 @@ export function ProfessionalDialog({
     if (open && profile) {
       const skills = profile.skills || [];
       const languages = profile.languages || [];
-      
+
       setSkillsInput(skills.join(", "));
       setLanguagesInput(languages.join(", "));
-      
+
       form.reset({
         employeeNumber: profile.employeeNumber || "",
         position: profile.position || "",
@@ -147,16 +147,16 @@ export function ProfessionalDialog({
       });
 
       if (response.ok) {
-        toast.success("Professional information updated successfully");
+        toast.success("Información profesional actualizada correctamente");
         onOpenChange(false);
         onSuccess?.();
       } else {
         const error = await response.json();
-        toast.error(error.error || "Failed to update professional information");
+        toast.error(error.error || "Error al actualizar la información profesional");
       }
     } catch (error) {
       console.error("Error updating professional information:", error);
-      toast.error("An unexpected error occurred");
+      toast.error("Ocurrió un error inesperado");
     } finally {
       setLoading(false);
     }
@@ -166,9 +166,9 @@ export function ProfessionalDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Professional Information</DialogTitle>
+          <DialogTitle>Editar Información Profesional</DialogTitle>
           <DialogDescription>
-            Update the employee's job details, status, and professional information.
+            Actualiza los detalles laborales, estado e información profesional del empleado.
           </DialogDescription>
         </DialogHeader>
 
@@ -176,14 +176,14 @@ export function ProfessionalDialog({
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
             {/* Employment Details */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Employment Details</h3>
+              <h3 className="text-lg font-semibold">Detalles del Empleo</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
                   name="employeeNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Employee Number</FormLabel>
+                      <FormLabel>Número de Empleado</FormLabel>
                       <FormControl>
                         <Input placeholder="EMP-001" {...field} />
                       </FormControl>
@@ -196,9 +196,9 @@ export function ProfessionalDialog({
                   name="position"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Position</FormLabel>
+                      <FormLabel>Puesto</FormLabel>
                       <FormControl>
-                        <Input placeholder="Software Engineer" {...field} />
+                        <Input placeholder="Ej. Chef, Mesero, Gerente" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -209,9 +209,9 @@ export function ProfessionalDialog({
                   name="department"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Department</FormLabel>
+                      <FormLabel>Departamento</FormLabel>
                       <FormControl>
-                        <Input placeholder="Engineering" {...field} />
+                        <Input placeholder="Ej. Cocina, Servicio, Administración" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -222,7 +222,7 @@ export function ProfessionalDialog({
                   name="hireDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Hire Date</FormLabel>
+                      <FormLabel>Fecha de Contratación</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
@@ -235,7 +235,7 @@ export function ProfessionalDialog({
                   name="seniorityDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Seniority Date</FormLabel>
+                      <FormLabel>Fecha de Antigüedad</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
@@ -248,7 +248,7 @@ export function ProfessionalDialog({
                   name="probationEndDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Probation End Date</FormLabel>
+                      <FormLabel>Fecha Fin de Prueba</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
@@ -261,27 +261,27 @@ export function ProfessionalDialog({
 
             {/* Employment Status */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Employment Status</h3>
+              <h3 className="text-lg font-semibold">Estado del Empleo</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
                   name="employeeStatus"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Status</FormLabel>
+                      <FormLabel>Estado</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select status" />
+                            <SelectValue placeholder="Seleccionar estado" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="ONBOARDING">Onboarding</SelectItem>
-                          <SelectItem value="ACTIVE">Active</SelectItem>
-                          <SelectItem value="ON_LEAVE">On Leave</SelectItem>
-                          <SelectItem value="SUSPENDED">Suspended</SelectItem>
-                          <SelectItem value="TERMINATED">Terminated</SelectItem>
-                          <SelectItem value="RESIGNED">Resigned</SelectItem>
+                          <SelectItem value="ONBOARDING">En Inducción</SelectItem>
+                          <SelectItem value="ACTIVE">Activo</SelectItem>
+                          <SelectItem value="ON_LEAVE">En Licencia</SelectItem>
+                          <SelectItem value="SUSPENDED">Suspendido</SelectItem>
+                          <SelectItem value="TERMINATED">Terminado</SelectItem>
+                          <SelectItem value="RESIGNED">Renunció</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -293,7 +293,7 @@ export function ProfessionalDialog({
                   name="isActive"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Active</FormLabel>
+                      <FormLabel>Activo</FormLabel>
                       <Select onValueChange={(value) => field.onChange(value === "true")} value={field.value ? "true" : "false"}>
                         <FormControl>
                           <SelectTrigger>
@@ -301,7 +301,7 @@ export function ProfessionalDialog({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="true">Yes</SelectItem>
+                          <SelectItem value="true">Sí</SelectItem>
                           <SelectItem value="false">No</SelectItem>
                         </SelectContent>
                       </Select>
@@ -314,7 +314,7 @@ export function ProfessionalDialog({
                   name="rehireEligible"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Rehire Eligible</FormLabel>
+                      <FormLabel>Elegible para Recontratación</FormLabel>
                       <Select onValueChange={(value) => field.onChange(value === "true")} value={field.value ? "true" : "false"}>
                         <FormControl>
                           <SelectTrigger>
@@ -322,7 +322,7 @@ export function ProfessionalDialog({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="true">Yes</SelectItem>
+                          <SelectItem value="true">Sí</SelectItem>
                           <SelectItem value="false">No</SelectItem>
                         </SelectContent>
                       </Select>
@@ -335,7 +335,7 @@ export function ProfessionalDialog({
                   name="terminationDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Termination Date</FormLabel>
+                      <FormLabel>Fecha de Baja</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
@@ -348,22 +348,22 @@ export function ProfessionalDialog({
                   name="terminationReason"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Termination Reason</FormLabel>
+                      <FormLabel>Motivo de Baja</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select reason" />
+                            <SelectValue placeholder="Seleccionar motivo" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="VOLUNTARY_RESIGNATION">Voluntary Resignation</SelectItem>
-                          <SelectItem value="TERMINATION_WITH_CAUSE">Termination with Cause</SelectItem>
-                          <SelectItem value="TERMINATION_WITHOUT_CAUSE">Termination without Cause</SelectItem>
-                          <SelectItem value="CONTRACT_EXPIRED">Contract Expired</SelectItem>
-                          <SelectItem value="RETIREMENT">Retirement</SelectItem>
-                          <SelectItem value="DEATH">Death</SelectItem>
-                          <SelectItem value="MUTUAL_AGREEMENT">Mutual Agreement</SelectItem>
-                          <SelectItem value="OTHER">Other</SelectItem>
+                          <SelectItem value="VOLUNTARY_RESIGNATION">Renuncia Voluntaria</SelectItem>
+                          <SelectItem value="TERMINATION_WITH_CAUSE">Terminación con Causa</SelectItem>
+                          <SelectItem value="TERMINATION_WITHOUT_CAUSE">Terminación sin Causa</SelectItem>
+                          <SelectItem value="CONTRACT_EXPIRED">Contrato Vencido</SelectItem>
+                          <SelectItem value="RETIREMENT">Jubilación</SelectItem>
+                          <SelectItem value="DEATH">Fallecimiento</SelectItem>
+                          <SelectItem value="MUTUAL_AGREEMENT">Acuerdo Mutuo</SelectItem>
+                          <SelectItem value="OTHER">Otro</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -375,20 +375,20 @@ export function ProfessionalDialog({
 
             {/* Work Schedule */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Work Schedule</h3>
+              <h3 className="text-lg font-semibold">Horario Laboral</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="standardHoursPerWeek"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Standard Hours per Week</FormLabel>
+                      <FormLabel>Horas Semanales Estándar</FormLabel>
                       <FormControl>
-                        <Input 
-                          type="number" 
-                          min="1" 
-                          max="168" 
-                          {...field} 
+                        <Input
+                          type="number"
+                          min="1"
+                          max="168"
+                          {...field}
                           onChange={(e) => field.onChange(parseInt(e.target.value) || 40)}
                         />
                       </FormControl>
@@ -401,23 +401,23 @@ export function ProfessionalDialog({
 
             {/* Skills & Languages */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Skills & Languages</h3>
+              <h3 className="text-lg font-semibold">Habilidades e Idiomas</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="skills"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Skills</FormLabel>
+                      <FormLabel>Habilidades</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="JavaScript, React, Node.js" 
+                        <Input
+                          placeholder="Cocina, Servicio al Cliente, Liderazgo"
                           value={skillsInput}
                           onChange={(e) => handleSkillsChange(e.target.value)}
                         />
                       </FormControl>
                       <div className="text-xs text-muted-foreground">
-                        Separate skills with commas
+                        Separa las habilidades con comas
                       </div>
                       <FormMessage />
                     </FormItem>
@@ -428,16 +428,16 @@ export function ProfessionalDialog({
                   name="languages"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Languages</FormLabel>
+                      <FormLabel>Idiomas</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="Spanish, English, French" 
+                        <Input
+                          placeholder="Español, Inglés, Francés"
                           value={languagesInput}
                           onChange={(e) => handleLanguagesChange(e.target.value)}
                         />
                       </FormControl>
                       <div className="text-xs text-muted-foreground">
-                        Separate languages with commas
+                        Separa los idiomas con comas
                       </div>
                       <FormMessage />
                     </FormItem>
@@ -449,12 +449,12 @@ export function ProfessionalDialog({
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>HR Notes</FormLabel>
+                    <FormLabel>Notas de RH</FormLabel>
                     <FormControl>
-                      <Textarea 
-                        placeholder="Additional notes about the employee..." 
+                      <Textarea
+                        placeholder="Notas adicionales sobre el empleado..."
                         className="min-h-[100px]"
-                        {...field} 
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
@@ -470,11 +470,11 @@ export function ProfessionalDialog({
                 onClick={() => onOpenChange(false)}
                 disabled={loading}
               >
-                Cancel
+                Cancelar
               </Button>
               <Button type="submit" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save Changes
+                Guardar Cambios
               </Button>
             </DialogFooter>
           </form>

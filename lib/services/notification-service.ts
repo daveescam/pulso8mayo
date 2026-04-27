@@ -1,6 +1,16 @@
 import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
+import { users, notifications, notificationPreferences } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { wasenderClient, isWhatsAppConfigured } from '@/lib/whatsapp/wasender-client';
+
+let resend: any = null;
+async function getResend() {
+    if (!resend && process.env.RESEND_API_KEY) {
+        const { Resend } = await import('resend');
+        resend = new Resend(process.env.RESEND_API_KEY);
+    }
+    return resend;
+}
 
 export interface NotificationPreferences {
     whatsappEnabled: boolean;
@@ -227,7 +237,6 @@ export class NotificationService {
      */
     static async sendWhatsAppNotification(userId: string, message: string) {
         try {
-            // Get user's phone number
             const [userData] = await db
                 .select()
                 .from(users)
@@ -239,23 +248,19 @@ export class NotificationService {
                 return;
             }
 
-            // TODO: Integrate with WasenderAPI
-            // For now, just log
-            console.log(`[WhatsApp] To: ${userData.phone}, Message: ${message}`);
+            if (!isWhatsAppConfigured()) {
+                console.log(`[WhatsApp] Not configured, skipping notification to ${userData.phone}`);
+                return;
+            }
 
-            // Example integration:
-            // const response = await fetch('https://api.wasender.com/send', {
-            //   method: 'POST',
-            //   headers: {
-            //     'Authorization': `Bearer ${process.env.WASENDER_API_KEY}`,
-            //     'Content-Type': 'application/json',
-            //   },
-            //   body: JSON.stringify({
-            //     phone: userData.phone,
-            //     message,
-            //   }),
-            // });
+            const sessionId = process.env.WHATSAPP_SESSION_ID || `pulso_${userData.companyId || 'default'}`;
+            const result = await wasenderClient.sendMessage({
+                sessionId,
+                to: userData.phone,
+                message,
+            });
 
+            console.log(`[WhatsApp] Sent to ${userData.phone}, messageId: ${result.messageId}`);
         } catch (error) {
             console.error('WhatsApp notification failed:', error);
         }
@@ -266,7 +271,6 @@ export class NotificationService {
      */
     static async sendEmailNotification(userId: string, subject: string, body: string) {
         try {
-            // Get user's email
             const [userData] = await db
                 .select()
                 .from(users)
@@ -278,20 +282,20 @@ export class NotificationService {
                 return;
             }
 
-            // TODO: Integrate with email service (Resend, SendGrid, etc.)
-            // For now, just log
-            console.log(`[Email] To: ${userData.email}, Subject: ${subject}, Body: ${body}`);
+            const resendService = await getResend();
+            if (!resendService) {
+                console.log(`[Email] RESEND_API_KEY not configured. Would send to ${userData.email}: ${subject}`);
+                return;
+            }
 
-            // Example integration with Resend:
-            // const { Resend } = await import('resend');
-            // const resend = new Resend(process.env.RESEND_API_KEY);
-            // await resend.emails.send({
-            //   from: 'Pulso <notifications@pulso.app>',
-            //   to: userData.email,
-            //   subject,
-            //   html: body,
-            // });
+            const result = await resendService.emails.send({
+                from: 'Pulso <notificaciones@pulso.app>',
+                to: userData.email,
+                subject,
+                html: `<p>${body.replace(/\n/g, '<br>')}</p>`,
+            });
 
+            console.log(`[Email] Sent to ${userData.email}, result:`, result);
         } catch (error) {
             console.error('Email notification failed:', error);
         }
@@ -302,21 +306,15 @@ export class NotificationService {
      */
     static async sendInAppNotification(userId: string, notification: Notification) {
         try {
-            // TODO: Store notification in database or push to real-time service
-            // For now, just log
-            console.log(`[In-App] To: ${userId}, Notification:`, notification);
-
-            // Example: Store in notifications table
-            // await db.insert(notifications).values({
-            //   userId,
-            //   title: notification.title,
-            //   message: notification.message,
-            //   type: notification.type,
-            //   actionUrl: notification.actionUrl,
-            //   actionLabel: notification.actionLabel,
-            //   read: false,
-            // });
-
+            await db.insert(notifications).values({
+                userId,
+                title: notification.title,
+                message: notification.message,
+                type: notification.type,
+                actionUrl: notification.actionUrl || null,
+                actionLabel: notification.actionLabel || null,
+                read: false,
+            });
         } catch (error) {
             console.error('In-app notification failed:', error);
         }
@@ -326,17 +324,32 @@ export class NotificationService {
      * Get user notification preferences
      */
     static async getUserNotificationPreferences(userId: string): Promise<NotificationPreferences> {
-        // TODO: Fetch from database
-        // For now, return defaults
+        const prefs = await db.query.notificationPreferences.findFirst({
+            where: (notificationPreferences, { eq }) => eq(notificationPreferences.userId, userId),
+        });
+
+        if (!prefs) {
+            return {
+                whatsappEnabled: true,
+                emailEnabled: true,
+                inAppEnabled: true,
+                workflowAssignments: true,
+                workflowDueSoon: true,
+                workflowOverdue: true,
+                incidents: true,
+                stockAlerts: true,
+            };
+        }
+
         return {
-            whatsappEnabled: true,
-            emailEnabled: true,
-            inAppEnabled: true,
-            workflowAssignments: true,
-            workflowDueSoon: true,
-            workflowOverdue: true,
-            incidents: true,
-            stockAlerts: true,
+            whatsappEnabled: prefs.whatsappEnabled,
+            emailEnabled: prefs.emailEnabled,
+            inAppEnabled: prefs.inAppEnabled,
+            workflowAssignments: prefs.workflowAssignments,
+            workflowDueSoon: prefs.workflowDueSoon,
+            workflowOverdue: prefs.workflowOverdue,
+            incidents: prefs.incidents,
+            stockAlerts: prefs.inventoryAlerts,
         };
     }
 
@@ -347,7 +360,26 @@ export class NotificationService {
         userId: string,
         prefs: Partial<NotificationPreferences>
     ) {
-        // TODO: Store in database
-        console.log(`Updating preferences for user ${userId}:`, prefs);
+        const existing = await db.query.notificationPreferences.findFirst({
+            where: (notificationPreferences, { eq }) => eq(notificationPreferences.userId, userId),
+        });
+
+        if (existing) {
+            await db.update(notificationPreferences)
+                .set({ ...prefs, updatedAt: new Date() })
+                .where(eq(notificationPreferences.id, existing.id));
+        } else {
+            await db.insert(notificationPreferences).values({
+                userId,
+                whatsappEnabled: prefs.whatsappEnabled ?? true,
+                emailEnabled: prefs.emailEnabled ?? true,
+                inAppEnabled: prefs.inAppEnabled ?? true,
+                workflowAssignments: prefs.workflowAssignments ?? true,
+                workflowDueSoon: prefs.workflowDueSoon ?? true,
+                workflowOverdue: prefs.workflowOverdue ?? true,
+                incidents: prefs.incidents ?? true,
+                inventoryAlerts: prefs.stockAlerts ?? true,
+            });
+        }
     }
 }

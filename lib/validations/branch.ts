@@ -3,38 +3,38 @@ import { z } from "zod";
 // Schema for operating hours configuration
 export const operatingHoursSchema = z.object({
   monday: z.object({
-    open: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
-    close: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
+    open: z.string().regex(/^\d{2}:\d{2}$/, "Formato de hora inválido (HH:MM)").optional(),
+    close: z.string().regex(/^\d{2}:\d{2}$/, "Formato de hora inválido (HH:MM)").optional(),
     isOpen: z.boolean().optional()
   }).optional(),
   tuesday: z.object({
-    open: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
-    close: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
+    open: z.string().regex(/^\d{2}:\d{2}$/, "Formato de hora inválido (HH:MM)").optional(),
+    close: z.string().regex(/^\d{2}:\d{2}$/, "Formato de hora inválido (HH:MM)").optional(),
     isOpen: z.boolean().optional()
   }).optional(),
   wednesday: z.object({
-    open: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
-    close: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
+    open: z.string().regex(/^\d{2}:\d{2}$/, "Formato de hora inválido (HH:MM)").optional(),
+    close: z.string().regex(/^\d{2}:\d{2}$/, "Formato de hora inválido (HH:MM)").optional(),
     isOpen: z.boolean().optional()
   }).optional(),
   thursday: z.object({
-    open: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
-    close: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
+    open: z.string().regex(/^\d{2}:\d{2}$/, "Formato de hora inválido (HH:MM)").optional(),
+    close: z.string().regex(/^\d{2}:\d{2}$/, "Formato de hora inválido (HH:MM)").optional(),
     isOpen: z.boolean().optional()
   }).optional(),
   friday: z.object({
-    open: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
-    close: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
+    open: z.string().regex(/^\d{2}:\d{2}$/, "Formato de hora inválido (HH:MM)").optional(),
+    close: z.string().regex(/^\d{2}:\d{2}$/, "Formato de hora inválido (HH:MM)").optional(),
     isOpen: z.boolean().optional()
   }).optional(),
   saturday: z.object({
-    open: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
-    close: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
+    open: z.string().regex(/^\d{2}:\d{2}$/, "Formato de hora inválido (HH:MM)").optional(),
+    close: z.string().regex(/^\d{2}:\d{2}$/, "Formato de hora inválido (HH:MM)").optional(),
     isOpen: z.boolean().optional()
   }).optional(),
   sunday: z.object({
-    open: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
-    close: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)").optional(),
+    open: z.string().regex(/^\d{2}:\d{2}$/, "Formato de hora inválido (HH:MM)").optional(),
+    close: z.string().regex(/^\d{2}:\d{2}$/, "Formato de hora inválido (HH:MM)").optional(),
     isOpen: z.boolean().optional()
   }).optional()
 });
@@ -45,14 +45,14 @@ export const locationSchema = z.object({
 });
 
 export const createBranchSchema = z.object({
-    name: z.string().min(2, "Branch name is required"),
-    code: z.string().optional(),
-    address: z.string().optional(),
-    timezone: z.string().default("America/Mexico_City"),
-    companyId: z.string().uuid().optional(),
-    operatingHours: operatingHoursSchema.optional(),
-    location: locationSchema.optional(),
-    managerId: z.string().nullable().optional(),
+  name: z.string().min(2, "El nombre de la sucursal es requerido"),
+  code: z.string().optional(),
+  address: z.string().optional(),
+  timezone: z.string().default("America/Mexico_City"),
+  companyId: z.string().uuid().optional(),
+  operatingHours: operatingHoursSchema.optional(),
+  location: locationSchema.optional(),
+  managerId: z.string().nullable().optional(),
 });
 
 export const updateBranchSchema = z.object({

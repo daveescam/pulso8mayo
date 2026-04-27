@@ -1,0 +1,1114 @@
+{
+  "metadata": {
+    "title": "Pulso - Plataforma de Gestión HORECA",
+    "description": "Sistema de gestión operativa para restaurantes, hoteles y cafeterías"
+  },
+  "auth": {
+    "signIn": {
+      "title": "Iniciar Sesión en Pulso",
+      "subtitle": "Ingresa tus credenciales para acceder a tu cuenta",
+      "email": "Correo Electrónico",
+      "emailPlaceholder": "tu@empresa.com",
+      "password": "Contraseña",
+      "passwordPlaceholder": "••••••••",
+      "forgotPassword": "¿Olvidaste tu contraseña?",
+      "signInButton": "Iniciar Sesión",
+      "signingIn": "Iniciando sesión...",
+      "noAccount": "¿No tienes una cuenta?",
+      "signUp": "Registrarse",
+      "errors": {
+        "invalidCredentials": "Credenciales inválidas",
+        "accountLocked": "Cuenta bloqueada temporalmente",
+        "sessionExpired": "Sesión expirada, por favor inicia sesión nuevamente"
+      }
+    },
+    "signUp": {
+      "title": "Crear una Cuenta",
+      "subtitle": "Únete a la Plataforma Pulso HORECA",
+      "fullName": "Nombre Completo",
+      "fullNamePlaceholder": "Juan Pérez",
+      "email": "Correo Electrónico",
+      "emailPlaceholder": "juan@empresa.com",
+      "password": "Contraseña",
+      "passwordPlaceholder": "Crea una contraseña segura",
+      "confirmPassword": "Confirmar Contraseña",
+      "companyName": "Nombre de la Empresa",
+      "companyNamePlaceholder": "Restaurante La Casa",
+      "createButton": "Crear Cuenta",
+      "creating": "Creando cuenta...",
+      "haveAccount": "¿Ya tienes una cuenta?",
+      "signIn": "Iniciar Sesión",
+      "terms": "Al registrarte, aceptas nuestros",
+      "termsLink": "Términos de Servicio",
+      "privacy": "y",
+      "privacyLink": "Política de Privacidad",
+      "errors": {
+        "emailExists": "Este correo ya está registrado",
+        "passwordMismatch": "Las contraseñas no coinciden",
+        "weakPassword": "La contraseña es demasiado débil",
+        "invalidEmail": "Correo electrónico inválido"
+      }
+    },
+    "forgotPassword": {
+      "title": "Recuperar Contraseña",
+      "subtitle": "Ingresa tu correo electrónico y te enviaremos instrucciones",
+      "email": "Correo Electrónico",
+      "submitButton": "Enviar Instrucciones",
+      "sending": "Enviando...",
+      "successMessage": "Revisa tu correo para restablecer tu contraseña",
+      "backToLogin": "Volver al inicio de sesión"
+    }
+  },
+  "navigation": {
+    "platform": "Plataforma",
+    "dashboard": "Tablero",
+    "organization": "Organización",
+    "workflows": "Flujos de Trabajo",
+    "operation": "Operación",
+    "inventory": "Inventario",
+    "equipment": "Equipos",
+    "compliance": "Cumplimiento",
+    "staff": "Personal",
+    "performance": "Desempeño",
+    "profile": "Perfil",
+    "settings": "Configuración",
+    "help": "Ayuda",
+    "logout": "Cerrar Sesión",
+    "branches": "Sucursales",
+    "team": "Equipo",
+    "workflowBuilder": "Constructor",
+    "templates": "Plantillas",
+    "analytics": "Analíticas",
+    "reports": "Reportes",
+    "labor": "Laboral",
+    "shifts": "Turnos",
+    "schedules": "Horarios",
+    "employees": "Empleados",
+    "company": "Empresa",
+    "selectBranch": "Seleccionar Sucursal",
+    "addBranch": "Agregar Sucursal",
+    "switchBranchSuccess": "Sucursal cambiada correctamente",
+    "switchBranchError": "Error al cambiar de sucursal",
+    "upgradeToPro": "Actualizar a Pro",
+    "account": "Cuenta",
+    "billing": "Facturación",
+    "notifications": "Notificaciones"
+  },
+  "common": {
+    "loading": "Cargando...",
+    "save": "Guardar",
+    "saving": "Guardando...",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "deleting": "Eliminando...",
+    "edit": "Editar",
+    "create": "Crear",
+    "creating": "Creando...",
+    "search": "Buscar",
+    "searching": "Buscando...",
+    "filter": "Filtrar",
+    "filters": "Filtros",
+    "clear": "Limpiar",
+    "clearFilters": "Limpiar filtros",
+    "apply": "Aplicar",
+    "close": "Cerrar",
+    "back": "Regresar",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "submit": "Enviar",
+    "confirm": "Confirmar",
+    "success": "Éxito",
+    "error": "Error",
+    "warning": "Advertencia",
+    "info": "Información",
+    "yes": "Sí",
+    "no": "No",
+    "ok": "Aceptar",
+    "done": "Hecho",
+    "view": "Ver",
+    "download": "Descargar",
+    "upload": "Subir",
+    "export": "Exportar",
+    "import": "Importar",
+    "print": "Imprimir",
+    "refresh": "Actualizar",
+    "more": "Más",
+    "less": "Menos",
+    "all": "Todos",
+    "none": "Ninguno",
+    "select": "Seleccionar",
+    "selectAll": "Seleccionar Todo",
+    "deselectAll": "Deseleccionar Todo",
+    "actions": "Acciones",
+    "details": "Detalles",
+    "options": "Opciones",
+    "required": "Requerido",
+    "optional": "Opcional",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "pending": "Pendiente",
+    "completed": "Completado",
+    "inProgress": "En Progreso",
+    "cancelled": "Cancelado",
+    "approved": "Aprobado",
+    "rejected": "Rechazado",
+    "enabled": "Habilitado",
+    "disabled": "Deshabilitado",
+    "visible": "Visible",
+    "hidden": "Oculto",
+    "public": "Público",
+    "private": "Privado",
+    "internal": "Interno",
+    "external": "Externo",
+    "high": "Alta",
+    "medium": "Media",
+    "low": "Baja",
+    "critical": "Crítica",
+    "normal": "Normal",
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "tomorrow": "Mañana",
+    "thisWeek": "Esta Semana",
+    "lastWeek": "Semana Pasada",
+    "thisMonth": "Este Mes",
+    "lastMonth": "Mes Pasado",
+    "custom": "Personalizado",
+    "date": "Fecha",
+    "time": "Hora",
+    "from": "Desde",
+    "to": "Hasta",
+    "status": "Estado",
+    "type": "Tipo",
+    "category": "Categoría",
+    "description": "Descripción",
+    "notes": "Notas",
+    "name": "Nombre",
+    "code": "Código",
+    "id": "ID",
+    "quantity": "Cantidad",
+    "price": "Precio",
+    "cost": "Costo",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "tax": "Impuesto",
+    "discount": "Descuento",
+    "amount": "Monto",
+    "percentage": "Porcentaje",
+    "value": "Valor",
+    "unit": "Unidad",
+    "units": "Unidades",
+    "min": "Mín",
+    "max": "Máx",
+    "average": "Promedio",
+    "count": "Conteo",
+    "sum": "Suma",
+    "noData": "Sin datos",
+    "noResults": "No se encontraron resultados",
+    "noItems": "No hay elementos",
+    "itemsFound": "{count} elementos encontrados",
+    "showing": "Mostrando",
+    "of": "de",
+    "perPage": "por página",
+    "page": "Página",
+    "pages": "Páginas",
+    "goTo": "Ir a",
+    "first": "Primero",
+    "last": "Último",
+    "basicInfo": "Información Básica",
+    "location": "Ubicación",
+    "locationAndPurchase": "Ubicación y Compra",
+    "maintenance": "Mantenimiento",
+    "maintenanceSettings": "Configuración de Mantenimiento",
+    "maintenanceFrequency": "Frecuencia de Mantenimiento",
+    "nextMaintenance": "Próximo Mantenimiento",
+    "critical": "Crítico",
+    "criticalEquipment": "Equipo Crítico",
+    "criticalEquipmentDesc": "Marcar si el equipo es esencial para las operaciones",
+    "equipment": "Equipo",
+    "equipmentName": "Nombre del Equipo",
+    "equipmentCode": "Código de Equipo",
+    "brand": "Marca",
+    "model": "Modelo",
+    "serialNumber": "Número de Serie",
+    "assetTag": "Tag de Activo",
+    "area": "Área",
+    "purchaseDate": "Fecha de Compra",
+    "purchasePrice": "Precio de Compra",
+    "vendor": "Proveedor",
+    "vendorContact": "Contacto del Proveedor",
+    "invoiceNumber": "Número de Factura",
+    "progress": "Progreso",
+    "score": "Calificación",
+    "assigned": "Asignado",
+    "assignee": "Asignado a",
+    "branch": "Sucursal",
+    "evidence": "Evidencia",
+    "evidences": "Evidencias",
+    "incidents": "Incidentes",
+    "start": "Iniciar",
+    "exporting": "Exportando",
+    "viewing": "Ver",
+    "copy": "Copiar",
+    "copyWeek": "Copiar semana",
+    "copyShifts": "Copiar Turnos",
+    "publish": "Publicar",
+    "publishing": "Publicando",
+    "add": "Añadir",
+    "addShift": "Añadir Turno",
+    "shift": "Turno",
+    "shifts": "Turnos",
+    "shiftsCopied": "turnos copiados de la semana",
+    "remove": "Eliminar",
+    "conflicts": "conflicto(s)",
+    "employee": "Empleado",
+    "employees": "Empleados",
+    "selectEmployee": "Seleccionar empleado",
+    "selectBranch": "Seleccionar sucursal",
+    "selectType": "Seleccionar tipo",
+    "selectArea": "Seleccionar área",
+    "selectStatus": "Seleccionar estado",
+    "selectFrequency": "Seleccionar frecuencia",
+    "allStatuses": "Todos los estados",
+    "allTemplates": "Todas las plantillas",
+    "allBranches": "Todas las sucursales",
+    "allUsers": "Todos los usuarios",
+    "allRoles": "Todos los roles",
+    "searchWorkflow": "Buscar flujo...",
+    "searchEmployee": "Buscar empleado...",
+    "dateFrom": "Fecha desde",
+    "dateTo": "Fecha hasta",
+    "startTime": "Hora de Inicio",
+    "endTime": "Hora de Fin",
+    "role": "Rol",
+    "shiftRole": "Rol del Turno",
+    "predefinedShifts": "Turnos Predefinidos",
+    "sourceWeek": "Semana de Origen",
+    "destination": "Destino",
+    "target": "Meta",
+    "actual": "Actual",
+    "loadingShifts": "Cargando turnos..."
+  },
+  "validation": {
+    "required": "Este campo es requerido",
+    "requiredField": "{field} es requerido",
+    "minLength": "Debe tener al menos {min} caracteres",
+    "maxLength": "No debe exceder {max} caracteres",
+    "minValue": "El valor mínimo es {min}",
+    "maxValue": "El valor máximo es {max}",
+    "invalidEmail": "Correo electrónico inválido",
+    "invalidPhone": "Número de teléfono inválido",
+    "invalidDate": "Fecha inválida",
+    "invalidTime": "Formato de hora inválido (HH:MM)",
+    "invalidNumber": "Número inválido",
+    "invalidUrl": "URL inválida",
+    "invalidRfc": "RFC inválido",
+    "invalidCurp": "CURP inválido",
+    "invalidNss": "NSS inválido",
+    "invalidClabe": "CLABE debe tener 18 dígitos",
+    "invalidZipCode": "Código postal inválido",
+    "passwordMismatch": "Las contraseñas no coinciden",
+    "passwordTooWeak": "La contraseña es demasiado débil",
+    "selectOption": "Por favor selecciona una opción",
+    "selectGender": "Selecciona un género",
+    "selectStatus": "Selecciona un estado",
+    "selectBloodType": "Selecciona un tipo de sangre",
+    "selectBank": "Selecciona un banco",
+    "selectPaymentMethod": "Selecciona un método de pago",
+    "selectLeaveType": "Selecciona un tipo de permiso",
+    "selectStartDate": "Selecciona una fecha de inicio",
+    "selectEndDate": "Selecciona una fecha de fin",
+    "acceptTerms": "Debes aceptar los términos",
+    "invalidFormat": "Formato inválido",
+    "fieldRequired": "{field} es requerido",
+    "templateIdRequired": "El ID de la plantilla es requerido",
+    "invalidBranchId": "ID de sucursal inválido",
+    "titleRequired": "El título es requerido",
+    "assignedRoleRequired": "El rol asignado es requerido para el tipo ROL",
+    "nameMinLength": "El nombre debe tener al menos 2 caracteres",
+    "passwordMinLength": "La contraseña debe tener al menos 8 caracteres",
+    "branchNameRequired": "El nombre de la sucursal es requerido",
+    "invalidTimeFormat": "Formato de hora inválido (HH:MM)",
+    "contractNumberRequired": "El número de contrato es requerido",
+    "contractTypeRequired": "El tipo de contrato es requerido",
+    "workRegimeRequired": "El régimen de trabajo es requerido",
+    "startDateRequired": "La fecha de inicio es requerida",
+    "dailySalaryRequired": "El salario base diario es requerido",
+    "dailySalaryPositive": "El salario debe ser positivo",
+    "reasonMinLength": "El motivo debe tener al menos {min} caracteres",
+    "atLeastOneDay": "Se requiere al menos 1 día"
+  },
+  "dashboard": {
+    "executive": {
+      "title": "Dashboard Ejecutivo",
+      "subtitle": "Control operativo, cumplimiento normativo y gestión de labor.",
+      "recentActivity": "Actividad Reciente",
+      "quickStats": "Estadísticas Rápidas",
+      "workflowsCompleted": "Flujos Completados",
+      "complianceRate": "Tasa de Cumplimiento",
+      "activeAlerts": "Alertas Activas",
+      "inventoryValue": "Valor de Inventario",
+      "announcement": "Anuncio",
+      "notification": "Notificación",
+      "message": "Mensaje",
+      "noName": "Sin nombre",
+      "unassigned": "Sin asignar"
+    },
+    "operations": {
+      "title": "Panel de Operaciones",
+      "subtitle": "Gestión diaria de operaciones y tareas",
+      "activeWorkflows": "Flujos Activos",
+      "pendingTasks": "Tareas Pendientes",
+      "completedToday": "Completados Hoy",
+      "overdue": "Vencidos"
+    }
+  },
+  "workflows": {
+    "title": "Flujos de Trabajo",
+    "subtitle": "Gestiona y monitorea tus flujos operativos",
+    "createNew": "Crear Nuevo Flujo",
+    "edit": "Editar Flujo",
+    "duplicate": "Duplicar",
+    "archive": "Archivar",
+    "activate": "Activar",
+    "deactivate": "Desactivar",
+    "builder": {
+      "title": "Constructor de Flujos",
+      "addStep": "Agregar Paso",
+      "stepTypes": {
+        "textInput": "Texto Libre",
+        "numberInput": "Número",
+        "yesNo": "Sí/No",
+        "multipleChoice": "Opción Múltiple",
+        "photo": "Foto",
+        "signature": "Firma",
+        "checklist": "Lista de Verificación",
+        "timer": "Temporizador"
+      },
+      "aiVerification": "Verificación con IA",
+      "required": "Paso Requerido",
+      "stepTitle": "Título del Paso",
+      "stepDescription": "Descripción",
+      "saveTemplate": "Guardar Plantilla",
+      "preview": "Vista Previa"
+    },
+    "templates": {
+      "title": "Plantillas de Flujo",
+      "openingChecklist": "Checklist de Apertura",
+      "closingChecklist": "Checklist de Cierre",
+      "foodReceiving": "Recepción de Mercancía",
+      "qualityControl": "Control de Calidad",
+      "cleaningProtocol": "Protocolo de Limpieza",
+      "useTemplate": "Usar Plantilla",
+      "customize": "Personalizar"
+    },
+    "execution": {
+      "start": "Iniciar Flujo",
+      "resume": "Continuar",
+      "step": "Paso {current} de {total}",
+      "progress": "Progreso",
+      "nextStep": "Siguiente Paso",
+      "previousStep": "Paso Anterior",
+      "submit": "Finalizar",
+      "saveProgress": "Guardar Progreso",
+      "uploadPhoto": "Subir Foto",
+      "takePhoto": "Tomar Foto",
+      "addSignature": "Agregar Firma",
+      "confirm": "Confirmar"
+    },
+    "history": {
+      "title": "Historial de Flujos",
+      "searchPlaceholder": "Buscar flujos...",
+      "filterByStatus": "Filtrar por Estado",
+      "filterByTemplate": "Filtrar por Plantilla",
+      "filterByBranch": "Filtrar por Sucursal",
+      "filterByAssignee": "Filtrar por Asignado",
+      "dateFrom": "Fecha Desde",
+      "dateTo": "Fecha Hasta",
+      "status": {
+        "pending": "Pendiente",
+        "inProgress": "En Progreso",
+        "completed": "Completado",
+        "cancelled": "Cancelado",
+        "failed": "Fallido"
+      }
+    },
+    "scheduling": {
+      "title": "Programación de Flujos",
+      "createSchedule": "Crear Programación",
+      "triggerTypes": {
+        "timeBased": "Basado en Tiempo",
+        "shiftBased": "Basado en Turno",
+        "eventBased": "Basado en Evento",
+        "conditionBased": "Basado en Condición"
+      },
+      "frequency": {
+        "daily": "Diario",
+        "weekly": "Semanal",
+        "custom": "Personalizado"
+      },
+      "shifts": {
+        "matutino": "Matutino",
+        "vespertino": "Vespertino",
+        "nocturno": "Nocturno",
+        "mixto": "Mixto"
+      }
+    }
+  },
+  "inventory": {
+    "title": "Inventario",
+    "subtitle": "Gestión de productos y niveles de stock",
+    "products": {
+      "title": "Productos",
+      "create": "Crear Producto",
+      "edit": "Editar Producto",
+      "searchPlaceholder": "Buscar productos...",
+      "name": "Nombre del Producto",
+      "sku": "SKU",
+      "barcode": "Código de Barras",
+      "category": "Categoría",
+      "unit": "Unidad de Medida",
+      "cost": "Costo",
+      "price": "Precio",
+      "supplier": "Proveedor",
+      "allergens": "Alergenos",
+      "shelfLife": "Vida Útil",
+      "storageRequirements": "Requisitos de Almacenamiento",
+      "photos": "Fotos del Producto"
+    },
+    "stock": {
+      "title": "Niveles de Stock",
+      "currentLevel": "Nivel Actual",
+      "minLevel": "Stock Mínimo",
+      "maxLevel": "Stock Máximo",
+      "reorderPoint": "Punto de Reorden",
+      "location": "Ubicación",
+      "zone": "Zona",
+      "available": "Disponible",
+      "reserved": "Reservado",
+      "inTransit": "En Tránsito",
+      "expired": "Vencido",
+      "damaged": "Dañado",
+      "quarantine": "Cuarentena"
+    },
+    "movements": {
+      "title": "Movimientos",
+      "record": "Registrar Movimiento",
+      "types": {
+        "entry": "Entrada",
+        "exit": "Salida",
+        "adjustment": "Ajuste",
+        "transfer": "Transferencia",
+        "waste": "Merma",
+        "return": "Devolución"
+      }
+    },
+    "lots": {
+      "title": "Lotes",
+      "lotNumber": "Número de Lote",
+      "productionDate": "Fecha de Producción",
+      "expirationDate": "Fecha de Vencimiento",
+      "supplier": "Proveedor",
+      "fifo": "FIFO (Primero en Entrar, Primero en Salir)"
+    },
+    "alerts": {
+      "title": "Alertas de Inventario",
+      "lowStock": "Stock Bajo",
+      "highStock": "Stock Alto",
+      "expiringSoon": "Próximo a Vencer",
+      "expired": "Vencido",
+      "reorder": "Reordenar",
+      "configureAlerts": "Configurar Alertas"
+    }
+  },
+  "equipment": {
+    "title": "Equipos",
+    "subtitle": "Gestión de equipos y mantenimiento",
+    "types": {
+      "refrigerator": "Refrigerador",
+      "freezer": "Congelador",
+      "oven": "Horno",
+      "stove": "Estufa",
+      "grill": "Parrilla",
+      "fryer": "Freidora",
+      "dishwasher": "Lavavajillas",
+      "coffeeMaker": "Cafetera",
+      "blender": "Licuadora",
+      "mixer": "Batidora",
+      "other": "Otro"
+    },
+    "status": {
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "maintenance": "En Mantenimiento",
+      "outOfService": "Fuera de Servicio",
+      "retired": "Dado de Baja"
+    },
+    "maintenance": {
+      "title": "Mantenimiento",
+      "schedule": "Programar Mantenimiento",
+      "types": {
+        "preventive": "Preventivo",
+        "corrective": "Correctivo",
+        "cleaning": "Limpieza",
+        "emergency": "Emergencia"
+      },
+      "status": {
+        "scheduled": "Programado",
+        "inProgress": "En Progreso",
+        "completed": "Completado",
+        "cancelled": "Cancelado",
+        "overdue": "Vencido"
+      },
+      "frequency": {
+        "daily": "Diario",
+        "weekly": "Semanal",
+        "biweekly": "Quincenal",
+        "monthly": "Mensual",
+        "bimonthly": "Bimestral",
+        "quarterly": "Trimestral",
+        "semiannual": "Semestral",
+        "annual": "Anual",
+        "custom": "Personalizado"
+      }
+    },
+    "compliance": {
+      "title": "Cumplimiento de Equipos",
+      "serviceTypes": {
+        "fumigation": "Fumigación",
+        "fireSystem": "Sistema Contra Incendios",
+        "electricalInspection": "Inspección Eléctrica",
+        "gasInspection": "Inspección de Gas",
+        "healthInspection": "Inspección de Salubridad",
+        "other": "Otro"
+      }
+    }
+  },
+  "labor": {
+    "title": "Gestión Laboral",
+    "subtitle": "Control de horarios, turnos y cumplimiento",
+    "employees": {
+      "title": "Empleados",
+      "subtitle": "Gestión de información de empleados",
+      "personalInfo": {
+        "title": "Información Personal",
+        "description": "Datos personales básicos e identificadores del gobierno mexicano",
+        "dateOfBirth": "Fecha de Nacimiento",
+        "gender": {
+          "label": "Género",
+          "placeholder": "Seleccionar género",
+          "male": "Masculino",
+          "female": "Femenino",
+          "other": "Otro",
+          "preferNotToSay": "Prefiero no decirlo"
+        },
+        "curp": {
+          "label": "CURP",
+          "placeholder": "18 caracteres",
+          "description": "Clave Única de Registro de Población"
+        },
+        "rfc": {
+          "label": "RFC",
+          "placeholder": "13 caracteres",
+          "description": "Registro Federal de Contribuyentes"
+        },
+        "nss": {
+          "label": "NSS",
+          "placeholder": "Número de Seguro Social",
+          "description": "Número de Seguro Social"
+        },
+        "maritalStatus": {
+          "label": "Estado Civil",
+          "placeholder": "Seleccionar estado civil",
+          "single": "Soltero/a",
+          "married": "Casado/a",
+          "divorced": "Divorciado/a",
+          "widowed": "Viudo/a",
+          "commonLaw": "Unión Libre"
+        },
+        "bloodType": {
+          "label": "Tipo de Sangre",
+          "placeholder": "Seleccionar tipo de sangre"
+        },
+        "nationality": "Nacionalidad"
+      },
+      "contactInfo": {
+        "title": "Información de Contacto",
+        "description": "Datos de contacto personal y dirección",
+        "personalEmail": {
+          "label": "Correo Personal",
+          "placeholder": "tu@correo.com"
+        },
+        "personalPhone": {
+          "label": "Teléfono Personal",
+          "placeholder": "10 dígitos"
+        },
+        "address": {
+          "title": "Dirección",
+          "street": "Calle",
+          "exteriorNumber": "No. Exterior",
+          "interiorNumber": "No. Interior",
+          "neighborhood": "Colonia",
+          "city": "Ciudad",
+          "state": "Estado",
+          "zipCode": {
+            "label": "Código Postal",
+            "placeholder": "5 dígitos"
+          }
+        }
+      },
+      "emergencyContact": {
+        "title": "Contacto de Emergencia",
+        "description": "Persona de contacto en caso de emergencia",
+        "name": {
+          "label": "Nombre del Contacto",
+          "placeholder": "Nombre completo"
+        },
+        "phone": "Teléfono del Contacto",
+        "email": "Correo del Contacto",
+        "relationship": {
+          "label": "Parentesco",
+          "placeholder": "Cónyuge, Padre, Hermano, etc."
+        }
+      },
+      "bankInfo": {
+        "title": "Información Bancaria",
+        "description": "Datos bancarios para nómina (solo RRHH/Gerentes)",
+        "bankName": {
+          "label": "Banco",
+          "placeholder": "Seleccionar banco"
+        },
+        "paymentMethod": {
+          "label": "Método de Pago",
+          "placeholder": "Seleccionar método",
+          "bankTransfer": "Transferencia Bancaria",
+          "check": "Cheque",
+          "cash": "Efectivo",
+          "payrollCard": "Tarjeta de Nómina"
+        },
+        "clabe": {
+          "label": "CLABE (18 dígitos)",
+          "placeholder": "Número de cuenta CLABE de 18 dígitos",
+          "description": "Clave Bancaria Estandarizada (18 dígitos)"
+        }
+      },
+      "contract": {
+        "title": "Contrato",
+        "description": "Gestión de contratos laborales",
+        "createTitle": "Crear Nuevo Contrato",
+        "createDescription": "Crea un nuevo contrato laboral con detalles salariales",
+        "editTitle": "Editar Contrato",
+        "editDescription": "Actualiza los detalles del contrato e información salarial",
+        "contractNumber": {
+          "label": "Número de Contrato *",
+          "placeholder": "Ej: CNT-2024-001"
+        },
+        "contractType": {
+          "label": "Tipo de Contrato *",
+          "placeholder": "Seleccionar tipo de contrato",
+          "determinate": "Tiempo Determinado",
+          "indeterminate": "Tiempo Indeterminado",
+          "probation": "Periodo de Prueba",
+          "training": "Capacitación",
+          "seasonal": "Por Temporada",
+          "partTime": "Medio Tiempo"
+        },
+        "workRegime": {
+          "label": "Régimen de Trabajo *",
+          "placeholder": "Seleccionar régimen de trabajo",
+          "daily": "Diurno",
+          "mixed": "Mixto",
+          "night": "Nocturno",
+          "splitShift": "Jornada Partida",
+          "onCall": "Guardia"
+        },
+        "status": {
+          "label": "Estado",
+          "placeholder": "Seleccionar estado",
+          "active": "Activo",
+          "expired": "Vencido",
+          "terminated": "Terminado",
+          "renewed": "Renovado"
+        },
+        "dates": {
+          "startDate": "Fecha de Inicio *",
+          "endDate": "Fecha de Fin",
+          "signatureDate": "Fecha de Firma",
+          "pickDate": "Seleccionar fecha"
+        },
+        "salary": {
+          "title": "Información Salarial",
+          "dailyBase": "Salario Base Diario (MXN) *",
+          "weekly": "Salario Semanal (MXN)",
+          "monthly": "Salario Mensual (MXN)",
+          "suggested": "Sugerido: Semanal ${{weekly}}, Mensual ${{monthly}}",
+          "currency": "Moneda",
+          "contractInfo": "Información del Contrato"
+        },
+        "benefits": {
+          "title": "Prestaciones y Beneficios",
+          "healthInsurance": "Seguro de Gastos Médicos",
+          "lifeInsurance": "Seguro de Vida",
+          "savingsFund": "Fondo de Ahorro",
+          "foodVouchers": "Vales de Despensa",
+          "transportationBonus": "Bono de Transporte",
+          "notes": "Notas de Beneficios",
+          "notesPlaceholder": "Notas adicionales sobre beneficios..."
+        },
+        "schedule": {
+          "title": "Horario de Trabajo",
+          "startTime": "Hora de Inicio",
+          "endTime": "Hora de Fin",
+          "breakDuration": "Descanso (minutos)",
+          "breakPlaceholder": "60",
+          "probationDays": "Días de Prueba",
+          "probationPlaceholder": "30"
+        },
+        "createSuccess": "Contrato creado correctamente",
+        "updateSuccess": "Contrato actualizado correctamente",
+        "saveError": "Error al guardar el contrato",
+        "additional": {
+          "title": "Información Adicional",
+          "terms": "Términos del Contrato",
+          "termsPlaceholder": "Términos y condiciones específicos...",
+          "notes": "Notas Internas",
+          "notesPlaceholder": "Notas internas sobre este contrato...",
+          "autoRenew": "Renovar automáticamente al vencer"
+        },
+        "contractInfo": "Información del Contrato",
+        "createButton": "Crear Contrato",
+        "updateButton": "Actualizar Contrato"
+      },
+      "editButton": "Editar",
+      "saveButton": "Guardar Cambios",
+      "saveSuccess": "Información guardada correctamente",
+      "saveError": "Error al guardar la información",
+      "cancelButton": "Cancelar",
+      "saving": "Guardando..."
+    },
+    "leaveRequest": {
+      "title": "Solicitud de Permiso",
+      "description": "Solicita días de ausencia",
+      "leaveType": {
+        "label": "Tipo de Permiso",
+        "placeholder": "Seleccionar tipo de permiso",
+        "description": "Selecciona el tipo de permiso que deseas solicitar"
+      },
+      "startDate": {
+        "label": "Fecha de Inicio",
+        "placeholder": "Seleccionar fecha"
+      },
+      "endDate": {
+        "label": "Fecha de Fin",
+        "placeholder": "Seleccionar fecha"
+      },
+      "totalDays": "Días Totales",
+      "reason": {
+        "label": "Motivo",
+        "placeholder": "Explica el motivo de tu solicitud de permiso...",
+        "description": "Proporciona un motivo detallado para tu solicitud"
+      },
+      "submitButton": "Enviar Solicitud",
+      "submitting": "Enviando..."
+    },
+    "shifts": {
+      "title": "Turnos",
+      "create": "Crear Turno",
+      "edit": "Editar Turno",
+      "types": {
+        "matutino": "Matutino",
+        "vespertino": "Vespertino",
+        "nocturno": "Nocturno",
+        "mixto": "Mixto"
+      },
+      "shift": "Turno",
+      "startTime": "Hora de Inicio",
+      "endTime": "Hora de Fin",
+      "breakDuration": "Duración de Descanso",
+      "assignEmployee": "Asignar Empleado",
+      "unassignEmployee": "Desasignar Empleado",
+      "searchPlaceholder": "Buscar empleado...",
+      "notePlaceholder": "Ej: Cubrir ausencia, turno especial...",
+      "roles": {
+        "cook": "COCINERO",
+        "waiter": "MESERO",
+        "cashier": "CAJERO",
+        "cleaning": "LIMPIEZA",
+        "supervisor": "SUPERVISOR",
+        "manager": "GERENTE"
+      }
+    },
+    "workLogs": {
+      "title": "Registros de Jornada",
+      "clockIn": "Entrada",
+      "clockOut": "Salida",
+      "totalHours": "Horas Totales",
+      "workedHours": "Horas Trabajadas",
+      "breaks": "Descansos",
+      "overtime": "Horas Extra",
+      "discrepancies": "Discrepancias"
+    },
+    "breaks": {
+      "title": "Pausas Activas",
+      "start": "Iniciar Descanso",
+      "end": "Finalizar Descanso",
+      "duration": "Duración",
+      "reminder": "Recordatorio de Descanso",
+      "compliance": "Cumplimiento con Normativa"
+    },
+    "overtime": {
+      "title": "Horas Extra",
+      "detected": "Horas Extra Detectadas",
+      "rate": "Tasa",
+      "double": "Doble (2x)",
+      "triple": "Triple (3x)",
+      "alert": "Alerta de Horas Extra",
+      "approval": "Aprobación de Horas Extra"
+    },
+    "employeeFile": {
+      "title": "Expediente Laboral",
+      "documents": {
+        "birthCertificate": "Acta de Nacimiento",
+        "ine": "INE",
+        "rfc": "RFC",
+        "nss": "NSS",
+        "addressProof": "Comprobante de Domicilio",
+        "contract": "Contrato Laboral",
+        "jobDescription": "Descripción del Puesto",
+        "certificates": "Certificados de Capacitación"
+      },
+      "expiration": "Vencimiento",
+      "missing": "Documentos Faltantes",
+      "complete": "Expediente Completo"
+    },
+    "compliance": {
+      "title": "Cumplimiento Laboral",
+      "nom035": "NOM-035",
+      "weeklyHours": "Horas Semanales",
+      "breakCompliance": "Cumplimiento de Descansos",
+      "overtimeLimits": "Límites de Horas Extra",
+      "reports": {
+        "weekly": "Reporte Semanal",
+        "overtime": "Reporte de Horas Extra",
+        "breaks": "Reporte de Descansos",
+        "documents": "Reporte de Documentos"
+      }
+    }
+  },
+  "compliance": {
+    "title": "Cumplimiento Normativo",
+    "subtitle": "Cumplimiento con regulaciones y estándares",
+    "health": {
+      "title": "Salubridad",
+      "nom251": "NOM-251-SSA1-2009"
+    },
+    "safety": {
+      "title": "Seguridad",
+      "nom035": "NOM-035-STPS-2018"
+    },
+    "labor": {
+      "title": "Ley Federal del Trabajo",
+      "articles": "Artículos"
+    }
+  },
+  "company": {
+    "title": "Empresa",
+    "subtitle": "Configuración de empresa y sucursales",
+    "branches": {
+      "title": "Sucursales",
+      "create": "Crear Sucursal",
+      "edit": "Editar Sucursal",
+      "code": "Código de Sucursal",
+      "name": "Nombre de Sucursal",
+      "address": "Dirección",
+      "phone": "Teléfono",
+      "operatingHours": "Horario de Operación",
+      "select": "Seleccionar Sucursal",
+      "switch": "Cambiar Sucursal"
+    },
+    "settings": {
+      "title": "Configuración",
+      "general": "General",
+      "business": "Negocio",
+      "notifications": "Notificaciones",
+      "integrations": "Integraciones"
+    }
+  },
+  "analytics": {
+    "title": "Analíticas",
+    "subtitle": "Métricas y análisis de desempeño",
+    "kpi": {
+      "title": "KPIs",
+      "workflowCompletion": "Tasa de Completitud",
+      "onTimeCompletion": "Completitud a Tiempo",
+      "alertResolutionTime": "Tiempo de Resolución de Alertas",
+      "inventoryAccuracy": "Precisión de Inventario",
+      "aiAccuracy": "Precisión de IA",
+      "laborCompliance": "Cumplimiento Laboral",
+      "target": "Meta",
+      "actual": "Actual"
+    },
+    "reports": {
+      "title": "Reportes",
+      "daily": "Reporte Diario",
+      "weekly": "Reporte Semanal",
+      "monthly": "Reporte Mensual",
+      "compliance": "Reporte de Cumplimiento",
+      "cost": "Análisis de Costos",
+      "exportPdf": "Exportar PDF",
+      "exportExcel": "Exportar Excel"
+    },
+    "trends": {
+      "title": "Tendencias",
+      "compare": "Comparar Períodos",
+      "forecast": "Pronóstico"
+    }
+  },
+  "notifications": {
+    "title": "Notificaciones",
+    "markAllRead": "Marcar todas como leídas",
+    "markAsRead": "Marcar como leída",
+    "noNotifications": "Sin notificaciones",
+    "preferences": "Preferencias de Notificación",
+    "channels": {
+      "email": "Correo Electrónico",
+      "push": "Notificaciones Push",
+      "whatsapp": "WhatsApp",
+      "sms": "SMS"
+    },
+    "types": {
+      "workflow": "Flujo de Trabajo",
+      "alert": "Alerta",
+      "reminder": "Recordatorio",
+      "system": "Sistema"
+    }
+  },
+  "whatsapp": {
+    "title": "Integración WhatsApp",
+    "subtitle": "Configuración de mensajería por WhatsApp",
+    "setup": {
+      "title": "Configuración",
+      "connect": "Conectar WhatsApp",
+      "connected": "WhatsApp Conectado",
+      "disconnect": "Desconectar",
+      "session": "Sesión",
+      "active": "Activa",
+      "inactive": "Inactiva"
+    },
+    "messages": {
+      "title": "Mensajes",
+      "templates": "Plantillas de Mensaje",
+      "newTask": "Nueva Tarea Asignada",
+      "reminder": "Recordatorio",
+      "workflowPending": "Tienes pendiente el workflow...",
+      "assignment": "Asignación",
+      "dueSoon": "Vence Pronto",
+      "overdue": "Vencido",
+      "completion": "Completado",
+      "alert": "Alerta Crítica"
+    },
+    "conversation": {
+      "greeting": "¡Hola {name}! Es hora de hacer el checklist de apertura. ¿Lista para empezar?",
+      "stepInstruction": "Paso {step}: {instruction}",
+      "requestPhoto": "Por favor envía una foto de {item}",
+      "verified": "✅ Verificado",
+      "nextStep": "Paso {current} de {total}...",
+      "help": "Escribe AYUDA para ver opciones",
+      "fallback": "No entendí. Por favor responde de nuevo."
+    },
+    "responses": {
+      "yes": ["sí", "si", "yes", "ok", "vale", "confirmo", "listo"],
+      "no": ["no", "nop", "nope", "negativo"]
+    }
+  },
+  "ai": {
+    "title": "Verificación con IA",
+    "subtitle": "Configuración y monitoreo de verificación inteligente",
+    "providers": {
+      "title": "Proveedores de IA",
+      "moondream": "Moondream",
+      "openai": "OpenAI",
+      "anthropic": "Anthropic",
+      "routing": "Lógica de Enrutamiento"
+    },
+    "verification": {
+      "title": "Verificación",
+      "types": {
+        "ocr": "OCR",
+        "classification": "Clasificación",
+        "objectDetection": "Detección de Objetos",
+        "textRecognition": "Reconocimiento de Texto",
+        "qualityAnalysis": "Análisis de Calidad",
+        "safetyAnalysis": "Análisis de Seguridad"
+      },
+      "confidence": "Confianza",
+      "threshold": "Umbral",
+      "autoApprove": "Aprobación Automática",
+      "manualReview": "Revisión Manual"
+    },
+    "cost": {
+      "title": "Costos",
+      "tracking": "Seguimiento de Costos",
+      "perVerification": "Costo por Verificación",
+      "monthlyUsage": "Uso Mensual",
+      "providerDistribution": "Distribución por Proveedor",
+      "budget": "Presupuesto",
+      "alert": "Alerta de Presupuesto"
+    }
+  },
+  "errors": {
+    "generic": "Ha ocurrido un error",
+    "loading": "Error cargando datos",
+    "saving": "Error guardando cambios",
+    "deleting": "Error eliminando",
+    "notFound": "No encontrado",
+    "unauthorized": "No autorizado",
+    "forbidden": "Acceso denegado",
+    "serverError": "Error del servidor",
+    "networkError": "Error de conexión",
+    "timeout": "Tiempo de espera agotado",
+    "retry": "Reintentar",
+    "services": {
+      "loading": "Error al cargar servicios",
+      "maintenance": "Error al cargar mantenimientos",
+      "providers": "Error al cargar proveedores",
+      "products": "Error al cargar productos",
+      "history": "Error al cargar el historial",
+      "branchSwitch": "Error al cambiar de sucursal",
+      "team": "Error al cargar el equipo"
+    }
+  },
+  "success": {
+    "saved": "Guardado correctamente",
+    "updated": "Actualizado correctamente",
+    "deleted": "Eliminado correctamente",
+    "created": "Creado correctamente",
+    "archived": "Archivado correctamente",
+    "restored": "Restaurado correctamente",
+    "sent": "Enviado correctamente",
+    "team": {
+      "updated": "Equipo actualizado correctamente",
+      "archived": "Equipo dado de baja correctamente"
+    },
+    "personalInfoSaved": "Información personal guardada correctamente",
+    "contractCreated": "Contrato creado correctamente",
+    "contractUpdated": "Contrato actualizado correctamente",
+    "leaveRequestSubmitted": "Solicitud de permiso enviada correctamente"
+  },
+  "roles": {
+    "superAdmin": "Super Administrador",
+    "admin": "Administrador",
+    "gerente": "Gerente",
+    "supervisor": "Supervisor",
+    "empleado": "Empleado",
+    "readonly": "Solo Lectura"
+  },
+  "permissions": {
+    "title": "Permisos",
+    "read": "Ver",
+    "write": "Editar",
+    "delete": "Eliminar",
+    "manage": "Gestionar",
+    "viewAll": "Ver Todo",
+    "manageAll": "Gestionar Todo"
+  }
+}

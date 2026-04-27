@@ -30,6 +30,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { CalendarIcon, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 
 const leaveRequestSchema = z.object({
   leaveTypeId: z.string().uuid({ message: 'Select a leave type' }),
@@ -50,6 +51,9 @@ interface LeaveRequestFormProps {
 export function LeaveRequestForm({ companyId, userId, balances }: LeaveRequestFormProps) {
   const [loading, setLoading] = useState(false);
   const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
+
+  const t = useTranslations("labor.leaveRequest");
+  const tCommon = useTranslations("common");
 
   const form = useForm<LeaveRequestFormValues>({
     resolver: zodResolver(leaveRequestSchema),
@@ -90,15 +94,15 @@ export function LeaveRequestForm({ companyId, userId, balances }: LeaveRequestFo
 
       if (!response.ok) {
         const error = await response.json();
-        toast.error(error.error || 'Failed to create leave request');
-        return;
-      }
+      toast.error(error.error || t('submitError'));
+      return;
+    }
 
-      toast.success('Leave request submitted successfully');
-      form.reset();
-    } catch (error) {
-      console.error('Error creating leave request:', error);
-      toast.error('Failed to create leave request');
+    toast.success(t('submitSuccess'));
+    form.reset();
+  } catch (error) {
+    console.error('Error creating leave request:', error);
+    toast.error(t('submitError'));
     } finally {
       setLoading(false);
     }
@@ -112,24 +116,24 @@ export function LeaveRequestForm({ companyId, userId, balances }: LeaveRequestFo
           name="leaveTypeId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Leave Type</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select leave type" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {balances.map((balance) => (
-                    <SelectItem key={balance.leaveTypeId} value={balance.leaveTypeId}>
-                      {balance.leaveTypeName} ({balance.balance} days available)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormDescription>
-                Select the type of leave you want to request
-              </FormDescription>
+          <FormLabel>{t('leaveType.label')}</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('leaveType.placeholder')} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {balances.map((balance) => (
+                        <SelectItem key={balance.leaveTypeId} value={balance.leaveTypeId}>
+                          {balance.leaveTypeName} ({balance.balance} {t('daysAvailable')})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    {t('leaveType.description')}
+                  </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -141,26 +145,26 @@ export function LeaveRequestForm({ companyId, userId, balances }: LeaveRequestFo
             name="startDate"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Start Date</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          'pl-3 text-left font-normal',
-                          !field.value && 'text-muted-foreground'
-                        )}
-                      >
-                        {field.value ? (
-                          format(field.value, 'PPP', { locale: es })
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
+                <FormLabel>{t('startDate.label')}</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            'pl-3 text-left font-normal',
+                            !field.value && 'text-muted-foreground'
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, 'PPP', { locale: es })
+                          ) : (
+                            <span>{t('startDate.placeholder')}</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
@@ -181,26 +185,26 @@ export function LeaveRequestForm({ companyId, userId, balances }: LeaveRequestFo
             name="endDate"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>End Date</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          'pl-3 text-left font-normal',
-                          !field.value && 'text-muted-foreground'
-                        )}
-                      >
-                        {field.value ? (
-                          format(field.value, 'PPP', { locale: es })
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
+                <FormLabel>{t('endDate.label')}</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            'pl-3 text-left font-normal',
+                            !field.value && 'text-muted-foreground'
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, 'PPP', { locale: es })
+                          ) : (
+                            <span>{t('endDate.placeholder')}</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
@@ -217,37 +221,37 @@ export function LeaveRequestForm({ companyId, userId, balances }: LeaveRequestFo
           />
         </div>
 
-        {form.watch('totalDays') && (
-          <div className="p-4 bg-muted rounded-lg">
-            <p className="text-sm font-medium">Total Days: {form.watch('totalDays')}</p>
-          </div>
+      {form.watch('totalDays') && (
+        <div className="p-4 bg-muted rounded-lg">
+          <p className="text-sm font-medium">{t('totalDays')}: {form.watch('totalDays')}</p>
+        </div>
+      )}
+
+      <FormField
+        control={form.control}
+        name="reason"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>{t('reason.label')}</FormLabel>
+            <FormControl>
+              <Textarea
+                placeholder={t('reason.placeholder')}
+                className="resize-none"
+                {...field}
+              />
+            </FormControl>
+            <FormDescription>
+              {t('reason.description')}
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
         )}
+      />
 
-        <FormField
-          control={form.control}
-          name="reason"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Reason</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Explain the reason for your leave request..."
-                  className="resize-none"
-                  {...field}
-                />
-              </FormControl>
-              <FormDescription>
-                Provide a detailed reason for your leave request
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <Button type="submit" disabled={loading}>
-          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Submit Request
-        </Button>
+      <Button type="submit" disabled={loading}>
+        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {t('submitButton')}
+      </Button>
       </form>
     </Form>
   );

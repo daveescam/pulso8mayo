@@ -5,14 +5,16 @@ import { WasenderClient } from "@/lib/whatsapp/wasender-client";
 
 export type NotificationChannel = "whatsapp" | "email" | "in-app";
 export type NotificationEventType =
-    | "workflow_assignment"
-    | "workflow_due_soon"
-    | "workflow_overdue"
-    | "incident"
-    | "stock_alert"
-    | "shift_reminder"
-    | "schedule_change"
-    | "document_expiration";
+  | "workflow_assignment"
+  | "workflow_due_soon"
+  | "workflow_overdue"
+  | "incident"
+  | "stock_alert"
+  | "shift_reminder"
+  | "schedule_change"
+  | "document_expiration"
+  | "shift_approval_request"
+  | "shift_approval_decision";
 
 export interface UserData {
     id: string;
@@ -147,18 +149,42 @@ const notificationTemplates: Record<string, NotificationTemplate> = {
         inAppMessage: "{changeDescription}",
         variables: ["userName", "changeDescription"]
     },
-    "document_expiration": {
-        id: "document_expiration",
-        name: "Documento por Vencer",
-        eventType: "document_expiration",
-        channels: ["whatsapp", "email", "in-app"],
-        whatsappTemplate: "⚠️ *Documento por Vencer*\n\nHola {userName},\n\nTu documento \"{documentName}\" vence en {daysUntilExpiration} días.\n\nPor favor, renuévalo lo antes posible.",
-        emailSubject: "⚠️ Documento por Vencer: {documentName}",
-        emailBody: `<h2>Documento por Vencer</h2><p>Hola {userName},</p><p>Tu documento <strong>{documentName}</strong> vence en <strong>{daysUntilExpiration} días</strong>.</p><p>Por favor, renuévalo lo antes posible.</p>`,
-        inAppTitle: "Documento por Vencer",
-        inAppMessage: "{documentName} vence en {daysUntilExpiration} días",
-        variables: ["userName", "documentName", "daysUntilExpiration"]
-    }
+  "document_expiration": {
+    id: "document_expiration",
+    name: "Documento por Vencer",
+    eventType: "document_expiration",
+    channels: ["whatsapp", "email", "in-app"],
+    whatsappTemplate: "⚠️ *Documento por Vencer*\n\nHola {userName},\n\nTu documento \"{documentName}\" vence en {daysUntilExpiration} días.\n\nPor favor, renuévalo lo antes posible.",
+    emailSubject: "⚠️ Documento por Vencer: {documentName}",
+    emailBody: `<h2>Documento por Vencer</h2><p>Hola {userName},</p><p>Tu documento <strong>{documentName}</strong> vence en <strong>{daysUntilExpiration} días</strong>.</p><p>Por favor, renuévalo lo antes posible.</p>`,
+    inAppTitle: "Documento por Vencer",
+    inAppMessage: "{documentName} vence en {daysUntilExpiration} días",
+    variables: ["userName", "documentName", "daysUntilExpiration"]
+  },
+  "shift_approval_request": {
+    id: "shift_approval_request",
+    name: "Solicitud de Aprobación de Turno",
+    eventType: "shift_approval_request",
+    channels: ["whatsapp", "email", "in-app"],
+    whatsappTemplate: "⏰ *Nueva Solicitud de Aprobación*\n\nHola {userName},\n\n{requesterName} solicita aprobación para:\n\n*Tipo:* {approvalType}\n*Empleado:* {employeeName}\n*Descripción:* {description}\n\nPor favor revisa el dashboard para aprobar o rechazar.",
+    emailSubject: "⏰ Nueva Solicitud de Aprobación: {approvalType}",
+    emailBody: `<h2>Nueva Solicitud de Aprobación</h2><p>Hola {userName},</p><p><strong>{requesterName}</strong> solicita aprobación para:</p><ul><li><strong>Tipo:</strong> {approvalType}</li><li><strong>Empleado:</strong> {employeeName}</li><li><strong>Descripción:</strong> {description}</li></ul><p>Por favor revisa el dashboard para aprobar o rechazar.</p>`,
+    inAppTitle: "Nueva Solicitud de Aprobación",
+    inAppMessage: "{approvalType} - {employeeName}",
+    variables: ["userName", "requesterName", "approvalType", "employeeName", "description"]
+  },
+  "shift_approval_decision": {
+    id: "shift_approval_decision",
+    name: "Decisión de Aprobación de Turno",
+    eventType: "shift_approval_decision",
+    channels: ["whatsapp", "email", "in-app"],
+    whatsappTemplate: "📋 *Solicitud {decision}*\n\nHola {userName},\n\nTu solicitud de *{approvalType}* fue *{decision}* por {approverName}.\n\n{rejectionReason ? `Motivo: ${rejectionReason}` : ''}\n\nRevisa el dashboard para más detalles.",
+    emailSubject: "📋 Solicitud {decision}: {approvalType}",
+    emailBody: `<h2>Solicitud {decision}</h2><p>Hola {userName},</p><p>Tu solicitud de <strong>{approvalType}</strong> fue <strong>{decision}</strong> por {approverName}.</p>{rejectionReason ? `<p><strong>Motivo:</strong> ${rejectionReason}</p>` : ''}<p>Revisa el dashboard para más detalles.</p>`,
+    inAppTitle: "Solicitud {decision}",
+    inAppMessage: "{approvalType} fue {decision}",
+    variables: ["userName", "approvalType", "decision", "approverName", "rejectionReason"]
+  }
 };
 
 export class NotificationDispatcher {

@@ -37,6 +37,7 @@ import { CalendarIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 const contractSchema = z.object({
   contractNumber: z.string().min(1, "Contract number is required"),
@@ -77,30 +78,6 @@ interface ContractDialogProps {
   branchId?: string;
 }
 
-const contractTypeOptions = [
-  { value: 'DETERMINATE', label: 'Determinate Duration' },
-  { value: 'INDETERMINATE', label: 'Indeterminate Duration' },
-  { value: 'PROBATION', label: 'Probation Period' },
-  { value: 'TRAINING', label: 'Training' },
-  { value: 'SEASONAL', label: 'Seasonal' },
-  { value: 'PART_TIME', label: 'Part Time' },
-];
-
-const workRegimeOptions = [
-  { value: 'DAILY', label: 'Daily' },
-  { value: 'MIXED', label: 'Mixed' },
-  { value: 'NIGHT', label: 'Night' },
-  { value: 'SPLIT_SHIFT', label: 'Split Shift' },
-  { value: 'ON_CALL', label: 'On Call' },
-];
-
-const statusOptions = [
-  { value: 'ACTIVE', label: 'Active' },
-  { value: 'EXPIRED', label: 'Expired' },
-  { value: 'TERMINATED', label: 'Terminated' },
-  { value: 'RENEWED', label: 'Renewed' },
-];
-
 export function ContractDialog({
   open,
   onOpenChange,
@@ -112,6 +89,9 @@ export function ContractDialog({
 }: ContractDialogProps) {
   const [loading, setLoading] = useState(false);
   const isEditing = !!contract;
+
+  const t = useTranslations("labor.employees.contract");
+  const tCommon = useTranslations("common");
 
   const form = useForm<ContractFormData>({
     resolver: zodResolver(contractSchema),
@@ -218,16 +198,16 @@ export function ContractDialog({
       });
 
       if (response.ok) {
-        toast.success(isEditing ? 'Contract updated successfully' : 'Contract created successfully');
+        toast.success(isEditing ? t('updateSuccess') : t('createSuccess'));
         onSuccess();
         onOpenChange(false);
       } else {
         const errorData = await response.json();
-        toast.error(errorData.error || 'Failed to save contract');
+        toast.error(errorData.error || t('saveError'));
       }
     } catch (error) {
       console.error('Error saving contract:', error);
-      toast.error('Failed to save contract');
+      toast.error(t('saveError'));
     } finally {
       setLoading(false);
     }
@@ -240,208 +220,208 @@ export function ContractDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? 'Edit Contract' : 'Create New Contract'}
-          </DialogTitle>
-          <DialogDescription>
-            {isEditing ? 'Update contract details and salary information.' : 'Create a new employment contract with salary details.'}
-          </DialogDescription>
-        </DialogHeader>
+      <DialogHeader>
+        <DialogTitle>
+          {isEditing ? t('editTitle') : t('createTitle')}
+        </DialogTitle>
+        <DialogDescription>
+          {isEditing ? t('editDescription') : t('createDescription')}
+        </DialogDescription>
+      </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Contract Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Contract Information</h3>
+          {/* Contract Information */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">{t('contractInfo')}</h3>
 
-                <FormField
-                  control={form.control}
-                  name="contractNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contract Number *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g., CNT-2024-001" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            <FormField
+              control={form.control}
+              name="contractNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('contractNumber.label')}</FormLabel>
+                  <FormControl>
+                    <Input placeholder={t('contractNumber.placeholder')} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                <FormField
-                  control={form.control}
-                  name="contractType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contract Type *</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+            <FormField
+              control={form.control}
+              name="contractType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('contractType.label')}</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('contractType.placeholder')} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="DETERMINATE">{t('contractType.determinate')}</SelectItem>
+                      <SelectItem value="INDETERMINATE">{t('contractType.indeterminate')}</SelectItem>
+                      <SelectItem value="PROBATION">{t('contractType.probation')}</SelectItem>
+                      <SelectItem value="TRAINING">{t('contractType.training')}</SelectItem>
+                      <SelectItem value="SEASONAL">{t('contractType.seasonal')}</SelectItem>
+                      <SelectItem value="PART_TIME">{t('contractType.partTime')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="workRegime"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('workRegime.label')}</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('workRegime.placeholder')} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="DAILY">{t('workRegime.daily')}</SelectItem>
+                      <SelectItem value="MIXED">{t('workRegime.mixed')}</SelectItem>
+                      <SelectItem value="NIGHT">{t('workRegime.night')}</SelectItem>
+                      <SelectItem value="SPLIT_SHIFT">{t('workRegime.splitShift')}</SelectItem>
+                      <SelectItem value="ON_CALL">{t('workRegime.onCall')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('status.label')}</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('status.placeholder')} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="ACTIVE">{t('status.active')}</SelectItem>
+                      <SelectItem value="EXPIRED">{t('status.expired')}</SelectItem>
+                      <SelectItem value="TERMINATED">{t('status.terminated')}</SelectItem>
+                      <SelectItem value="RENEWED">{t('status.renewed')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="startDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>{t('dates.startDate')}</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select contract type" />
-                          </SelectTrigger>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>{t('dates.pickDate')}</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
                         </FormControl>
-                        <SelectContent>
-                          {contractTypeOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) =>
+                            date > new Date() || date < new Date("1900-01-01")
+                          }
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <FormField
-                  control={form.control}
-                  name="workRegime"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Work Regime *</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormField
+                control={form.control}
+                name="endDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>{t('dates.endDate')}</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select work regime" />
-                          </SelectTrigger>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>{t('dates.pickDate')}</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
                         </FormControl>
-                        <SelectContent>
-                          {workRegimeOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) =>
+                            date < new Date("1900-01-01")
+                          }
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
 
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {statusOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+      {/* Salary Information */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">{t('salary.title')}</h3>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="startDate"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Start Date *</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant={"outline"}
-                                className={cn(
-                                  "pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  format(field.value, "PPP")
-                                ) : (
-                                  <span>Pick a date</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) =>
-                                date > new Date() || date < new Date("1900-01-01")
-                              }
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="endDate"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>End Date</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant={"outline"}
-                                className={cn(
-                                  "pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  format(field.value, "PPP")
-                                ) : (
-                                  <span>Pick a date</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) =>
-                                date < new Date("1900-01-01")
-                              }
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-
-              {/* Salary Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Salary Information</h3>
-
-                <FormField
-                  control={form.control}
-                  name="baseSalary"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Daily Base Salary (MXN) *</FormLabel>
+    <FormField
+    control={form.control}
+    name="baseSalary"
+    render={({ field }) => (
+        <FormItem>
+        <FormLabel>{t('salary.dailyBase')}</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -457,12 +437,12 @@ export function ContractDialog({
                 />
 
                 <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="weeklySalary"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Weekly Salary (MXN)</FormLabel>
+      <FormField
+    control={form.control}
+    name="weeklySalary"
+    render={({ field }) => (
+        <FormItem>
+        <FormLabel>{t('salary.weekly')}</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -477,12 +457,12 @@ export function ContractDialog({
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="monthlySalary"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Monthly Salary (MXN)</FormLabel>
+      <FormField
+    control={form.control}
+    name="monthlySalary"
+    render={({ field }) => (
+        <FormItem>
+        <FormLabel>{t('salary.monthly')}</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -498,15 +478,15 @@ export function ContractDialog({
                   />
                 </div>
 
-                <div className="text-sm text-muted-foreground">
-                  Suggested: Weekly ${suggestedWeekly.toFixed(2)}, Monthly ${suggestedMonthly.toFixed(2)}
-                </div>
+    <div className="text-sm text-muted-foreground">
+      {t('salary.suggested', { weekly: suggestedWeekly.toFixed(2), monthly: suggestedMonthly.toFixed(2) })}
+    </div>
               </div>
             </div>
 
-            {/* Benefits */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Benefits & Perks</h3>
+    {/* Benefits */}
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold">{t('benefits.title')}</h3>
 
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <FormField
@@ -520,26 +500,26 @@ export function ContractDialog({
                           onCheckedChange={field.onChange}
                         />
                       </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Health Insurance</FormLabel>
-                      </div>
-                    </FormItem>
-                  )}
-                />
+      <div className="space-y-1 leading-none">
+        <FormLabel>{t('benefits.healthInsurance')}</FormLabel>
+      </div>
+    </FormItem>
+    )}
+    />
 
-                <FormField
-                  control={form.control}
-                  name="hasLifeInsurance"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Life Insurance</FormLabel>
+    <FormField
+    control={form.control}
+    name="hasLifeInsurance"
+    render={({ field }) => (
+    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+        <FormControl>
+        <Checkbox
+            checked={field.value}
+            onCheckedChange={field.onChange}
+        />
+        </FormControl>
+        <div className="space-y-1 leading-none">
+        <FormLabel>{t('benefits.lifeInsurance')}</FormLabel>
                       </div>
                     </FormItem>
                   )}
@@ -556,26 +536,26 @@ export function ContractDialog({
                           onCheckedChange={field.onChange}
                         />
                       </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Savings Fund</FormLabel>
-                      </div>
-                    </FormItem>
-                  )}
-                />
+      <div className="space-y-1 leading-none">
+        <FormLabel>{t('benefits.savingsFund')}</FormLabel>
+      </div>
+    </FormItem>
+    )}
+    />
 
-                <FormField
-                  control={form.control}
-                  name="hasFoodVouchers"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Food Vouchers</FormLabel>
+    <FormField
+    control={form.control}
+    name="hasFoodVouchers"
+    render={({ field }) => (
+    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+        <FormControl>
+        <Checkbox
+            checked={field.value}
+            onCheckedChange={field.onChange}
+        />
+        </FormControl>
+        <div className="space-y-1 leading-none">
+        <FormLabel>{t('benefits.foodVouchers')}</FormLabel>
                       </div>
                     </FormItem>
                   )}
@@ -592,26 +572,26 @@ export function ContractDialog({
                           onCheckedChange={field.onChange}
                         />
                       </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Transportation Bonus</FormLabel>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              </div>
+      <div className="space-y-1 leading-none">
+        <FormLabel>{t('benefits.transportationBonus')}</FormLabel>
+      </div>
+    </FormItem>
+    )}
+    />
+    </div>
 
-              <FormField
-                control={form.control}
-                name="benefitsNotes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Benefits Notes</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Additional benefits or notes..."
-                        className="resize-none"
-                        {...field}
-                      />
+    <FormField
+    control={form.control}
+    name="benefitsNotes"
+    render={({ field }) => (
+    <FormItem>
+        <FormLabel>{t('benefits.notes')}</FormLabel>
+        <FormControl>
+        <Textarea
+            placeholder={t('benefits.notesPlaceholder')}
+            className="resize-none"
+            {...field}
+        />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -619,17 +599,17 @@ export function ContractDialog({
               />
             </div>
 
-            {/* Work Schedule */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Work Schedule</h3>
+    {/* Work Schedule */}
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold">{t('schedule.title')}</h3>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <FormField
-                  control={form.control}
-                  name="workStartTime"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Start Time</FormLabel>
+      <FormField
+    control={form.control}
+    name="workStartTime"
+    render={({ field }) => (
+        <FormItem>
+        <FormLabel>{t('schedule.startTime')}</FormLabel>
                       <FormControl>
                         <Input type="time" {...field} />
                       </FormControl>
@@ -638,12 +618,12 @@ export function ContractDialog({
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="workEndTime"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>End Time</FormLabel>
+      <FormField
+    control={form.control}
+    name="workEndTime"
+    render={({ field }) => (
+        <FormItem>
+        <FormLabel>{t('schedule.endTime')}</FormLabel>
                       <FormControl>
                         <Input type="time" {...field} />
                       </FormControl>
@@ -652,16 +632,16 @@ export function ContractDialog({
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="breakDurationMinutes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Break (minutes)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="60"
+      <FormField
+    control={form.control}
+    name="breakDurationMinutes"
+    render={({ field }) => (
+        <FormItem>
+        <FormLabel>{t('schedule.breakDuration')}</FormLabel>
+        <FormControl>
+        <Input
+            type="number"
+            placeholder={t('schedule.breakPlaceholder')}
                           {...field}
                           onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                         />
@@ -671,16 +651,16 @@ export function ContractDialog({
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="probationPeriodDays"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Probation (days)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="30"
+      <FormField
+    control={form.control}
+    name="probationPeriodDays"
+    render={({ field }) => (
+        <FormItem>
+        <FormLabel>{t('schedule.probationDays')}</FormLabel>
+        <FormControl>
+        <Input
+            type="number"
+            placeholder={t('schedule.probationPlaceholder')}
                           {...field}
                           onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                         />
@@ -692,41 +672,41 @@ export function ContractDialog({
               </div>
             </div>
 
-            {/* Additional Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Additional Information</h3>
+    {/* Additional Information */}
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold">{t('additional.title')}</h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="terms"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contract Terms</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Specific terms and conditions..."
-                          className="resize-none"
-                          {...field}
-                        />
+      <FormField
+    control={form.control}
+    name="terms"
+    render={({ field }) => (
+        <FormItem>
+        <FormLabel>{t('additional.terms')}</FormLabel>
+        <FormControl>
+        <Textarea
+            placeholder={t('additional.termsPlaceholder')}
+            className="resize-none"
+            {...field}
+        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="notes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Internal Notes</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Internal notes about this contract..."
-                          className="resize-none"
-                          {...field}
-                        />
+      <FormField
+    control={form.control}
+    name="notes"
+    render={({ field }) => (
+        <FormItem>
+        <FormLabel>{t('additional.notes')}</FormLabel>
+        <FormControl>
+        <Textarea
+            placeholder={t('additional.notesPlaceholder')}
+            className="resize-none"
+            {...field}
+        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -734,39 +714,39 @@ export function ContractDialog({
                 />
               </div>
 
-              <FormField
-                control={form.control}
-                name="autoRenew"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Auto-renew contract when it expires</FormLabel>
-                    </div>
-                  </FormItem>
-                )}
-              />
-            </div>
+      <FormField
+    control={form.control}
+    name="autoRenew"
+    render={({ field }) => (
+        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+        <FormControl>
+        <Checkbox
+            checked={field.value}
+            onCheckedChange={field.onChange}
+        />
+        </FormControl>
+        <div className="space-y-1 leading-none">
+        <FormLabel>{t('additional.autoRenew')}</FormLabel>
+        </div>
+        </FormItem>
+    )}
+    />
+    </div>
 
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={loading}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={loading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isEditing ? 'Update Contract' : 'Create Contract'}
-              </Button>
-            </DialogFooter>
+    <DialogFooter>
+      <Button
+      type="button"
+      variant="outline"
+      onClick={() => onOpenChange(false)}
+      disabled={loading}
+      >
+      {tCommon('cancel')}
+      </Button>
+      <Button type="submit" disabled={loading}>
+      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+      {isEditing ? t('updateButton') : t('createButton')}
+      </Button>
+    </DialogFooter>
           </form>
         </Form>
       </DialogContent>
