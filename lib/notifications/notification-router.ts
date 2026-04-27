@@ -77,6 +77,14 @@ const routingRules: Record<NotificationEventType, RoutingRule> = {
         retryAttempts: 3,
         retryDelayMs: 3000,
         businessHoursOnly: false
+    },
+    document_expiration: {
+        eventType: "document_expiration",
+        priority: "high",
+        channels: ["whatsapp", "email", "in-app"],
+        retryAttempts: 3,
+        retryDelayMs: 2000,
+        businessHoursOnly: false
     }
 };
 

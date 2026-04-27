@@ -274,11 +274,12 @@ export class ComplianceReportService {
                 startDate,
                 endDate
             },
-            summary: {
-                totalInspections,
-                completedInspections,
-                byCategory
-            },
+      summary: {
+        totalInspections,
+        completedInspections,
+        complianceRate,
+        byCategory
+      },
             inspections: inspectionsWithSteps,
             digitalSignatures: {
                 generatedBy: 'Sistema Pulso HORECA',
@@ -427,8 +428,8 @@ export class ComplianceReportService {
             doc.setFontSize(9);
             doc.setFont('helvetica', 'normal');
             
-            const statusColor = inspection.status === 'COMPLETED' ? [39, 174, 96] : [231, 76, 60];
-            doc.setTextColor(...statusColor);
+      const statusColor: [number, number, number] = inspection.status === 'COMPLETED' ? [39, 174, 96] : [231, 76, 60];
+      doc.setTextColor(...statusColor);
             doc.text(`Estado: ${inspection.status}`, 14, yPos);
             doc.setTextColor(0, 0, 0);
             
@@ -444,20 +445,20 @@ export class ComplianceReportService {
             }
             yPos += 8;
 
-            // Steps table
-            if (inspection.steps.length > 0) {
-                const stepsData = inspection.steps.map(step => [
-                    step.stepId,
-                    step.status,
-                    step.comment || '-',
-                    step.evidenceUrl ? '✓' : '-'
-                ]);
+      // Steps table
+      if (inspection.steps.length > 0) {
+        const stepsData = inspection.steps.map(step => [
+          step.stepName,
+          step.status,
+          step.comment || '-',
+          step.evidenceUrl ? '✓' : '-'
+        ]);
 
-                autoTable(doc, {
-                    startY: yPos,
-                    head: [['Paso', 'Estado', 'Observaciones', 'Evidencia']],
-                    body: stepsData,
-                    theme: 'compact',
+        autoTable(doc, {
+          startY: yPos,
+          head: [['Paso', 'Estado', 'Observaciones', 'Evidencia']],
+          body: stepsData,
+          theme: 'plain',
                     headStyles: { fillColor: [149, 165, 166], textColor: 255, fontSize: 8 },
                     columnStyles: {
                         0: { cellWidth: 50, fontSize: 8 },
@@ -522,17 +523,17 @@ export class ComplianceReportService {
 
         yPos += 15;
 
-        // Footer
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(128, 128, 128);
-        doc.text('Página 1 de ' + doc.internal.getNumberOfPages(), pageWidth - 20, pageHeight - 10, { align: 'right' });
-        doc.text('Generado por Pulso HORECA - Sistema de Gestión de Compliance', 14, pageHeight - 10);
+    // Footer
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(128, 128, 128);
+    doc.text('Página 1 de ' + (doc as any).getNumberOfPages(), pageWidth - 20, pageHeight - 10, { align: 'right' });
+    doc.text('Generado por Pulso HORECA - Sistema de Gestión de Compliance', 14, pageHeight - 10);
 
-        return doc.output('arraybuffer');
-    }
+    return doc.output('arraybuffer');
+  }
 
-    private calculateGlobalRate(reportData: NOM251ReportData): number {
+  private calculateGlobalRate(reportData: NOM251ReportData): number {
         const total = reportData.summary.totalInspections;
         const completed = reportData.summary.completedInspections;
         return total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -547,25 +548,11 @@ export class ComplianceReportService {
             hash = ((hash << 5) - hash) + char;
             hash = hash & hash;
         }
-        return Math.abs(hash).toString(16).padStart(8, '0').toUpperCase();
-    }
+    return Math.abs(hash).toString(16).padStart(8, '0').toUpperCase();
+  }
 
-    /**
-     * Legacy method - kept for backward compatibility
-     */
-    async generateReport(type: ComplianceReportType, filters: ReportFilters): Promise<Uint8Array> {
-        if (type === 'NOM-251') {
-            const reportData = await this.generateNOM251Report(filters);
-            const pdfBuffer = await this.generatePDF(reportData);
-            return new Uint8Array(pdfBuffer);
-        }
-
-        // For other types, throw not implemented
-        throw new Error(`Report type ${type} not implemented. Use generateNOM251Report instead.`);
-    }
-
-    /**
-     * Generates a NOM-035 psychosocial risk report
+  /**
+   * Generates a NOM-035 psychosocial risk report
      * NOM-035-STPS-2018: Factores de riesgo psicosocial en el trabajo
      */
     async generateNOM035Report(filters: ReportFilters): Promise<NOM035ReportData> {
@@ -1115,16 +1102,16 @@ export class ComplianceReportService {
                 yPos = 20;
             }
 
-            // Employee header
-            doc.setFontSize(11);
-            doc.setFont('helvetica', 'bold');
-            const riskColor = employee.riskLevel === 'MUY_ALTO' || employee.riskLevel === 'ALTO'
-                ? [192, 57, 43]
-                : employee.riskLevel === 'MEDIO'
-                    ? [243, 156, 18]
-                    : [39, 174, 96];
+        // Employee header
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        const riskColor: [number, number, number] = employee.riskLevel === 'MUY_ALTO' || employee.riskLevel === 'ALTO'
+          ? [192, 57, 43]
+          : employee.riskLevel === 'MEDIO'
+          ? [243, 156, 18]
+          : [39, 174, 96];
 
-            doc.setTextColor(...riskColor);
+        doc.setTextColor(...riskColor);
             doc.text(`${index + 1}. ${employee.employeeName}`, 14, yPos);
             doc.setTextColor(0, 0, 0);
             yPos += 6;
@@ -1165,7 +1152,7 @@ export class ComplianceReportService {
             autoTable(doc, {
                 startY: yPos,
                 body: factorsData,
-                theme: 'compact',
+                theme: 'plain',
                 columnStyles: {
                     0: { cellWidth: 90, fontSize: 8 },
                     1: { cellWidth: 30, fontSize: 8, halign: 'center' }
@@ -1277,19 +1264,19 @@ export class ComplianceReportService {
 
         yPos += 15;
 
-        // Footer
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(128, 128, 128);
-        doc.text('Página 1 de ' + doc.internal.getNumberOfPages(), pageWidth - 20, pageHeight - 10, { align: 'right' });
-        doc.text('Generado por Pulso HORECA - Sistema de Gestión de Compliance', 14, pageHeight - 10);
+    // Footer
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(128, 128, 128);
+    doc.text('Página 1 de ' + (doc as any).getNumberOfPages(), pageWidth - 20, pageHeight - 10, { align: 'right' });
+    doc.text('Generado por Pulso HORECA - Sistema de Gestión de Compliance', 14, pageHeight - 10);
 
-        return doc.output('arraybuffer');
-    }
+    return doc.output('arraybuffer');
+  }
 
-    /**
-     * Helper to get risk level name in Spanish
-     */
+  /**
+   * Helper to get risk level name in Spanish
+   */
     private getRiskLevelName(level: RiskLevel | number): string {
         if (typeof level === 'number') {
             return this.calculateRiskLevel(level);

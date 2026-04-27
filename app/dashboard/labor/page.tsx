@@ -10,60 +10,76 @@ import { Calendar, Clock, Users, MapPin, TrendingUp, FileText, ArrowLeftRight, F
 import Link from "next/link"
 
 export default async function LaborManagementPage() {
-    const tenant = await getCurrentTenant();
-    const companyId = tenant.id;
+  const tenant = await getCurrentTenant();
+  const companyId = tenant.id;
+  const branchId = tenant.branchId;
 
-    // Default values if no company
-    if (!companyId) {
-        return (
-            <div className="flex flex-col items-center justify-center h-[60vh] text-center">
-                <Users className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-xl font-bold">Sin Empresa Seleccionada</h3>
-                <p className="text-muted-foreground max-w-md">
-                    Debes tener una empresa asignada para ver los indicadores de personal.
-                </p>
-            </div>
-        );
-    }
+  // Default values if no company
+  if (!companyId) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] text-center">
+        <Users className="h-12 w-12 text-muted-foreground mb-4" />
+        <h3 className="text-xl font-bold">Sin Empresa Seleccionada</h3>
+        <p className="text-muted-foreground max-w-md">
+          Debes tener una empresa asignada para ver los indicadores de personal.
+        </p>
+      </div>
+    );
+  }
 
-    // Date calculations
-    const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    const startOfYear = new Date(now.getFullYear(), 0, 1);
+  // Date calculations
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
 
-    // --- 1. Basic Employee Counts ---
-    const activeEmployeesRes = await EmployeeService.listEmployees(companyId, { status: 'ACTIVE', limit: 1 });
-    const totalEmployeesRes = await EmployeeService.listEmployees(companyId, { limit: 1 });
-    const activeCount = activeEmployeesRes.meta.total;
-    const totalCount = totalEmployeesRes.meta.total;
+  // --- 1. Basic Employee Counts (filtered by branch if selected) ---
+  const activeEmployeesRes = await EmployeeService.listEmployees(companyId, { status: 'ACTIVE', limit: 1, branchId: branchId || undefined });
+  const totalEmployeesRes = await EmployeeService.listEmployees(companyId, { limit: 1, branchId: branchId || undefined });
+  const activeCount = activeEmployeesRes.meta.total;
+  const totalCount = totalEmployeesRes.meta.total;
 
-    // --- 2. Attendance & Sessions (Today/Weekly) ---
-    const [scheduledTodayRes, actualTodayRes, weeklyStatsRes] = await Promise.all([
-        // Scheduled today
-        db.select({ count: sql<number>`count(distinct ${plannedShifts.userId})` })
-            .from(plannedShifts)
-            .innerJoin(users, eq(plannedShifts.userId, users.id))
-            .where(and(eq(plannedShifts.shiftDate, today), eq(users.companyId, companyId))),
-        // Actual today
-        db.select({ count: sql<number>`count(distinct ${shiftSessions.userId})` })
-            .from(shiftSessions)
-            .innerJoin(users, eq(shiftSessions.userId, users.id))
-            .where(and(sql`CAST(${shiftSessions.startedAt} AS DATE) = ${today}`, eq(users.companyId, companyId))),
-        // Weekly Stats (Hours, Overtime, Compliance)
-        db.select({ 
-            totalMinutes: sql<number>`sum(${shiftSessions.totalWorkMinutes})`,
-            totalOvertime: sql<number>`sum(${shiftSessions.overtimeMinutes})`,
-            totalSessions: sql<number>`count(*)`,
-            compliantSessions: sql<number>`count(*) filter (where cast(${shiftSessions.complianceFlags} as jsonb) = '{}'::jsonb or ${shiftSessions.complianceFlags} is null)`,
-            lateSessions: sql<number>`count(*) filter (where (${shiftSessions.lateMinutes} > 0))`,
-            avgLateness: sql<number>`avg(${shiftSessions.lateMinutes}) filter (where ${shiftSessions.lateMinutes} > 0)`
-        })
-        .from(shiftSessions)
-        .innerJoin(users, eq(shiftSessions.userId, users.id))
-        .where(and(eq(users.companyId, companyId), gte(shiftSessions.startedAt, oneWeekAgo)))
-    ]);
+  // --- 2. Attendance & Sessions (Today/Weekly) - Filtered by branch if selected ---
+  const branchFilter = branchId ? eq(plannedShifts.branchId, branchId) : undefined;
+  const sessionBranchFilter = branchId ? eq(shiftSessions.branchId, branchId) : undefined;
+
+  const [scheduledTodayRes, actualTodayRes, weeklyStatsRes] = await Promise.all([
+    // Scheduled today
+    db.select({ count: sql<number>`count(distinct ${plannedShifts.userId})` })
+    .from(plannedShifts)
+    .innerJoin(users, eq(plannedShifts.userId, users.id))
+    .where(and(
+      eq(plannedShifts.shiftDate, today),
+      eq(users.companyId, companyId),
+      ...(branchFilter ? [branchFilter] : [])
+    )),
+    // Actual today
+    db.select({ count: sql<number>`count(distinct ${shiftSessions.userId})` })
+    .from(shiftSessions)
+    .innerJoin(users, eq(shiftSessions.userId, users.id))
+    .where(and(
+      sql`CAST(${shiftSessions.startedAt} AS DATE) = ${today}`,
+      eq(users.companyId, companyId),
+      ...(sessionBranchFilter ? [sessionBranchFilter] : [])
+    )),
+    // Weekly Stats (Hours, Overtime, Compliance)
+    db.select({
+      totalMinutes: sql<number>`sum(${shiftSessions.totalWorkMinutes})`,
+      totalOvertime: sql<number>`sum(${shiftSessions.overtimeMinutes})`,
+      totalSessions: sql<number>`count(*)`,
+      compliantSessions: sql<number>`count(*) filter (where cast(${shiftSessions.complianceFlags} as jsonb) = '{}'::jsonb or ${shiftSessions.complianceFlags} is null)`,
+      lateSessions: sql<number>`count(*) filter (where (${shiftSessions.lateMinutes} > 0))`,
+      avgLateness: sql<number>`avg(${shiftSessions.lateMinutes}) filter (where ${shiftSessions.lateMinutes} > 0)`
+    })
+    .from(shiftSessions)
+    .innerJoin(users, eq(shiftSessions.userId, users.id))
+    .where(and(
+      eq(users.companyId, companyId),
+      gte(shiftSessions.startedAt, oneWeekAgo),
+      ...(sessionBranchFilter ? [sessionBranchFilter] : [])
+    ))
+  ]);
 
     const scheduledCount = Number(scheduledTodayRes[0]?.count || 0);
     const actualCount = Number(actualTodayRes[0]?.count || 0);
@@ -76,13 +92,30 @@ export default async function LaborManagementPage() {
     const onTimeRate = weeklyStats?.totalSessions ? Math.round(((Number(weeklyStats.totalSessions) - Number(weeklyStats.lateSessions)) / Number(weeklyStats.totalSessions)) * 100) : 100;
     const avgLateness = Math.round(Number(weeklyStats?.avgLateness || 0));
 
-    // --- 3. Requests & Approvals ---
-    const [pendingApprovalsRes, pendingLeaveRes, futureVacationsRes, pendingSwapsRes] = await Promise.all([
-        db.select({ count: count() }).from(shiftApprovals).where(and(eq(shiftApprovals.companyId, companyId), eq(shiftApprovals.status, 'PENDING'))),
-        db.select({ count: count() }).from(leaveRequests).where(and(eq(leaveRequests.companyId, companyId), eq(leaveRequests.status, 'PENDING'))),
-        db.select({ count: count() }).from(vacationRequests).where(and(eq(vacationRequests.companyId, companyId), eq(vacationRequests.status, 'APPROVED'), gte(vacationRequests.startDate, now))),
-        db.select({ count: count() }).from(shiftChangeRequests).where(and(eq(shiftChangeRequests.companyId, companyId), eq(shiftChangeRequests.status, 'PENDING')))
-    ]);
+  // --- 3. Requests & Approvals ---
+  const [pendingApprovalsRes, pendingLeaveRes, futureVacationsRes, pendingSwapsRes] = await Promise.all([
+    db.select({ count: count() }).from(shiftApprovals).where(and(
+      eq(shiftApprovals.companyId, companyId),
+      eq(shiftApprovals.status, 'PENDING'),
+      ...(branchId ? [eq(shiftApprovals.branchId, branchId)] : [])
+    )),
+    db.select({ count: count() }).from(leaveRequests).where(and(
+      eq(leaveRequests.companyId, companyId),
+      eq(leaveRequests.status, 'PENDING'),
+      ...(branchId ? [eq(leaveRequests.branchId, branchId)] : [])
+    )),
+    db.select({ count: count() }).from(vacationRequests).where(and(
+      eq(vacationRequests.companyId, companyId),
+      eq(vacationRequests.status, 'APPROVED'),
+      gte(vacationRequests.startDate, now),
+      ...(branchId ? [eq(vacationRequests.branchId, branchId)] : [])
+    )),
+    db.select({ count: count() }).from(shiftChangeRequests).where(and(
+      eq(shiftChangeRequests.companyId, companyId),
+      eq(shiftChangeRequests.status, 'PENDING'),
+      ...(branchId ? [eq(shiftChangeRequests.branchId, branchId)] : [])
+    ))
+  ]);
 
     const pendingApprovalsCount = Number(pendingApprovalsRes[0]?.count || 0);
     const pendingLeaveCount = Number(pendingLeaveRes[0]?.count || 0);

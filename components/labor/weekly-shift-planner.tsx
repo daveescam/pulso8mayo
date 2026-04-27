@@ -6,26 +6,26 @@ import { es } from "date-fns/locale"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
-    ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, User, Save, Eye, Copy,
-    Download, AlertTriangle, Trash2, Clock, Filter, X
+  ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, User, Save, Eye, Copy,
+  Download, AlertTriangle, Trash2, Clock, Filter, X, Building2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@/components/ui/card"
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog"
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -33,11 +33,12 @@ import { toast } from "sonner"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useBranch } from "@/lib/branch-context"
 
 interface Shift {
     id: string
@@ -81,23 +82,33 @@ const SHIFT_TYPES = {
 }
 
 interface WeeklyShiftPlannerProps {
-    employees?: Employee[]
-    branches?: Branch[]
+  employees?: Employee[]
+  branches?: Branch[]
 }
 
 export function WeeklyShiftPlanner({ employees: propEmployees, branches: propBranches }: WeeklyShiftPlannerProps) {
-    // State
-    const [currentDate, setCurrentDate] = React.useState(new Date())
-    const [shifts, setShifts] = React.useState<Shift[]>([])
-    const [employees, setEmployees] = React.useState<Employee[]>([])
-    const [branches, setBranches] = React.useState<Branch[]>([])
-    const [loading, setLoading] = React.useState(true)
-    const [saving, setSaving] = React.useState(false)
+  // State
+  const [currentDate, setCurrentDate] = React.useState(new Date())
+  const [shifts, setShifts] = React.useState<Shift[]>([])
+  const [employees, setEmployees] = React.useState<Employee[]>([])
+  const [branches, setBranches] = React.useState<Branch[]>([])
+  const [loading, setLoading] = React.useState(true)
+  const [saving, setSaving] = React.useState(false)
 
-    // Filters
-    const [selectedBranch, setSelectedBranch] = React.useState<string>("all")
-    const [selectedRole, setSelectedRole] = React.useState<string>("all")
-    const [searchQuery, setSearchQuery] = React.useState("")
+  // Use branch context
+  const { selectedBranchId: contextBranchId } = useBranch()
+
+  // Filters - use context branch if available
+  const [selectedBranch, setSelectedBranch] = React.useState<string>(contextBranchId || "all")
+  const [selectedRole, setSelectedRole] = React.useState<string>("all")
+  const [searchQuery, setSearchQuery] = React.useState("")
+
+  // Update selected branch when context changes
+  React.useEffect(() => {
+    if (contextBranchId) {
+      setSelectedBranch(contextBranchId)
+    }
+  }, [contextBranchId])
 
     // Dialog state
     const [openDialog, setOpenDialog] = React.useState(false)

@@ -1,8 +1,4 @@
-/**
- * WhatsApp Workflow Conversation Handler
- *
- * Handles conversational workflow execution via WhatsApp
- */
+/** 2:  * WhatsApp Workflow Conversation Handler 3:  * 4:  * Handles conversational workflow execution via WhatsApp 5:  */
 
 import { db } from '@/lib/db';
 import { eq, and, gt, inArray } from 'drizzle-orm';
@@ -11,6 +7,21 @@ import { ConversationStateManager, ConversationState } from './workflow-state-ma
 import { EvidenceProcessor } from './evidence-processor';
 import { wasenderClient } from './wasender-client';
 import { messageRouter, IncomingMessage } from './message-router';
+
+interface WorkflowStep {
+  id: string;
+  title?: string;
+  description?: string;
+  [key: string]: unknown;
+}
+
+interface WorkflowTemplateWithSteps {
+  id: string;
+  name?: string;
+  description?: string;
+  steps?: WorkflowStep[];
+  [key: string]: unknown;
+}
 
 export class WorkflowConversationHandler {
   private stateManager: ConversationStateManager;
@@ -22,8 +33,8 @@ export class WorkflowConversationHandler {
   }
 
   /**
-   * Handle incoming message in context of workflow conversation
-   */
+  * Handle incoming message in context of workflow conversation
+  */
   async handleMessage(message: IncomingMessage, userId: string): Promise<{ success: boolean; reply?: string }> {
     try {
       // Get or create conversation state
@@ -79,8 +90,8 @@ export class WorkflowConversationHandler {
   }
 
   /**
-   * Handle workflow selection/initiation
-   */
+  * Handle workflow selection/initiation
+  */
   private async handleWorkflowSelection(
     message: IncomingMessage,
     userId: string
@@ -109,9 +120,10 @@ export class WorkflowConversationHandler {
     }));
 
     // Find matching workflow
-    const matchedWorkflow = workflows.find((w) =>
-      w.template?.name.toLowerCase().includes(messageText)
-    );
+    const matchedWorkflow = workflows.find((w) => {
+      const templateName = (w.template as WorkflowTemplateWithSteps | undefined)?.name;
+      return templateName?.toLowerCase().includes(messageText);
+    });
 
     if (!matchedWorkflow) {
       return {
@@ -120,7 +132,7 @@ export class WorkflowConversationHandler {
 
 No encontré un workflow con ese nombre. Tus workflows pendientes son:
 
-${workflows.map((w) => `• ${w.template?.name}`).join('\n')}
+${workflows.map((w) => `• ${(w.template as WorkflowTemplateWithSteps | undefined)?.name || 'Workflow'}`).join('\n')}
 
 Por favor responde con el nombre exacto del workflow que deseas iniciar.`,
       };
@@ -128,22 +140,26 @@ Por favor responde con el nombre exacto del workflow que deseas iniciar.`,
 
     // Create conversation state
     const state = await this.stateManager.createState(message.from, userId, matchedWorkflow.id);
+    
+    const matchedTemplate = matchedWorkflow.template as WorkflowTemplateWithSteps | undefined;
+    const steps = matchedTemplate?.steps;
+    const stepsLength = steps?.length || 0;
 
     return {
       success: true,
       reply: `✅ *Workflow Iniciado*
 
-📋 *${matchedWorkflow.template?.name}*
+📋 *${matchedTemplate?.name || 'Workflow'}*
 
-Este workflow tiene ${matchedWorkflow.template?.steps?.length || 0} pasos.
+Este workflow tiene ${stepsLength} pasos.
 
-${this.formatStepPrompt(matchedWorkflow.template?.steps?.[0], 1, matchedWorkflow.template?.steps?.length || 0)}`,
+${this.formatStepPrompt(steps?.[0], 1, stepsLength)}`,
     };
   }
 
   /**
-   * Handle evidence submission (photo upload)
-   */
+  * Handle evidence submission (photo upload)
+  */
   private async handleEvidenceSubmission(
     message: IncomingMessage,
     state: ConversationState
@@ -193,7 +209,8 @@ ${this.formatStepPrompt(matchedWorkflow.template?.steps?.[0], 1, matchedWorkflow
         };
       }
 
-      const totalSteps = template.steps?.length || 0;
+      const templateWithSteps = template as unknown as WorkflowTemplateWithSteps;
+      const totalSteps = templateWithSteps.steps?.length || 0;
 
       if (nextStepIndex >= totalSteps) {
         // Workflow completed
@@ -204,15 +221,15 @@ ${this.formatStepPrompt(matchedWorkflow.template?.steps?.[0], 1, matchedWorkflow
           reply: `🎉 *¡Workflow Completado!*
 
 📋 *${template.name}*
-✅ Puntuación: ${result.score || 100}%
+✅ Puntuación: ${(result as { score?: number }).score || 100}%
 📝 Pasos Completados: ${totalSteps}/${totalSteps}
 
 ¡Excelente trabajo! 🎊`,
         };
       }
 
-      // Move to next step
-      const nextStep = instance.template.steps?.[nextStepIndex];
+      // Move to next step - use template.steps instead of instance.template
+      const nextStep = templateWithSteps.steps?.[nextStepIndex];
 
       await this.stateManager.updateState(message.from, {
         currentStepId: nextStep?.id || null,
@@ -223,7 +240,7 @@ ${this.formatStepPrompt(matchedWorkflow.template?.steps?.[0], 1, matchedWorkflow
 
       return {
         success: true,
-        reply: `${result.verificationMessage}
+        reply: `${(result as { verificationMessage?: string }).verificationMessage || ''}
 
 ${this.formatStepPrompt(nextStep, nextStepIndex + 1, totalSteps)}`,
       };
@@ -237,8 +254,8 @@ ${this.formatStepPrompt(nextStep, nextStepIndex + 1, totalSteps)}`,
   }
 
   /**
-   * Advance to next step
-   */
+  * Advance to next step
+  */
   private async advanceStep(
     message: IncomingMessage,
     state: ConversationState
@@ -263,8 +280,9 @@ ${this.formatStepPrompt(nextStep, nextStepIndex + 1, totalSteps)}`,
       return { success: false, reply: '❌ Template no encontrado.' };
     }
 
+    const templateWithSteps = template as unknown as WorkflowTemplateWithSteps;
     const nextStepIndex = (state.stepIndex || 0) + 1;
-    const totalSteps = template.steps?.length || 0;
+    const totalSteps = templateWithSteps.steps?.length || 0;
 
     if (nextStepIndex >= totalSteps) {
       return {
@@ -273,7 +291,7 @@ ${this.formatStepPrompt(nextStep, nextStepIndex + 1, totalSteps)}`,
       };
     }
 
-    const nextStep = instance.template.steps?.[nextStepIndex];
+    const nextStep = templateWithSteps.steps?.[nextStepIndex];
 
     await this.stateManager.updateState(message.from, {
       currentStepId: nextStep?.id || null,
@@ -289,8 +307,8 @@ ${this.formatStepPrompt(nextStep, nextStepIndex + 1, totalSteps)}`,
   }
 
   /**
-   * Go to previous step
-   */
+  * Go to previous step
+  */
   private async previousStep(
     message: IncomingMessage,
     state: ConversationState
@@ -304,15 +322,16 @@ ${this.formatStepPrompt(nextStep, nextStepIndex + 1, totalSteps)}`,
     });
 
     const template = await db.query.workflowTemplates.findFirst({
-      where: eq(workflowTemplates.id, instance.workflowTemplateId)
+      where: eq(workflowTemplates.id, instance?.workflowTemplateId || '')
     });
 
     if (!template) {
       return { success: false, reply: '❌ Template no encontrado.' };
     }
 
+    const templateWithSteps = template as unknown as WorkflowTemplateWithSteps;
     const prevStepIndex = state.stepIndex - 1;
-    const prevStep = template.steps?.[prevStepIndex];
+    const prevStep = templateWithSteps.steps?.[prevStepIndex];
 
     await this.stateManager.updateState(message.from, {
       currentStepId: prevStep?.id || null,
@@ -323,13 +342,13 @@ ${this.formatStepPrompt(nextStep, nextStepIndex + 1, totalSteps)}`,
 
     return {
       success: true,
-      reply: this.formatStepPrompt(prevStep, prevStepIndex + 1, template.steps?.length || 0),
+      reply: this.formatStepPrompt(prevStep, prevStepIndex + 1, templateWithSteps.steps?.length || 0),
     };
   }
 
   /**
-   * Skip current step
-   */
+  * Skip current step
+  */
   private async skipStep(
     message: IncomingMessage,
     state: ConversationState
@@ -342,8 +361,8 @@ ${this.formatStepPrompt(nextStep, nextStepIndex + 1, totalSteps)}`,
   }
 
   /**
-   * Cancel workflow
-   */
+  * Cancel workflow
+  */
   private async cancelWorkflow(
     message: IncomingMessage,
     state: ConversationState
@@ -357,8 +376,8 @@ ${this.formatStepPrompt(nextStep, nextStepIndex + 1, totalSteps)}`,
   }
 
   /**
-   * Prompt user for expected input
-   */
+  * Prompt user for expected input
+  */
   private promptForExpectedInput(state: ConversationState): { success: boolean; reply?: string } {
     return {
       success: true,
@@ -375,10 +394,10 @@ Comandos disponibles:
   }
 
   /**
-   * Format step prompt for WhatsApp message
-   */
+  * Format step prompt for WhatsApp message
+  */
   private formatStepPrompt(
-    step: any,
+    step: WorkflowStep | undefined,
     index: number,
     total: number
   ): string {

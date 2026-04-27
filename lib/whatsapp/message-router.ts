@@ -284,16 +284,17 @@ Por favor contacta a tu gerente para que te agregue al sistema Pulso.`,
 
 `;
 
-            for (const assignment of assignments) {
-                const template = assignment.instance?.template;
-                const dueDate = assignment.dueDate ? new Date(assignment.dueDate) : null;
-                const dueDateStr = dueDate ? dueDate.toLocaleDateString('es-MX') : 'Sin fecha límite';
+    for (const assignment of assignments) {
+      const instance = assignment as unknown as { instance?: { template?: { name?: string } | null } | null };
+      const template = instance.instance?.template;
+      const dueDate = assignment.dueDate ? new Date(assignment.dueDate) : null;
+      const dueDateStr = dueDate ? dueDate.toLocaleDateString('es-MX') : 'Sin fecha límite';
 
-                message += `• ${template?.name || 'Workflow'}
-  📅 ${dueDateStr}
+      message += `• ${template?.name || 'Workflow'}
+📅 ${dueDateStr}
 
 `;
-            }
+    }
 
             message += '\nPara ver los detalles, ingresa al sistema Pulso.';
 

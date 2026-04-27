@@ -2,26 +2,21 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { branchComplianceServices } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { requireTenant, requireAuth } from "@/lib/tenant-context";
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const companyId = searchParams.get("companyId");
-    const branchId = searchParams.get("branchId");
+    const tenant = await requireTenant();
+    if (!tenant.id || !tenant.branchId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    let query = db.query.branchComplianceServices.findMany({
+    const services = await db.query.branchComplianceServices.findMany({
+      where: (services, { eq }) => eq(services.branchId, tenant.branchId!),
       orderBy: (services, { asc }) => [asc(services.serviceName)],
     });
 
-    const services = await query;
-
-    const filtered = services.filter((service) => {
-      if (companyId && service.companyId !== companyId) return false;
-      if (branchId && service.branchId !== branchId) return false;
-      return true;
-    });
-
-    return NextResponse.json(filtered);
+    return NextResponse.json(services);
   } catch (error) {
     console.error("Error fetching compliance services:", error);
     return NextResponse.json({ error: "Error fetching services" }, { status: 500 });
@@ -30,19 +25,26 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { companyId, branchId, serviceType, serviceName, regulationReference, isMandatory, frequency, customDays, providerId, providerName, providerContact, nextServiceDate, serviceAreas, specialInstructions, workflowTemplateId, createdBy } = body;
+    const { user } = await requireAuth();
+    const tenant = await requireTenant();
 
-    if (!companyId || !branchId || !serviceType || !serviceName || !frequency || !createdBy) {
+    if (!tenant.id || !tenant.branchId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { serviceType, serviceName, regulationReference, isMandatory, frequency, customDays, providerId, providerName, providerContact, nextServiceDate, serviceAreas, specialInstructions, workflowTemplateId } = body;
+
+    if (!serviceType || !serviceName || !frequency) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Missing required fields: serviceType, serviceName, frequency" },
         { status: 400 }
       );
     }
 
     const newService = await db.insert(branchComplianceServices).values({
-      companyId,
-      branchId,
+      companyId: tenant.id,
+      branchId: tenant.branchId,
       serviceType,
       serviceName,
       regulationReference,
@@ -56,7 +58,7 @@ export async function POST(request: Request) {
       serviceAreas: serviceAreas || [],
       specialInstructions,
       workflowTemplateId,
-      createdBy,
+      createdBy: user.id,
     }).returning();
 
     return NextResponse.json(newService[0], { status: 201 });

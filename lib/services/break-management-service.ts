@@ -130,12 +130,12 @@ export class BreakManagementService {
                     complianceNotes = `Break demasiado corto (${durationMinutes}m < ${config.minBreakDuration}m mínimo)`;
                 }
 
-                // Check if meal break is required and this is a long shift
-                const workMinutes = session.totalWorkMinutes || 0;
-                if (config.mealBreakRequired && workMinutes > 300 && type === 'STANDARD' && durationMinutes < config.mealBreakMinDuration) {
-                    isCompliant = false;
-                    complianceNotes = (complianceNotes || "") + " Se requiere break de comida de al menos 30 minutos para jornadas > 5 horas.";
-                }
+    // Check if meal break is required and this is a long shift
+    const workMinutes = session.totalWorkMinutes || 0;
+    if (config.mealBreakRequired && workMinutes > 300 && activeBreak.type === 'STANDARD' && durationMinutes < config.mealBreakMinDuration) {
+      isCompliant = false;
+      complianceNotes = (complianceNotes || "") + " Se requiere break de comida de al menos 30 minutos para jornadas > 5 horas.";
+    }
             }
         }
 

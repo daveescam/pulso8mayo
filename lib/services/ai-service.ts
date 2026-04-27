@@ -80,17 +80,18 @@ export class AIService {
             }
         } catch (error: unknown) {
             console.error('[AI] Verification failed:', error);
+            const errorMessage = error instanceof Error ? error.message : String(error);
 
             // Allow mock mode for development if keys are missing
-            if (process.env.NODE_ENV === 'development' && error.message.includes('not configured')) {
+            if (process.env.NODE_ENV === 'development' && errorMessage.includes('not configured')) {
                 console.warn('[AI] Running in mock mode due to missing credentials');
                 return this.runMock(photoUrl);
             }
 
             return {
                 passed: false,
-                reason: `AI Error: ${error.message || 'Verification service unavailable'}`,
-                details: { error: error.message }
+                reason: `AI Error: ${errorMessage || 'Verification service unavailable'}`,
+                details: { error: errorMessage }
             };
         }
     }
@@ -184,8 +185,8 @@ export class AIService {
         return {
             passed: result.passed,
             reason: result.reason,
-            confidence: result.details?.confidence || 0,
-            provider: result.details?.provider,
+            confidence: (result.details?.confidence as number) || 0,
+            provider: result.details?.provider as string | undefined,
             metadata: result.details
         };
     }
@@ -198,10 +199,10 @@ export class AIService {
             case 'OCR':
                 return "Extract all visible text from this image. Return ONLY the text.";
             case 'CLASIFICACION':
-                const categories = context?.categories?.join(', ') || 'Unknown';
+                const categories = (context?.categories as string[])?.join(', ') || 'Unknown';
                 return `Classify this image into exactly one of these categories: [${categories}]. Return only the category name.`;
             case 'DETECCION_OBJETOS':
-                const expected = context?.expectedObjects?.join(', ') || 'Any';
+                const expected = (context?.expectedObjects as string[])?.join(', ') || 'Any';
                 return `List all visible objects from this list: [${expected}]. Return as a comma-separated list.`;
             case 'ANALISIS_CALIDAD':
                 return "Analyze the quality and cleanliness shown in this image. Rate on scale 1-10. Describe any defects or dirtiness detected. Valid example: 'Score: 8/10. Cleanliness acceptable but minor dust on shelf.'";
@@ -274,22 +275,23 @@ export class AIService {
                     // Wait a bit before retry (exponential backoff could be added)
                     await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
                 }
-            } catch (error: unknown) {
-                console.error(`[AI] SmartLink verification error on attempt ${attempts + 1}:`, error.message);
-                lastResult = {
-                    success: false,
-                    ruleId: rule.id,
-                    aiResult: {
-                        passed: false,
-                        reason: `AI service error: ${error.message}`,
-                        confidence: 0,
-                        metadata: { error: error.message }
-                    },
-                    requiresManualReview: true,
-                    timestamp: new Date()
-                };
-                attempts++;
-            }
+} catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`[AI] SmartLink verification error on attempt ${attempts + 1}:`, errorMessage);
+      lastResult = {
+        success: false,
+        ruleId: rule.id,
+        aiResult: {
+          passed: false,
+          reason: `AI service error: ${errorMessage}`,
+          confidence: 0,
+          metadata: { error: errorMessage }
+        },
+        requiresManualReview: true,
+        timestamp: new Date()
+      };
+      attempts++;
+    }
         }
 
         // All retries exhausted or final failure

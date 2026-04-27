@@ -5,25 +5,26 @@ import { ApiError } from "../api/error";
 import { AuditService } from "./audit-service";
 
 export interface EmployeeData {
-  id: string;
+  id?: string;
   userId: string;
   userName: string | null;
   userEmail: string | null;
   userRole: string | null;
-  profilePhotoUrl: string | null;
+  profilePhotoUrl?: string | null;
+  image?: string | null;
   companyId: string | null;
   branchId: string | null;
   phone: string | null;
-  employeeNumber: string | null;
-  department: string | null;
-  position: string | null;
-  employeeStatus: string | null;
-  isActive: boolean | null;
-  hireDate: Date | null;
-  personalEmail: string | null;
-  personalPhone: string | null;
-  city: string | null;
-  state: string | null;
+  employeeNumber?: string | null;
+  department?: string | null;
+  position?: string | null;
+  employeeStatus?: string | null;
+  isActive?: boolean | null;
+  hireDate?: Date | null;
+  personalEmail?: string | null;
+  personalPhone?: string | null;
+  city?: string | null;
+  state?: string | null;
   [key: string]: unknown;
 }
 
@@ -275,14 +276,15 @@ export class EmployeeService {
           .where(and(eq(employeeOnboarding.userId, id), eq(employeeOnboarding.companyId, companyId)))
           .limit(1);
 
-        if (onboarding && onboarding.length > 0) {
-          employee.onboarding = onboarding[0];
-          employee.onboarding!.steps = await db
-            .select()
-            .from(onboardingSteps)
-            .where(eq(onboardingSteps.onboardingId, onboarding[0].id))
-            .orderBy(onboardingSteps.dueDate);
-        }
+    if (onboarding && onboarding.length > 0) {
+      const onboardingData = onboarding[0] as Record<string, unknown>;
+      onboardingData.steps = await db
+        .select()
+        .from(onboardingSteps)
+        .where(eq(onboardingSteps.onboardingId, onboarding[0].id))
+        .orderBy(onboardingSteps.dueDate);
+      employee.onboarding = onboardingData as typeof onboarding[0];
+    }
       }
 
       if (includeDocuments) {
@@ -320,8 +322,9 @@ export class EmployeeService {
           .where(and(eq(vacationAccruals.userId, id), eq(vacationAccruals.companyId, companyId)))
           .orderBy(desc(vacationAccruals.periodStart));
 
-        // Calculate totals with null safety
-        employee.totalVacationBalance = employee.vacationAccruals.reduce((acc: number, curr: { daysBalance?: number }) => acc + (curr.daysBalance || 0), 0);
+    // Calculate totals with null safety
+    const vacationData = employee.vacationAccruals as Array<{ daysBalance?: number }> || [];
+    employee.totalVacationBalance = vacationData.reduce((acc: number, curr: { daysBalance?: number }) => acc + (curr.daysBalance || 0), 0);
       }
 
       if (includeAttendance) {
@@ -383,30 +386,41 @@ export class EmployeeService {
       // Check if profile exists
       const existingProfile = await tx.select().from(employeeProfiles).where(eq(employeeProfiles.userId, id)).limit(1);
 
-      if (existingProfile.length > 0) {
-        // Filter out undefined fields to avoid overwriting with null if using partial updates
-        const filteredProfileFields = Object.fromEntries(
-          Object.entries(profileFields).filter(([_, v]) => v !== undefined)
-        );
+    if (existingProfile.length > 0) {
+      // Filter out undefined fields to avoid overwriting with null if using partial updates
+      const filteredProfileFields = Object.fromEntries(
+        Object.entries(profileFields).filter(([_, v]) => v !== undefined)
+      );
 
-        if (Object.keys(filteredProfileFields).length > 0) {
-          await tx.update(employeeProfiles)
-            .set({ 
-              ...filteredProfileFields, 
-              updatedBy: performedBy,
-              updatedAt: new Date() 
-            })
-            .where(eq(employeeProfiles.userId, id));
-        }
-      } else {
-        await tx.insert(employeeProfiles)
-          .values({
-            ...profileFields,
-            userId: id,
-            createdBy: performedBy,
-            updatedBy: performedBy,
-          });
+      // Convert hireDate string to Date if present
+      if (filteredProfileFields.hireDate && typeof filteredProfileFields.hireDate === 'string') {
+        filteredProfileFields.hireDate = new Date(filteredProfileFields.hireDate);
       }
+
+      if (Object.keys(filteredProfileFields).length > 0) {
+        await tx.update(employeeProfiles)
+        .set({
+          ...filteredProfileFields,
+          updatedBy: performedBy,
+          updatedAt: new Date()
+        })
+        .where(eq(employeeProfiles.userId, id));
+      }
+  } else {
+    // Prepare values for insert, converting hireDate if needed
+    const insertValues: Record<string, unknown> = {
+      ...profileFields,
+      userId: id,
+      createdBy: performedBy,
+      updatedBy: performedBy,
+    };
+    // Convert hireDate string to Date if present
+    if (insertValues.hireDate && typeof insertValues.hireDate === 'string') {
+      insertValues.hireDate = new Date(insertValues.hireDate);
+    }
+    await tx.insert(employeeProfiles)
+    .values(insertValues as any);
+  }
 
       // 3. Audit Logging
       await AuditService.logEmployeeAction({
@@ -426,8 +440,7 @@ export class EmployeeService {
   static async createEmployee(data: EmployeeUpdateData, performedBy: string) {
     return await db.transaction(async (tx) => {
       // 1. Create user
-      const [newUser] = await tx.insert(users).values({
-        id: data.userId || sql`gen_random_uuid()`, // If already has internal ID or generate one
+      const userInsertData: Record<string, unknown> = {
         name: data.userName,
         email: data.userEmail,
         role: data.userRole || 'EMPLEADO',
@@ -436,10 +449,14 @@ export class EmployeeService {
         phone: data.phone,
         createdAt: new Date(),
         updatedAt: new Date(),
-      }).returning();
+      };
+      if (data.userId) {
+        userInsertData.id = data.userId;
+      }
+      const [newUser] = await tx.insert(users).values(userInsertData as any).returning();
 
       // 2. Create profile
-      const [newProfile] = await tx.insert(employeeProfiles).values({
+      const profileInsertData: Record<string, unknown> = {
         userId: newUser.id,
         employeeNumber: data.employeeNumber,
         department: data.department,
@@ -454,7 +471,8 @@ export class EmployeeService {
         personalPhone: data.personalPhone,
         createdBy: performedBy,
         updatedBy: performedBy,
-      }).returning();
+      };
+      const [newProfile] = await tx.insert(employeeProfiles).values(profileInsertData as any).returning();
 
       const result = {
         ...newUser,

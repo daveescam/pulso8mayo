@@ -25,35 +25,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-
-const equipmentTypes = [
-  { value: "REFRIGERATOR", label: "Refrigerador" },
-  { value: "FREEZER", label: "Congelador" },
-  { value: "OVEN", label: "Horno" },
-  { value: "STOVE", label: "Estufa" },
-  { value: "GRILL", label: "Parrilla" },
-  { value: "FRYER", label: "Freidora" },
-  { value: "DISHWASHER", label: "Lavavajillas" },
-  { value: "COFFEE_MACHINE", label: "Cafetera" },
-  { value: "BLENDER", label: "Licuadora" },
-  { value: "MIXER", label: "Batidora" },
-  { value: "EXHAUST_HOOD", label: "Campana Extractora" },
-  { value: "AIR_CONDITIONER", label: "Aire Acondicionado" },
-  { value: "FIRE_SUPPRESSION", label: "Sistema Contra Incendios" },
-  { value: "SECURITY_CAMERA", label: "Cámara de Seguridad" },
-  { value: "POS_SYSTEM", label: "Sistema POS" },
-  { value: "OTHER", label: "Otro" },
-];
-
-const maintenanceFrequencies = [
-  { value: "DAILY", label: "Diario" },
-  { value: "WEEKLY", label: "Semanal" },
-  { value: "BIWEEKLY", label: "Quincenal" },
-  { value: "MONTHLY", label: "Mensual" },
-  { value: "QUARTERLY", label: "Trimestral" },
-  { value: "SEMIANNUAL", label: "Semestral" },
-  { value: "ANNUAL", label: "Anual" },
-];
+import { equipmentTypes, maintenanceFrequencies, equipmentAreas } from "@/lib/equipment-constants";
 
 const formSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
@@ -298,13 +270,13 @@ export function EquipmentForm({ initialData, onSuccess }: EquipmentFormProps) {
                         <SelectValue placeholder="Selecciona el área" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="BACK_OF_HOUSE">Back of House</SelectItem>
-                      <SelectItem value="FRONT_OF_HOUSE">Front of House</SelectItem>
-                      <SelectItem value="STORAGE">Almacén</SelectItem>
-                      <SelectItem value="OFFICE">Oficina</SelectItem>
-                      <SelectItem value="OUTDOOR">Exterior</SelectItem>
-                    </SelectContent>
+                <SelectContent>
+                  {equipmentAreas.map((area) => (
+                    <SelectItem key={area.value} value={area.value}>
+                      {area.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>

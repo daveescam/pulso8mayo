@@ -69,22 +69,32 @@ interface WorkflowHistoryFilters {
 }
 
 interface WorkflowHistoryTableProps {
-    initialData?: WorkflowHistoryItem[];
+  initialData?: WorkflowHistoryItem[];
+  branchId?: string;
 }
 
-export function WorkflowHistoryTable({ initialData }: WorkflowHistoryTableProps) {
-    const [workflows, setWorkflows] = useState<WorkflowHistoryItem[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [filters, setFilters] = useState<WorkflowHistoryFilters>({});
-    const [templates, setTemplates] = useState<{ id: string; name: string }[]>([]);
-    const [assignees, setAssignees] = useState<{ id: string; name: string }[]>([]);
-    const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
+export function WorkflowHistoryTable({ initialData, branchId: initialBranchId }: WorkflowHistoryTableProps) {
+  const [workflows, setWorkflows] = useState<WorkflowHistoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState<WorkflowHistoryFilters>({
+    branchId: initialBranchId || undefined
+  });
+  const [templates, setTemplates] = useState<{ id: string; name: string }[]>([]);
+  const [assignees, setAssignees] = useState<{ id: string; name: string }[]>([]);
+  const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
 
-    // Fetch workflows
-    useEffect(() => {
-        fetchWorkflows();
-        fetchFilters();
-    }, [filters]);
+  // Update filters when branchId prop changes
+  useEffect(() => {
+    if (initialBranchId !== filters.branchId) {
+      setFilters(prev => ({ ...prev, branchId: initialBranchId || undefined }));
+    }
+  }, [initialBranchId]);
+
+  // Fetch workflows
+  useEffect(() => {
+    fetchWorkflows();
+    fetchFilters();
+  }, [filters]);
 
     const fetchWorkflows = async () => {
         setLoading(true);

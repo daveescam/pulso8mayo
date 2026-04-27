@@ -37,25 +37,21 @@ export class BranchService {
         }));
     }
 
-    static async createBranch(data: CreateBranchInput) {
-        if (!data.companyId) throw ApiError.badRequest("Company ID required for branch creation");
+  static async createBranch(data: CreateBranchInput) {
+    if (!data.companyId) throw ApiError.badRequest("Company ID required for branch creation");
 
-        // Generate branch code if not provided
-        const branchCode = data.code || `BR-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const newBranch = await db.insert(branches).values({
+      name: data.name,
+      companyId: data.companyId,
+      address: data.address,
+      timezone: data.timezone,
+      operatingHours: data.operatingHours,
+      location: data.location,
+      managerId: data.managerId
+    }).returning();
 
-        const newBranch = await db.insert(branches).values({
-            name: data.name,
-            code: branchCode,
-            companyId: data.companyId,
-            address: data.address,
-            timezone: data.timezone,
-            operatingHours: data.operatingHours,
-            location: data.location,
-            managerId: data.managerId
-        }).returning();
-
-        return newBranch[0];
-    }
+    return newBranch[0];
+  }
 
     static async getBranch(id: string, companyId?: string) {
         const where = companyId

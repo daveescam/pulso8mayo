@@ -145,9 +145,8 @@ export class EquipmentService {
     const [catalog] = await db
       .insert(equipmentCatalog)
       .values({
-        id: uuidv4(),
         ...data,
-      })
+      } as any)
       .returning();
     return catalog;
   }
@@ -159,11 +158,26 @@ export class EquipmentService {
     const [equipment] = await db
       .insert(branchEquipments)
       .values({
-        id: uuidv4(),
         ...data,
         createdBy,
-      })
+      } as any)
       .returning();
+
+    // Create initial maintenance record if nextMaintenanceDate is provided
+    if (data.nextMaintenanceDate) {
+      await db.insert(equipmentMaintenanceHistory).values({
+        id: uuidv4(),
+        equipmentId: equipment.id,
+        companyId: data.companyId,
+        branchId: data.branchId,
+        maintenanceType: 'PREVENTIVE',
+        status: 'SCHEDULED',
+        scheduledDate: data.nextMaintenanceDate,
+        description: `Mantenimiento preventivo programado - Frecuencia: ${data.maintenanceFrequency || 'Mensual'}`,
+        providerType: 'INTERNAL',
+        createdBy,
+      });
+    }
 
     // Create alert if warranty is expiring soon
     await this.checkAndCreateWarrantyAlert(equipment.id, data.companyId, data.branchId);
@@ -190,23 +204,23 @@ export class EquipmentService {
     type?: string;
     isCritical?: boolean;
   }) {
-    let query = db
-      .select()
-      .from(branchEquipments)
-      .where(eq(branchEquipments.branchId, branchId))
-      .orderBy(asc(branchEquipments.equipmentCode));
+    const conditions = [eq(branchEquipments.branchId, branchId)];
 
     if (filters?.status) {
-      query = query.where(eq(branchEquipments.status, filters.status));
+      conditions.push(eq(branchEquipments.status, filters.status as any));
     }
     if (filters?.type) {
-      query = query.where(eq(branchEquipments.type, filters.type));
+      conditions.push(eq(branchEquipments.type, filters.type as any));
     }
     if (filters?.isCritical !== undefined) {
-      query = query.where(eq(branchEquipments.isCritical, filters.isCritical));
+      conditions.push(eq(branchEquipments.isCritical, filters.isCritical));
     }
 
-    return query;
+    return db
+      .select()
+      .from(branchEquipments)
+      .where(and(...conditions))
+      .orderBy(asc(branchEquipments.equipmentCode));
   }
 
   /**
@@ -264,7 +278,7 @@ export class EquipmentService {
         ...data,
         updatedBy,
         updatedAt: new Date(),
-      })
+      } as any)
       .where(eq(branchEquipments.id, equipmentId))
       .returning();
     return updated;
@@ -333,13 +347,13 @@ export class EquipmentService {
    * Create maintenance record
    */
   async createMaintenance(data: CreateMaintenanceInput, createdBy: string) {
+    const maintenanceData: Record<string, unknown> = {
+      ...data,
+      createdBy,
+    };
     const [maintenance] = await db
       .insert(equipmentMaintenanceHistory)
-      .values({
-        id: uuidv4(),
-        ...data,
-        createdBy,
-      })
+      .values(maintenanceData as any)
       .returning();
     return maintenance;
   }
@@ -440,13 +454,13 @@ export class EquipmentService {
    * Create compliance service configuration
    */
   async createComplianceService(data: CreateComplianceServiceInput, createdBy: string) {
+    const serviceData: Record<string, unknown> = {
+      ...data,
+      createdBy,
+    };
     const [service] = await db
       .insert(branchComplianceServices)
-      .values({
-        id: uuidv4(),
-        ...data,
-        createdBy,
-      })
+      .values(serviceData as any)
       .returning();
     return service;
   }
@@ -510,14 +524,14 @@ export class EquipmentService {
     },
     createdBy: string
   ) {
+    const historyData: Record<string, unknown> = {
+      serviceConfigId,
+      ...data,
+      createdBy,
+    };
     const [record] = await db
       .insert(complianceServiceHistory)
-      .values({
-        id: uuidv4(),
-        serviceConfigId,
-        ...data,
-        createdBy,
-      })
+      .values(historyData as any)
       .returning();
 
     // Update service config last/next dates
@@ -537,17 +551,17 @@ export class EquipmentService {
    * Get compliance service history
    */
   async getComplianceServiceHistory(branchId: string, serviceConfigId?: string) {
-    let query = db
-      .select()
-      .from(complianceServiceHistory)
-      .where(eq(complianceServiceHistory.branchId, branchId))
-      .orderBy(desc(complianceServiceHistory.scheduledDate));
+    const conditions = [eq(complianceServiceHistory.branchId, branchId)];
 
     if (serviceConfigId) {
-      query = query.where(eq(complianceServiceHistory.serviceConfigId, serviceConfigId)) as any;
+      conditions.push(eq(complianceServiceHistory.serviceConfigId, serviceConfigId));
     }
 
-    return query;
+    return db
+      .select()
+      .from(complianceServiceHistory)
+      .where(and(...conditions))
+      .orderBy(desc(complianceServiceHistory.scheduledDate));
   }
 
   /**

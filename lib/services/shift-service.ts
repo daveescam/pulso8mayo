@@ -15,28 +15,31 @@ export interface GeolocationData {
 }
 
 export interface ShiftSessionRow {
-    id: string;
-    plannedShiftId: string | null;
-    userId: string;
-    branchId: string;
-    status: string;
-    scheduledStartTime: string | null;
-    scheduledEndTime: string | null;
-    checkInTime: Date | null;
-    checkOutTime: Date | null;
-    totalBreakMinutes: number;
-    totalWorkMinutes: number;
-    overtimeMinutes: number;
-    checkInGeolocation: GeolocationData | null;
-    checkOutGeolocation: GeolocationData | null;
-    complianceFlags: Record<string, unknown> | null;
-    lateMinutes: number;
-    earlyDepartureMinutes: number;
-    requiresApproval: boolean;
-    approvedBy: string | null;
-    approvedAt: Date | null;
-    createdAt: Date;
-    updatedAt: Date;
+  id: string;
+  plannedShiftId: string | null;
+  userId: string;
+  branchId: string;
+  status: string;
+  scheduledStartTime: string | null;
+  scheduledEndTime: string | null;
+  checkInTime: Date | null;
+  checkOutTime: Date | null;
+  totalBreakMinutes: number;
+  totalWorkMinutes: number;
+  overtimeMinutes: number;
+  checkInGeolocation: GeolocationData | null;
+  checkOutGeolocation: GeolocationData | null;
+  complianceFlags: Record<string, unknown> | null;
+  lateMinutes: number;
+  earlyDepartureMinutes: number;
+  requiresApproval: boolean;
+  approvedBy: string | null;
+  approvedAt: Date | null;
+  startedAt: Date;
+  endedAt: Date | null;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface ClockInResult {
@@ -203,14 +206,14 @@ export class ShiftService {
                 }).where(eq(shiftSessions.id, session.id));
             }
 
-            return {
-                success: true,
-                session,
-                withinRadius: true,
-                distance: Math.round(distance),
-                message,
-                lateMinutes
-            };
+    return {
+      success: true,
+      session: session as unknown as ShiftSessionRow,
+      withinRadius: true,
+      distance: Math.round(distance),
+      message,
+      lateMinutes
+    };
         } catch (error) {
             console.error("Error in clock-in with geolocation:", error);
             return {

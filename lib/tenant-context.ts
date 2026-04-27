@@ -1,16 +1,14 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { cookies } from "next/headers";
 import { ApiError } from "./api/error";
 import { eq } from "drizzle-orm";
 import { db } from "./db";
 import * as schema from "./db/schema";
-import type { Role } from "./permissions"; // Assuming company_users table exists or similar for linking user to company
-
-// For now, we will simulate or get the organization based on the active session.
-// In Better Auth, we might need a specific plugin or custom logic if organization plugin is not fully active.
-// Assuming we store current companyId in cookies or select it from user's list.
+import type { Role } from "./permissions";
 
 export const TENANT_HEADER = "x-pulso-tenant-id";
+export const BRANCH_COOKIE_NAME = "pulso_selected_branch";
 
 export async function getCurrentTenant() {
   const session = await auth.api.getSession({
@@ -21,6 +19,10 @@ export async function getCurrentTenant() {
     throw ApiError.unauthorized();
   }
 
+  // Try to get selected branch from cookie first (user's active selection)
+  const cookieStore = await cookies();
+  const selectedBranchId = cookieStore.get(BRANCH_COOKIE_NAME)?.value;
+
   // First, try to get tenant from header (for explicit tenant selection in the future)
   const headerTenantId = (await headers()).get(TENANT_HEADER);
 
@@ -29,7 +31,7 @@ export async function getCurrentTenant() {
     return {
       id: headerTenantId,
       userId: session.user.id,
-      branchId: (session.user as any).branchId || null
+      branchId: selectedBranchId || (session.user as any).branchId || null
     };
   }
 
@@ -39,7 +41,8 @@ export async function getCurrentTenant() {
     return {
       id: user.companyId,
       userId: session.user.id,
-      branchId: (user as any).branchId || null
+      // Prioritize cookie selection, then user's assigned branch
+      branchId: selectedBranchId || (user as any).branchId || null
     };
   }
 

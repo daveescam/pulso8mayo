@@ -161,9 +161,18 @@ export function ComplianceServiceForm({ initialData, onSuccess }: ComplianceServ
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...data,
-          serviceAreas: selectedAreas,
+          serviceType: data.serviceType,
+          serviceName: data.serviceName,
+          regulationReference: data.regulationReference,
+          isMandatory: data.isMandatory,
+          frequency: data.frequency,
+          customDays: data.customDays,
+          providerId: data.providerId,
+          providerName: data.providerName,
+          providerContact: data.providerContact,
           nextServiceDate: data.nextServiceDate ? new Date(data.nextServiceDate).toISOString() : undefined,
+          serviceAreas: selectedAreas,
+          specialInstructions: data.specialInstructions,
         }),
       });
 

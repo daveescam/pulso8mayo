@@ -15,7 +15,7 @@ const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID || '';
 const R2_CONFIGURED = !!(R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_ACCOUNT_ID);
 
 if (process.env.NODE_ENV === 'production' && !R2_CONFIGURED) {
-  throw new Error('[R2] CRITICAL: Missing required R2 credentials in production. Set R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, and R2_ACCOUNT_ID.');
+  console.warn('[R2] WARNING: Missing required R2 credentials in production. Set R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, and R2_ACCOUNT_ID. R2 storage will be disabled.');
 }
 
 if (!R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY) {

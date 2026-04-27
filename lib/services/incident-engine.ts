@@ -185,12 +185,18 @@ export class IncidentEngine {
                 throw new Error(`Workflow instance ${instanceId} not found`);
             }
 
-            // Prepare incident data
-            const incidentData = {
-                instanceId: instanceId, // Fixed column name
-                stepId: stepId,
-                branchId: context.branchId || instance.branchId,
-                severity: rule.severity || 'WARNING',
+    // Prepare incident data
+    // Validate severity is one of the enum values
+    const validSeverities = ['CRITICAL', 'WARNING', 'FATAL'] as const;
+    const severity = validSeverities.includes(rule.severity as any)
+      ? rule.severity as 'CRITICAL' | 'WARNING' | 'FATAL'
+      : 'WARNING';
+
+    const incidentData = {
+      instanceId: instanceId, // Fixed column name
+      stepId: stepId,
+      branchId: context.branchId || instance.branchId,
+      severity,
                 status: 'DETECTED' as const,
                 title: rule.message || 'Incident detected',
                 description: this.buildIncidentDescription(rule, context),
@@ -257,12 +263,13 @@ export class IncidentEngine {
             description += `\n\nValue: ${context.value}`;
         }
 
-        if (context.aiResult) {
-            description += `\n\nAI Analysis: ${context.aiResult.reason || 'N/A'}`;
-            if (context.aiResult.detectedIssues) {
-                description += `\nIssues: ${context.aiResult.detectedIssues}`;
-            }
-        }
+    if (context.aiResult) {
+      const aiResult = context.aiResult as Record<string, unknown>;
+      description += `\n\nAI Analysis: ${aiResult.reason || 'N/A'}`;
+      if (aiResult.detectedIssues) {
+        description += `\nIssues: ${aiResult.detectedIssues}`;
+      }
+    }
 
         return description;
     }

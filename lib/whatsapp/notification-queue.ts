@@ -67,11 +67,8 @@ export class NotificationQueue {
         // Queue in QStash
         if (process.env.QSTASH_TOKEN) {
             try {
-                await qstashClient.publishJSON({
-                    api: {
-                        name: 'llm',
-                        url: this.QUEUE_URL,
-                    },
+      await qstashClient.publishJSON({
+        url: this.QUEUE_URL,
                     body: {
                         id: notificationId,
                         type: options.type,

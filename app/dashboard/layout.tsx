@@ -1,64 +1,75 @@
 import { AppSidebar } from "@/components/app-sidebar"
 import {
-    Breadcrumb,
-    BreadcrumbItem,
-    BreadcrumbLink,
-    BreadcrumbList,
-    BreadcrumbPage,
-    BreadcrumbSeparator,
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
 import {
-    SidebarInset,
-    SidebarProvider,
-    SidebarTrigger,
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { ModeToggle } from "@/components/mode-toggle"
 import { DashboardSessionProvider } from "@/components/dashboard-session-provider"
+import { BranchProvider } from "@/lib/branch-context"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
+import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { CompanyService } from "@/lib/services/company-service"
 import { BranchService } from "@/lib/services/branch-service"
+import { BRANCH_COOKIE_NAME } from "@/lib/tenant-context"
 
 export default async function DashboardLayout({
-    children,
+  children,
 }: Readonly<{
-    children: React.ReactNode;
+  children: React.ReactNode;
 }>) {
-    const session = await auth.api.getSession({
-        headers: await headers()
-    });
+  const session = await auth.api.getSession({
+    headers: await headers()
+  });
 
-    if (!session) {
-        redirect("/sign-in");
-    }
+  if (!session) {
+    redirect("/sign-in");
+  }
 
-    if (!session.user.companyId) {
-        redirect("/onboarding");
-    }
+  if (!session.user.companyId) {
+    redirect("/onboarding");
+  }
 
-    const company = await CompanyService.getCompany(session.user.companyId);
-    const branches = await BranchService.listBranches(session.user.companyId);
+  const company = await CompanyService.getCompany(session.user.companyId);
+  const branches = await BranchService.listBranches(session.user.companyId);
 
-    return (
-        <DashboardSessionProvider initialSession={session}>
-            <SidebarProvider>
-                <AppSidebar
-                    user={{
-                        name: session.user.name,
-                        email: session.user.email,
-                        avatar: session.user.image || "",
-                        role: session.user.role as 'ADMIN' | 'GERENTE' | 'EMPLEADO'
-                    }}
-                    company={{
-                        name: company?.name || "My Company",
-                        plan: company?.plan || "FREE"
-                    }}
-                    branches={branches}
-                    currentBranchId={session.user.branchId || undefined}
-                />
-                <SidebarInset>
+  // Get selected branch from cookie (user's active selection)
+  const cookieStore = await cookies();
+  const selectedBranchId = cookieStore.get(BRANCH_COOKIE_NAME)?.value || session.user.branchId;
+
+  return (
+    <DashboardSessionProvider initialSession={session}>
+      <BranchProvider 
+        initialBranchId={selectedBranchId}
+        initialBranches={branches}
+      >
+        <SidebarProvider>
+          <AppSidebar
+            user={{
+              name: session.user.name,
+              email: session.user.email,
+              avatar: session.user.image || "",
+              role: session.user.role as 'ADMIN' | 'GERENTE' | 'EMPLEADO'
+            }}
+            company={{
+              name: company?.name || "My Company",
+              plan: company?.plan || "FREE"
+            }}
+            branches={branches}
+            currentBranchId={selectedBranchId}
+          />
+          <SidebarInset>
                     <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 border-b">
                         <div className="flex items-center gap-2 px-4 w-full justify-between">
                             <div className="flex items-center gap-2">
@@ -84,8 +95,9 @@ export default async function DashboardLayout({
                     <div className="flex flex-1 flex-col gap-4 p-4 pt-0 bg-muted/20">
                         {children}
                     </div>
-                </SidebarInset>
-            </SidebarProvider>
-        </DashboardSessionProvider>
-    )
+n        </SidebarInset>
+        </SidebarProvider>
+      </BranchProvider>
+    </DashboardSessionProvider>
+  )
 }

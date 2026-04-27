@@ -96,15 +96,14 @@ export class LFTViolationDetector {
                 branchName: branches.name,
                 startedAt: shiftSessions.startedAt,
                 endedAt: shiftSessions.endedAt,
-                scheduledStart: shiftSessions.scheduledStart,
-                scheduledEnd: shiftSessions.scheduledEnd,
+                scheduledStartTime: shiftSessions.scheduledStartTime,
+                scheduledEndTime: shiftSessions.scheduledEndTime,
                 totalWorkMinutes: shiftSessions.totalWorkMinutes,
                 totalBreakMinutes: shiftSessions.totalBreakMinutes,
                 overtimeMinutes: shiftSessions.overtimeMinutes,
                 lateMinutes: shiftSessions.lateMinutes,
                 earlyDepartureMinutes: shiftSessions.earlyDepartureMinutes,
                 complianceFlags: shiftSessions.complianceFlags,
-                missedBreaks: shiftSessions.missedBreaks,
             })
             .from(shiftSessions)
             .leftJoin(users, eq(shiftSessions.userId, users.id))

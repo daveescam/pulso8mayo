@@ -183,12 +183,59 @@ ${notification.branchName ? `🏢 Sucursal: ${notification.branchName}` : ''}
         });
     }
 
-    /**
-     * Format datetime in Spanish
-     */
-    formatDateTime(date: Date): string {
-        return `${this.formatDate(date)} a las ${this.formatTime(date)}`;
-    }
+  /**
+   * Format datetime in Spanish
+   */
+  formatDateTime(date: Date): string {
+    return `${this.formatDate(date)} a las ${this.formatTime(date)}`;
+  }
+
+  // Methods for notification-dispatcher.ts compatibility
+  formatWorkflowAssignment(assignment: { workflowName: string; dueDate?: string }, userName: string): string {
+    return `📋 *Nueva Tarea Asignada*\n\nHola ${userName},\n\nSe te ha asignado: *${assignment.workflowName}*${assignment.dueDate ? `\n📅 Fecha límite: ${assignment.dueDate}` : ''}\n\nPor favor, revisa tu dashboard.`;
+  }
+
+  formatWorkflowDueSoon(assignment: { workflowName: string; dueDate?: string }, userName: string): string {
+    return `⏰ *Recordatorio: Tarea Por Vencer*\n\nHola ${userName},\n\nTu tarea "${assignment.workflowName}" vence pronto.${assignment.dueDate ? `\n📅 Fecha límite: ${assignment.dueDate}` : ''}\n\n¡No la olvides!`;
+  }
+
+  formatWorkflowOverdue(assignment: { workflowName: string; dueDate?: string }, userName: string): string {
+    return `🚨 *TAREA VENCIDA*\n\nHola ${userName},\n\nLa tarea "${assignment.workflowName}" está VENCIDA.${assignment.dueDate ? `\n📅 Fecha límite: ${assignment.dueDate}` : ''}\n\nPor favor, complétala lo antes posible.`;
+  }
+
+  formatWorkflowEscalation(assignment: { workflowName: string }, userName: string): string {
+    return `🚨 *Escalación de Tarea*\n\nHola ${userName},\n\nLa tarea "${assignment.workflowName}" requiere atención inmediata.`;
+  }
+
+  formatWorkflowCompleted(instance: { workflowName: string; completedAt?: string }, userName: string): string {
+    return `✅ *Tarea Completada*\n\nHola ${userName},\n\nLa tarea "${instance.workflowName}" ha sido completada.${instance.completedAt ? `\n📅 Fecha: ${instance.completedAt}` : ''}`;
+  }
+
+  formatIncidentDetected(incident: { title: string; severity: string }, userName: string): string {
+    const severityEmoji = incident.severity === 'CRITICAL' ? '🔴' : incident.severity === 'HIGH' ? '🟠' : '🟡';
+    return `${severityEmoji} *Nuevo Incidente*\n\nHola ${userName},\n\n*${incident.title}*\n\nSeveridad: ${incident.severity}\n\nSe requiere acción inmediata.`;
+  }
+
+  formatIncidentEscalated(incident: { title: string; severity: string }, userName: string): string {
+    return `🚨 *Incidente Escalado*\n\nHola ${userName},\n\n*${incident.title}*\n\nSeveridad: ${incident.severity}\n\nEste incidente requiere atención inmediata.`;
+  }
+
+  formatIncidentResolved(incident: { title: string }, userName: string): string {
+    return `✅ *Incidente Resuelto*\n\nHola ${userName},\n\n*${incident.title}*\n\nEl incidente ha sido resuelto exitosamente.`;
+  }
+
+  formatLowStockAlert(product: { name: string; currentStock?: number; minStock?: number }, userName: string): string {
+    return `📦 *Alerta de Stock Bajo*\n\nHola ${userName},\n\nProducto: *${product.name}*\n📊 Cantidad actual: ${product.currentStock || 0} unidades\n📈 Mínimo: ${product.minStock || 0} unidades\n\n⚠️ El stock está por debajo del mínimo.`;
+  }
+
+  formatExpirationAlert(batch: { itemName: string; expirationDate: string; quantity?: number }, userName: string): string {
+    return `⏰ *Producto Próximo a Caducar*\n\nHola ${userName},\n\nProducto: *${batch.itemName}*\n📅 Fecha de caducidad: ${batch.expirationDate}${batch.quantity ? `\n📊 Cantidad: ${batch.quantity} unidades` : ''}\n\n💡 Considera usar este producto pronto.`;
+  }
+
+  formatOrderReceived(order: { id: string; items: Array<{ itemName: string; quantity: number }>; receivedAt?: string }, userName: string): string {
+    const itemsList = order.items.map(item => `• ${item.itemName}: ${item.quantity}`).join('\n');
+    return `📦 *Orden Recibida*\n\nHola ${userName},\n\nOrden #${order.id}${order.receivedAt ? `\n📅 Fecha: ${order.receivedAt}` : ''}\n\nItems:\n${itemsList}`;
+  }
 }
 
 // Singleton instance

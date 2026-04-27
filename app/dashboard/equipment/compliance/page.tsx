@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Plus, Search, Shield, Calendar, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ComplianceServiceForm } from "@/components/equipment/compliance-service-form";
 
 interface ComplianceService {
   id: string;
@@ -39,6 +40,7 @@ export default function EquipmentCompliancePage() {
   const [services, setServices] = useState<ComplianceService[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -107,22 +109,25 @@ export default function EquipmentCompliancePage() {
           <h1 className="text-2xl font-bold">Servicios Normativos</h1>
           <p className="text-muted-foreground">Gestión de servicios de cumplimiento y normativas</p>
         </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Nuevo Servicio
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Configurar Servicio Normativo</DialogTitle>
-            </DialogHeader>
-            <p className="text-sm text-muted-foreground">
-              Agrega un nuevo servicio de cumplimiento regulatorio
-            </p>
-          </DialogContent>
-        </Dialog>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogTrigger asChild>
+          <Button>
+            <Plus className="w-4 h-4 mr-2" />
+            Nuevo Servicio
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Configurar Servicio Normativo</DialogTitle>
+          </DialogHeader>
+          <ComplianceServiceForm
+            onSuccess={() => {
+              setIsDialogOpen(false);
+              fetchServices();
+            }}
+          />
+        </DialogContent>
+      </Dialog>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

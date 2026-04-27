@@ -355,15 +355,17 @@ export class NotificationDispatcher {
                 where: eq(notificationPreferences.userId, userId)
             });
 
-            return prefs || {
-                whatsappEnabled: true,
-                emailEnabled: true,
-                inAppEnabled: true,
-                workflowAssignments: true,
-                workflowDueSoon: true,
-                workflowOverdue: true,
-                incidents: true
-            };
+      return prefs || {
+        userId: '',
+        whatsappEnabled: true,
+        emailEnabled: true,
+        inAppEnabled: true,
+        workflowAssignments: true,
+        workflowDueSoon: true,
+        workflowOverdue: true,
+        incidents: true,
+        inventoryAlerts: true
+      };
         } catch (error) {
             console.error("Error getting user preferences:", error);
             return null;

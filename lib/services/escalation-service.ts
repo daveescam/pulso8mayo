@@ -17,15 +17,15 @@ export interface EscalationLevel {
 }
 
 export interface IncidentData {
-    id: string;
-    title: string;
-    severity?: string;
-    status?: string;
-    companyId: string;
-    branchId?: string;
-    userId?: string;
-    description?: string;
-    [key: string]: unknown;
+  id: string;
+  title: string;
+  severity?: string;
+  status?: string;
+  companyId?: string;
+  branchId?: string;
+  userId?: string;
+  description?: string;
+  [key: string]: unknown;
 }
 
 /**

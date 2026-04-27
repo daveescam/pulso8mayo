@@ -3,22 +3,26 @@ import { db } from "@/lib/db";
 import { equipmentMaintenanceHistory, branchEquipments } from "@/lib/db/schema";
 import { eq, and, desc, asc, gte, lte, or, isNull } from "drizzle-orm";
 import { addDays } from "date-fns";
+import { requireTenant } from "@/lib/tenant-context";
 
 export async function GET(request: Request) {
   try {
+    const tenant = await requireTenant();
+    if (!tenant.id || !tenant.branchId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
-    const companyId = searchParams.get("companyId");
-    const branchId = searchParams.get("branchId");
     const equipmentId = searchParams.get("equipmentId");
     const status = searchParams.get("status");
 
+    // Filter by tenant's branch by default
     const history = await db.query.equipmentMaintenanceHistory.findMany({
+      where: (history, { eq }) => eq(history.branchId, tenant.branchId!),
       orderBy: (history, { desc }) => [desc(history.scheduledDate)],
     });
 
     const filtered = history.filter((record) => {
-      if (companyId && record.companyId !== companyId) return false;
-      if (branchId && record.branchId !== branchId) return false;
       if (equipmentId && record.equipmentId !== equipmentId) return false;
       if (status && record.status !== status) return false;
       return true;

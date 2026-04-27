@@ -229,9 +229,9 @@ export class InventoryService {
         .from(inventoryItems)
         .where(inArray(inventoryItems.id, itemIds));
 
-        // Filter items below min level
-        const lowStockItems = items.filter(item => {
-            const stock = stockLevels.find(s => s.itemId === item.itemId);
+    // Filter items below min level
+    const lowStockItems = items.filter(item => {
+      const stock = stockLevels.find(s => s.itemId === item.id);
             const threshold = minLevel ?? item.minLevel ?? 0;
             return stock && stock.totalStock < threshold;
         });
@@ -304,16 +304,16 @@ export class InventoryService {
             );
         }
 
-        return db.select({
-            transfer: inventoryTransfers,
-            items: sql<Array<any>>`ARRAY_AGG(ROW(${inventoryTransferItems.id}, ${inventoryTransferItems.itemId}, ${inventoryTransferItems.requestedQuantity}, ${inventoryTransferItems.approvedQuantity}, ${inventoryTransferItems.shippedQuantity}, ${inventoryTransferItems.receivedQuantity})) FILTER (WHERE ${inventoryTransferItems.id} IS NOT NULL)`,
-        })
-        .from(inventoryTransfers)
-        .leftJoin(inventoryTransferItems, eq(inventoryTransfers.id, inventoryTransferItems.transferId))
-        .where(sql.join(...conditions))
-        .groupBy(inventoryTransfers.id)
-        .orderBy(desc(inventoryTransfers.requestedAt));
-    }
+  return db.select({
+    transfer: inventoryTransfers,
+    items: sql<Array<any>>`ARRAY_AGG(ROW(${inventoryTransferItems.id}, ${inventoryTransferItems.itemId}, ${inventoryTransferItems.requestedQuantity}, ${inventoryTransferItems.approvedQuantity}, ${inventoryTransferItems.shippedQuantity}, ${inventoryTransferItems.receivedQuantity})) FILTER (WHERE ${inventoryTransferItems.id} IS NOT NULL)`,
+  })
+  .from(inventoryTransfers)
+  .leftJoin(inventoryTransferItems, eq(inventoryTransfers.id, inventoryTransferItems.transferId))
+  .where(and(...conditions))
+  .groupBy(inventoryTransfers.id)
+  .orderBy(desc(inventoryTransfers.requestedAt));
+}
 
     static async approveTransfer(transferId: string, approvedBy: string, items?: Array<{ id: string; approvedQuantity: number }>) {
         return await db.transaction(async (tx) => {
@@ -345,56 +345,59 @@ export class InventoryService {
         });
     }
 
-    static async rejectTransfer(transferId: string, rejectedBy: string, reason: string) {
-        return await db.transaction(async (tx) => {
-            const [transfer] = await tx.update(inventoryTransfers)
-                .set({
-                    status: 'REJECTED',
-                    approvedBy: rejectedBy,
-                    rejectedAt: new Date(),
-                    rejectionReason: reason,
-                })
-                .where(eq(inventoryTransfers.id, transferId))
-                .returning();
+static async rejectTransfer(transferId: string, rejectedBy: string, reason: string) {
+  return await db.transaction(async (tx) => {
+    const [transfer] = await tx.update(inventoryTransfers)
+    .set({
+      status: 'REJECTED',
+      approvedBy: rejectedBy,
+      approvedAt: new Date(), // Use approvedAt as timestamp for the rejection action
+      rejectionReason: reason,
+    })
+    .where(eq(inventoryTransfers.id, transferId))
+    .returning();
 
-            return transfer;
-        });
+    return transfer;
+  });
+}
+
+static async shipTransfer(transferId: string, shippedBy: string) {
+  return await db.transaction(async (tx) => {
+    // Get transfer
+    const [transfer] = await tx.select()
+      .from(inventoryTransfers)
+      .where(eq(inventoryTransfers.id, transferId))
+      .limit(1);
+
+    if (!transfer) {
+      throw new Error("Transfer not found");
     }
 
-    static async shipTransfer(transferId: string, shippedBy: string) {
-        return await db.transaction(async (tx) => {
-            // Get transfer with items
-            const transfer = await db.query.inventoryTransfers.findFirst({
-                where: eq(inventoryTransfers.id, transferId),
-                with: {
-                    items: {
-                        with: {
-                            batch: true,
-                        }
-                    }
-                }
-            });
+    if (transfer.status !== 'APPROVED') {
+      throw new Error("Transfer must be approved before shipping");
+    }
 
-            if (!transfer) {
-                throw new Error("Transfer not found");
-            }
+    // Get transfer items with batch info
+    const items = await tx.select({
+      transferItem: inventoryTransferItems,
+      batch: inventoryBatches,
+    })
+      .from(inventoryTransferItems)
+      .leftJoin(inventoryBatches, eq(inventoryTransferItems.batchId, inventoryBatches.id))
+      .where(eq(inventoryTransferItems.transferId, transferId));
 
-            if (transfer.status !== 'APPROVED') {
-                throw new Error("Transfer must be approved before shipping");
-            }
+    // Update transfer status
+    const [updatedTransfer] = await tx.update(inventoryTransfers)
+    .set({
+      status: 'IN_TRANSIT',
+      shippedBy,
+      shippedAt: new Date(),
+    })
+    .where(eq(inventoryTransfers.id, transferId))
+    .returning();
 
-            // Update transfer status
-            const [updatedTransfer] = await tx.update(inventoryTransfers)
-                .set({
-                    status: 'IN_TRANSIT',
-                    shippedBy,
-                    shippedAt: new Date(),
-                })
-                .where(eq(inventoryTransfers.id, transferId))
-                .returning();
-
-            // Decrease stock from origin branch
-            for (const item of transfer.items) {
+    // Decrease stock from origin branch
+    for (const { transferItem: item, batch } of items) {
                 if (item.batchId) {
                     // Decrease from specific batch
                     await tx.update(inventoryBatches)
@@ -427,80 +430,85 @@ export class InventoryService {
         });
     }
 
-    static async receiveTransfer(transferId: string, receivedBy: string, items?: Array<{ id: string; receivedQuantity: number }>) {
-        return await db.transaction(async (tx) => {
-            // Get transfer with items
-            const transfer = await db.query.inventoryTransfers.findFirst({
-                where: eq(inventoryTransfers.id, transferId),
-                with: {
-                    items: true,
-                }
-            });
+static async receiveTransfer(transferId: string, receivedBy: string, items?: Array<{ id: string; receivedQuantity: number }>) {
+  return await db.transaction(async (tx) => {
+    // Get transfer
+    const [transfer] = await tx.select()
+      .from(inventoryTransfers)
+      .where(eq(inventoryTransfers.id, transferId))
+      .limit(1);
 
-            if (!transfer) {
-                throw new Error("Transfer not found");
-            }
-
-            if (transfer.status !== 'IN_TRANSIT') {
-                throw new Error("Transfer must be in transit before receiving");
-            }
-
-            // Update transfer status
-            const [updatedTransfer] = await tx.update(inventoryTransfers)
-                .set({
-                    status: 'COMPLETED',
-                    receivedBy,
-                    receivedAt: new Date(),
-                })
-                .where(eq(inventoryTransfers.id, transferId))
-                .returning();
-
-            // Increase stock in destination branch
-            const itemsToProcess = items || transfer.items;
-            
-            for (const item of itemsToProcess) {
-                const quantity = items ? item.receivedQuantity : item.requestedQuantity;
-                
-                // Create new batch in destination branch
-                const sourceBatch = item.batchId ? await db.query.inventoryBatches.findFirst({
-                    where: eq(inventoryBatches.id, item.batchId)
-                }) : null;
-
-                const [newBatch] = await tx.insert(inventoryBatches).values({
-                    itemId: item.itemId,
-                    branchId: transfer.toBranchId,
-                    initialQuantity: quantity,
-                    currentQuantity: quantity,
-                    lotNumber: sourceBatch?.lotNumber || `TRF-BATCH-${Date.now()}`,
-                    expirationDate: sourceBatch?.expirationDate,
-                    productionDate: sourceBatch?.productionDate,
-                    status: 'AVAILABLE',
-                }).returning();
-
-                // Record movement
-                await tx.insert(inventoryMovements).values({
-                    branchId: transfer.toBranchId,
-                    itemId: item.itemId,
-                    batchId: newBatch.id,
-                    type: 'TRANSFER',
-                    quantityChange: quantity,
-                    reason: `Transfer from branch ${transfer.fromBranchId}`,
-                    performedBy: receivedBy,
-                    referenceId: transferId,
-                });
-
-                // Update received quantity
-                if (items) {
-                    const transferItem = items.find(i => i.id === item.id);
-                    if (transferItem) {
-                        await tx.update(inventoryTransferItems)
-                            .set({ receivedQuantity: transferItem.receivedQuantity })
-                            .where(eq(inventoryTransferItems.id, item.id));
-                    }
-                }
-            }
-
-            return updatedTransfer;
-        });
+    if (!transfer) {
+      throw new Error("Transfer not found");
     }
+
+    if (transfer.status !== 'IN_TRANSIT') {
+      throw new Error("Transfer must be in transit before receiving");
+    }
+
+    // Get transfer items
+    const transferItems = await tx.select()
+      .from(inventoryTransferItems)
+      .where(eq(inventoryTransferItems.transferId, transferId));
+
+    // Update transfer status
+    const [updatedTransfer] = await tx.update(inventoryTransfers)
+    .set({
+      status: 'COMPLETED',
+      receivedBy,
+      receivedAt: new Date(),
+    })
+    .where(eq(inventoryTransfers.id, transferId))
+    .returning();
+
+    // Increase stock in destination branch
+    for (const item of transferItems) {
+      const receivedQty = items
+        ? items.find(i => i.id === item.id)?.receivedQuantity ?? item.requestedQuantity
+        : item.requestedQuantity;
+
+      // Get source batch if available
+      const sourceBatch = item.batchId ? await tx.select()
+        .from(inventoryBatches)
+        .where(eq(inventoryBatches.id, item.batchId))
+        .limit(1)
+        .then(r => r[0]) : null;
+
+      const [newBatch] = await tx.insert(inventoryBatches).values({
+        itemId: item.itemId,
+        branchId: transfer.toBranchId,
+        initialQuantity: receivedQty,
+        currentQuantity: receivedQty,
+        lotNumber: sourceBatch?.lotNumber || `TRF-BATCH-${Date.now()}`,
+        expirationDate: sourceBatch?.expirationDate,
+        productionDate: sourceBatch?.productionDate,
+        status: 'AVAILABLE',
+      }).returning();
+
+      // Record movement
+      await tx.insert(inventoryMovements).values({
+        branchId: transfer.toBranchId,
+        itemId: item.itemId,
+        batchId: newBatch.id,
+        type: 'TRANSFER',
+        quantityChange: receivedQty,
+        reason: `Transfer from branch ${transfer.fromBranchId}`,
+        performedBy: receivedBy,
+        referenceId: transferId,
+      });
+
+      // Update received quantity
+      if (items) {
+        const transferItem = items.find(i => i.id === item.id);
+        if (transferItem) {
+          await tx.update(inventoryTransferItems)
+          .set({ receivedQuantity: transferItem.receivedQuantity })
+          .where(eq(inventoryTransferItems.id, item.id));
+        }
+      }
+    }
+
+    return updatedTransfer;
+  });
+}
 }

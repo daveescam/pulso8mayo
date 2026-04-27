@@ -135,14 +135,13 @@ export class BreakReminderService {
                 sentAt: new Date(),
             });
 
-        // Mark reminder as sent in session
-        await db
-            .update(shiftSessions)
-            .set({
-                breakReminderSent: true,
-                updatedAt: new Date(),
-            })
-            .where(eq(shiftSessions.id, session.id));
+    // Mark reminder as sent in session
+    await db
+      .update(shiftSessions)
+      .set({
+        breakReminderSent: true,
+      })
+      .where(eq(shiftSessions.id, session.id));
     }
 
     /**

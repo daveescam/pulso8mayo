@@ -1,68 +1,111 @@
 import { Suspense } from 'react';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
-import { incidents } from '@/lib/db/schema';
-import { eq, desc, and } from 'drizzle-orm';
+import { incidents, branches } from '@/lib/db/schema';
+import { eq, desc, and, inArray } from 'drizzle-orm';
 import { IncidentList } from '@/components/incidents/incident-list';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, AlertTriangle, XCircle, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, AlertTriangle, XCircle, CheckCircle2, Building2 } from 'lucide-react';
+import { BRANCH_COOKIE_NAME } from '@/lib/tenant-context';
 
-async function getIncidents(branchId?: string) {
-    const conditions = [];
+async function getIncidents(companyId: string, branchId?: string) {
+  const conditions = [];
 
-    if (branchId) {
-        conditions.push(eq(incidents.branchId, branchId));
+  if (branchId) {
+    // Filter by specific branch
+    conditions.push(eq(incidents.branchId, branchId));
+  }
+
+  // Always filter by company (via user's companyId) for security
+  if (companyId) {
+    // Get all branches for this company
+    const companyBranches = await db
+      .select({ id: branches.id })
+      .from(branches)
+      .where(eq(branches.companyId, companyId));
+
+    const branchIds = companyBranches.map(b => b.id);
+    if (branchIds.length > 0) {
+      conditions.push(inArray(incidents.branchId, branchIds));
     }
+  }
 
-    const query = db
-        .select()
-        .from(incidents)
-        .orderBy(desc(incidents.createdAt))
-        .limit(100);
+  const query = db
+    .select()
+    .from(incidents)
+    .orderBy(desc(incidents.createdAt))
+    .limit(100);
 
-    if (conditions.length > 0) {
-        return await query.where(and(...conditions));
-    }
+  if (conditions.length > 0) {
+    return await query.where(and(...conditions));
+  }
 
-    return await query;
+  return await query;
 }
 
 async function getIncidentStats(allIncidents: any[]) {
-    const total = allIncidents.length;
-    const active = allIncidents.filter(i => i.status !== 'RESOLVED').length;
-    const critical = allIncidents.filter(i => i.severity === 'CRITICAL' || i.severity === 'FATAL').length;
-    const resolved = allIncidents.filter(i => i.status === 'RESOLVED').length;
+  const total = allIncidents.length;
+  const active = allIncidents.filter(i => i.status !== 'RESOLVED').length;
+  const critical = allIncidents.filter(i => i.severity === 'CRITICAL' || i.severity === 'FATAL').length;
+  const resolved = allIncidents.filter(i => i.status === 'RESOLVED').length;
 
-    return { total, active, critical, resolved };
+  return { total, active, critical, resolved };
+}
+
+async function getBranchName(branchId: string) {
+  const branch = await db.query.branches.findFirst({
+    where: eq(branches.id, branchId),
+    columns: { name: true }
+  });
+  return branch?.name;
 }
 
 export default async function IncidentsPage() {
-    const session = await auth.api.getSession({
-        headers: await headers(),
-    });
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
-    if (!session?.user) {
-        redirect('/sign-in');
-    }
+  if (!session?.user) {
+    redirect('/sign-in');
+  }
 
-    // Get user's branch (you may need to adjust this based on your auth setup)
-    const userBranchId = (session.user as any).branchId;
+  // Get selected branch from cookie (user's active selection)
+  const cookieStore = await cookies();
+  const selectedBranchId = cookieStore.get(BRANCH_COOKIE_NAME)?.value;
 
-    const allIncidents = await getIncidents(userBranchId);
-    const stats = await getIncidentStats(allIncidents);
+  // Get company ID from user
+  const companyId = session.user.companyId;
+  if (!companyId) {
+    redirect('/onboarding');
+  }
 
-    return (
-        <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">Incidents</h1>
-                <p className="text-muted-foreground">
-                    Monitor and manage workflow incidents
-                </p>
-            </div>
+  const allIncidents = await getIncidents(companyId, selectedBranchId);
+  const stats = await getIncidentStats(allIncidents);
+  const branchName = selectedBranchId ? await getBranchName(selectedBranchId) : null;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Incidents</h1>
+            <p className="text-muted-foreground">
+              Monitor and manage workflow incidents
+            </p>
+          </div>
+          {branchName && (
+            <Badge variant="outline" className="gap-1">
+              <Building2 className="h-3 w-3" />
+              {branchName}
+            </Badge>
+          )}
+        </div>
+      </div>
 
             {/* Stats Cards */}
             <div className="grid gap-4 md:grid-cols-4">

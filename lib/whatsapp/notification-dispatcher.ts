@@ -12,24 +12,9 @@ import { wasenderClient } from './wasender-client';
 import { messageFormatter } from './message-formatter';
 import { sessionManager } from './session-manager';
 
-export interface WhatsAppSessionRow {
-    id: string;
-    companyId: string;
-    sessionId: string;
-    phoneNumber: string | null;
-    status: string;
-    qrCode: string | null;
-    qrCodeExpiresAt: Date | null;
-    connectedAt: Date | null;
-    lastActivityAt: Date | null;
-    disconnectedAt: Date | null;
-    webhookUrl: string | null;
-    isActive: boolean;
-    lastError: string | null;
-    errorCount: number;
-    createdAt: Date;
-    updatedAt: Date;
-}
+import { SessionInfo } from './session-manager';
+
+export type WhatsAppSessionRow = SessionInfo;
 
 export interface WorkflowAssignmentNotification {
     id: string;
@@ -74,90 +59,90 @@ export class WhatsAppNotificationDispatcher {
     /**
      * Send workflow assignment notification
      */
-    static async sendWorkflowAssignment(userId: string, assignment: WorkflowAssignmentNotification): Promise<boolean> {
-        try {
-            const canSend = await this.checkUserPreferences(userId, 'workflowAssignments');
-            if (!canSend) return false;
+  static async sendWorkflowAssignment(userId: string, assignment: WorkflowAssignmentNotification): Promise<boolean> {
+    try {
+      const canSend = await this.checkUserPreferences(userId, 'workflowAssignments');
+      if (!canSend) return false;
 
-            const { phone, session, userName } = await this.getUserPhoneAndSession(userId);
-            if (!phone || !session) return false;
+      const { phone, session, userName } = await this.getUserPhoneAndSession(userId);
+      if (!phone || !session) return false;
 
-            const message = messageFormatter.formatWorkflowAssignment(assignment, userName || 'Usuario');
-            await wasenderClient.sendMessage(session.sessionId, phone, message);
-            return true;
-        } catch (error) {
-            console.error('[WhatsAppNotificationDispatcher] Error sending workflow assignment:', error);
-            return false;
-        }
+      const message = messageFormatter.formatWorkflowAssignment(assignment, userName || 'Usuario');
+      await wasenderClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
+      return true;
+    } catch (error) {
+      console.error('[WhatsAppNotificationDispatcher] Error sending workflow assignment:', error);
+      return false;
     }
+  }
 
-    static async sendWorkflowDueSoon(userId: string, assignment: WorkflowAssignmentNotification): Promise<boolean> {
-        try {
-            const canSend = await this.checkUserPreferences(userId, 'workflowReminders');
-            if (!canSend) return false;
+  static async sendWorkflowDueSoon(userId: string, assignment: WorkflowAssignmentNotification): Promise<boolean> {
+    try {
+      const canSend = await this.checkUserPreferences(userId, 'workflowReminders');
+      if (!canSend) return false;
 
-            const { phone, session, userName } = await this.getUserPhoneAndSession(userId);
-            if (!phone || !session) return false;
+      const { phone, session, userName } = await this.getUserPhoneAndSession(userId);
+      if (!phone || !session) return false;
 
-            const message = messageFormatter.formatWorkflowDueSoon(assignment, userName || 'Usuario');
-            await wasenderClient.sendMessage(session.sessionId, phone, message);
-            return true;
-        } catch (error) {
-            console.error('[WhatsAppNotificationDispatcher] Error sending due soon:', error);
-            return false;
-        }
+      const message = messageFormatter.formatWorkflowDueSoon(assignment, userName || 'Usuario');
+      await wasenderClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
+      return true;
+    } catch (error) {
+      console.error('[WhatsAppNotificationDispatcher] Error sending due soon:', error);
+      return false;
     }
+  }
 
-    static async sendWorkflowOverdue(userId: string, assignment: WorkflowAssignmentNotification): Promise<boolean> {
-        try {
-            const canSend = await this.checkUserPreferences(userId, 'workflowReminders');
-            if (!canSend) return false;
+  static async sendWorkflowOverdue(userId: string, assignment: WorkflowAssignmentNotification): Promise<boolean> {
+    try {
+      const canSend = await this.checkUserPreferences(userId, 'workflowReminders');
+      if (!canSend) return false;
 
-            const { phone, session, userName } = await this.getUserPhoneAndSession(userId);
-            if (!phone || !session) return false;
+      const { phone, session, userName } = await this.getUserPhoneAndSession(userId);
+      if (!phone || !session) return false;
 
-            const message = messageFormatter.formatWorkflowOverdue(assignment, userName || 'Usuario');
-            await wasenderClient.sendMessage(session.sessionId, phone, message);
-            return true;
-        } catch (error) {
-            console.error('[WhatsAppNotificationDispatcher] Error sending overdue:', error);
-            return false;
-        }
+      const message = messageFormatter.formatWorkflowOverdue(assignment, userName || 'Usuario');
+      await wasenderClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
+      return true;
+    } catch (error) {
+      console.error('[WhatsAppNotificationDispatcher] Error sending overdue:', error);
+      return false;
     }
+  }
 
-    static async sendWorkflowEscalation(userId: string, assignment: WorkflowAssignmentNotification): Promise<boolean> {
-        try {
-            const canSend = await this.checkUserPreferences(userId, 'workflowEscalations');
-            if (!canSend) return false;
+  static async sendWorkflowEscalation(userId: string, assignment: WorkflowAssignmentNotification): Promise<boolean> {
+    try {
+      const canSend = await this.checkUserPreferences(userId, 'workflowEscalations');
+      if (!canSend) return false;
 
-            const { phone, session, userName } = await this.getUserPhoneAndSession(userId);
-            if (!phone || !session) return false;
+      const { phone, session, userName } = await this.getUserPhoneAndSession(userId);
+      if (!phone || !session) return false;
 
-            const message = messageFormatter.formatWorkflowEscalation(assignment, userName || 'Usuario');
-            await wasenderClient.sendMessage(session.sessionId, phone, message);
-            return true;
-        } catch (error) {
-            console.error('[WhatsAppNotificationDispatcher] Error sending escalation:', error);
-            return false;
-        }
+      const message = messageFormatter.formatWorkflowEscalation(assignment, userName || 'Usuario');
+      await wasenderClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
+      return true;
+    } catch (error) {
+      console.error('[WhatsAppNotificationDispatcher] Error sending escalation:', error);
+      return false;
     }
+  }
 
-    static async sendWorkflowCompleted(userId: string, instance: WorkflowInstanceNotification): Promise<boolean> {
-        try {
-            const canSend = await this.checkUserPreferences(userId, 'workflowCompleted');
-            if (!canSend) return false;
+  static async sendWorkflowCompleted(userId: string, instance: WorkflowInstanceNotification): Promise<boolean> {
+    try {
+      const canSend = await this.checkUserPreferences(userId, 'workflowCompleted');
+      if (!canSend) return false;
 
-            const { phone, session, userName } = await this.getUserPhoneAndSession(userId);
-            if (!phone || !session) return false;
+      const { phone, session, userName } = await this.getUserPhoneAndSession(userId);
+      if (!phone || !session) return false;
 
-            const message = messageFormatter.formatWorkflowCompleted(instance, userName || 'Usuario');
-            await wasenderClient.sendMessage(session.sessionId, phone, message);
-            return true;
-        } catch (error) {
-            console.error('[WhatsAppNotificationDispatcher] Error sending completed:', error);
-            return false;
-        }
+      const message = messageFormatter.formatWorkflowCompleted(instance, userName || 'Usuario');
+      await wasenderClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
+      return true;
+    } catch (error) {
+      console.error('[WhatsAppNotificationDispatcher] Error sending completed:', error);
+      return false;
     }
+  }
 
     static async sendIncidentDetected(userId: string, incident: IncidentNotification): Promise<boolean> {
         try {
@@ -167,99 +152,99 @@ export class WhatsAppNotificationDispatcher {
             const { phone, session, userName } = await this.getUserPhoneAndSession(userId);
             if (!phone || !session) return false;
 
-            const message = messageFormatter.formatIncidentDetected(incident, userName || 'Usuario');
-            await wasenderClient.sendMessage(session.sessionId, phone, message);
-            return true;
-        } catch (error) {
-            console.error('[WhatsAppNotificationDispatcher] Error sending incident:', error);
-            return false;
-        }
+      const message = messageFormatter.formatIncidentDetected(incident, userName || 'Usuario');
+      await wasenderClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
+      return true;
+    } catch (error) {
+      console.error('[WhatsAppNotificationDispatcher] Error sending incident:', error);
+      return false;
     }
+  }
 
-    static async sendIncidentEscalated(userId: string, incident: IncidentNotification): Promise<boolean> {
-        try {
-            const canSend = await this.checkUserPreferences(userId, 'incidents');
-            if (!canSend) return false;
+  static async sendIncidentEscalated(userId: string, incident: IncidentNotification): Promise<boolean> {
+    try {
+      const canSend = await this.checkUserPreferences(userId, 'incidents');
+      if (!canSend) return false;
 
-            const { phone, session, userName } = await this.getUserPhoneAndSession(userId);
-            if (!phone || !session) return false;
+      const { phone, session, userName } = await this.getUserPhoneAndSession(userId);
+      if (!phone || !session) return false;
 
-            const message = messageFormatter.formatIncidentEscalated(incident, userName || 'Usuario');
-            await wasenderClient.sendMessage(session.sessionId, phone, message);
-            return true;
-        } catch (error) {
-            console.error('[WhatsAppNotificationDispatcher] Error sending escalation:', error);
-            return false;
-        }
+      const message = messageFormatter.formatIncidentEscalated(incident, userName || 'Usuario');
+      await wasenderClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
+      return true;
+    } catch (error) {
+      console.error('[WhatsAppNotificationDispatcher] Error sending escalation:', error);
+      return false;
     }
+  }
 
-    static async sendIncidentResolved(userId: string, incident: IncidentNotification): Promise<boolean> {
-        try {
-            const canSend = await this.checkUserPreferences(userId, 'incidents');
-            if (!canSend) return false;
+  static async sendIncidentResolved(userId: string, incident: IncidentNotification): Promise<boolean> {
+    try {
+      const canSend = await this.checkUserPreferences(userId, 'incidents');
+      if (!canSend) return false;
 
-            const { phone, session, userName } = await this.getUserPhoneAndSession(userId);
-            if (!phone || !session) return false;
+      const { phone, session, userName } = await this.getUserPhoneAndSession(userId);
+      if (!phone || !session) return false;
 
-            const message = messageFormatter.formatIncidentResolved(incident, userName || 'Usuario');
-            await wasenderClient.sendMessage(session.sessionId, phone, message);
-            return true;
-        } catch (error) {
-            console.error('[WhatsAppNotificationDispatcher] Error sending resolved:', error);
-            return false;
-        }
+      const message = messageFormatter.formatIncidentResolved(incident, userName || 'Usuario');
+      await wasenderClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
+      return true;
+    } catch (error) {
+      console.error('[WhatsAppNotificationDispatcher] Error sending resolved:', error);
+      return false;
     }
+  }
 
-    static async sendLowStockAlert(userId: string, product: InventoryItemNotification): Promise<boolean> {
-        try {
-            const canSend = await this.checkUserPreferences(userId, 'inventoryAlerts');
-            if (!canSend) return false;
+  static async sendLowStockAlert(userId: string, product: InventoryItemNotification): Promise<boolean> {
+    try {
+      const canSend = await this.checkUserPreferences(userId, 'inventoryAlerts');
+      if (!canSend) return false;
 
-            const { phone, session, userName } = await this.getUserPhoneAndSession(userId);
-            if (!phone || !session) return false;
+      const { phone, session, userName } = await this.getUserPhoneAndSession(userId);
+      if (!phone || !session) return false;
 
-            const message = messageFormatter.formatLowStockAlert(product, userName || 'Usuario');
-            await wasenderClient.sendMessage(session.sessionId, phone, message);
-            return true;
-        } catch (error) {
-            console.error('[WhatsAppNotificationDispatcher] Error sending low stock:', error);
-            return false;
-        }
+      const message = messageFormatter.formatLowStockAlert(product, userName || 'Usuario');
+      await wasenderClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
+      return true;
+    } catch (error) {
+      console.error('[WhatsAppNotificationDispatcher] Error sending low stock:', error);
+      return false;
     }
+  }
 
-    static async sendExpirationAlert(userId: string, batch: InventoryBatchNotification): Promise<boolean> {
-        try {
-            const canSend = await this.checkUserPreferences(userId, 'inventoryAlerts');
-            if (!canSend) return false;
+  static async sendExpirationAlert(userId: string, batch: InventoryBatchNotification): Promise<boolean> {
+    try {
+      const canSend = await this.checkUserPreferences(userId, 'inventoryAlerts');
+      if (!canSend) return false;
 
-            const { phone, session, userName } = await this.getUserPhoneAndSession(userId);
-            if (!phone || !session) return false;
+      const { phone, session, userName } = await this.getUserPhoneAndSession(userId);
+      if (!phone || !session) return false;
 
-            const message = messageFormatter.formatExpirationAlert(batch, userName || 'Usuario');
-            await wasenderClient.sendMessage(session.sessionId, phone, message);
-            return true;
-        } catch (error) {
-            console.error('[WhatsAppNotificationDispatcher] Error sending expiration:', error);
-            return false;
-        }
+      const message = messageFormatter.formatExpirationAlert(batch, userName || 'Usuario');
+      await wasenderClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
+      return true;
+    } catch (error) {
+      console.error('[WhatsAppNotificationDispatcher] Error sending expiration:', error);
+      return false;
     }
+  }
 
-    static async sendOrderReceived(userId: string, order: { id: string; items: Array<{ itemId: string; itemName: string; quantity: number }>; receivedAt?: string }): Promise<boolean> {
-        try {
-            const canSend = await this.checkUserPreferences(userId, 'inventoryNotifications');
-            if (!canSend) return false;
+  static async sendOrderReceived(userId: string, order: { id: string; items: Array<{ itemId: string; itemName: string; quantity: number }>; receivedAt?: string }): Promise<boolean> {
+    try {
+      const canSend = await this.checkUserPreferences(userId, 'inventoryNotifications');
+      if (!canSend) return false;
 
-            const { phone, session, userName } = await this.getUserPhoneAndSession(userId);
-            if (!phone || !session) return false;
+      const { phone, session, userName } = await this.getUserPhoneAndSession(userId);
+      if (!phone || !session) return false;
 
-            const message = messageFormatter.formatOrderReceived(order, userName || 'Usuario');
-            await wasenderClient.sendMessage(session.sessionId, phone, message);
-            return true;
-        } catch (error) {
-            console.error('[WhatsAppNotificationDispatcher] Error sending order received:', error);
-            return false;
-        }
+      const message = messageFormatter.formatOrderReceived(order, userName || 'Usuario');
+      await wasenderClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
+      return true;
+    } catch (error) {
+      console.error('[WhatsAppNotificationDispatcher] Error sending order received:', error);
+      return false;
     }
+  }
 
     private static async getUserPhoneAndSession(userId: string): Promise<{
         phone: string | null;
@@ -292,15 +277,32 @@ export class WhatsAppNotificationDispatcher {
   private static async checkUserPreferences(userId: string, notificationType: string): Promise<boolean> {
     try {
       const prefs = await db.query.notificationPreferences.findFirst({
-        where: and(
-          eq(notificationPreferences.userId, userId),
-          eq(notificationPreferences.channel, 'WHATSAPP')
-        )
+        where: eq(notificationPreferences.userId, userId)
       });
 
-      if (!prefs?.enabled) return false;
+      if (!prefs) return true; // Default to allowing if no preferences set
+      
+      // Check if WhatsApp is enabled
+      if (!prefs.whatsappEnabled) return false;
 
-      return true;
+      // Check specific notification type preference
+      switch (notificationType) {
+        case 'workflowAssignments':
+          return prefs.workflowAssignments;
+        case 'workflowReminders':
+          return prefs.workflowDueSoon;
+        case 'workflowEscalations':
+          return prefs.workflowOverdue;
+        case 'incidents':
+          return prefs.incidents;
+        case 'inventoryAlerts':
+        case 'inventoryNotifications':
+          return prefs.inventoryAlerts;
+        case 'workflowCompleted':
+          return prefs.workflowAssignments;
+        default:
+          return true;
+      }
     } catch {
       return true;
     }

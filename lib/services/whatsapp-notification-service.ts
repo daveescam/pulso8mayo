@@ -13,11 +13,12 @@ export interface WorkflowAssignmentNotification {
 }
 
 export interface StockAlertNotification {
-    userId: string;
-    itemName: string;
-    currentStock: number;
-    minLevel: number;
-    branchId: string;
+  userId: string;
+  itemName: string;
+  currentStock: number;
+  minLevel: number;
+  branchId: string;
+  [key: string]: unknown;
 }
 
 export interface IncidentNotification {
@@ -29,10 +30,11 @@ export interface IncidentNotification {
 }
 
 export interface ShiftReminderNotification {
-    userId: string;
-    shiftDate: string;
-    shiftTime: string;
-    branchName: string;
+  userId: string;
+  shiftDate: string;
+  shiftTime: string;
+  branchName: string;
+  [key: string]: unknown;
 }
 
 export class WhatsAppNotificationService {

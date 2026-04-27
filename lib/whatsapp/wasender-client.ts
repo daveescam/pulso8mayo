@@ -15,7 +15,7 @@ const WASENDER_API_KEY = process.env.WASENDER_API_KEY || '';
 const WHATSAPP_CONFIGURED = !!WASENDER_API_KEY;
 
 if (process.env.NODE_ENV === 'production' && !WHATSAPP_CONFIGURED) {
-    throw new Error('[WhatsApp] CRITICAL: Missing WASENDER_API_KEY in production. WhatsApp functionality will not work.');
+  console.warn('[WhatsApp] WARNING: Missing WASENDER_API_KEY in production. WhatsApp functionality will be disabled.');
 }
 
 if (!WASENDER_API_KEY) {
