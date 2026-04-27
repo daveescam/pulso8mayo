@@ -19,11 +19,11 @@ jobs:
       run: npx playwright install --with-deps
     - name: Run Playwright tests
       run: npx playwright test
-      env:
-        # Since we are not providing a real Neon connection string here, 
-        # API and E2E tests checking authenticated DB state will need to be mocked
-        # or we rely strictly on 401 unauthenticated redirect checks for CI
-        NEXT_PUBLIC_APP_URL: http://localhost:3000
+env:
+  # Since we are not providing a real Neon connection string here,
+  # API and E2E tests checking authenticated DB state will need to be mocked
+  # or we rely strictly on 401 unauthenticated redirect checks for CI
+  NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL || 'http://localhost:3000' }}
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:
