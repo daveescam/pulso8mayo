@@ -89,7 +89,7 @@ tools are available in this session. If they are, use them instead of the CLI ap
 ```
 # Preferred: Playwright-MCP automated verification
 # 1. Navigate to the component URL
-mcp__playwright__navigate(url="http://localhost:3000")
+mcp__playwright__navigate(url="${PLAYWRIGHT_BASE_URL:-http://localhost:3000}")
 
 # 2. Take desktop screenshot
 mcp__playwright__screenshot(name="desktop", width=1440, height=900)
@@ -125,25 +125,25 @@ below. Behavior is unchanged from the standard code-only audit path.
 
 ```bash
 # Check for running dev server
-DEV_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000 2>/dev/null || echo "000")
+DEV_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${PLAYWRIGHT_BASE_URL:-http://localhost:3000}" 2>/dev/null || echo "000")
 
 if [ "$DEV_STATUS" = "200" ]; then
   SCREENSHOT_DIR=".planning/ui-reviews/${PADDED_PHASE}-$(date +%Y%m%d-%H%M%S)"
   mkdir -p "$SCREENSHOT_DIR"
 
   # Desktop
-  npx playwright screenshot http://localhost:3000 \
-    "$SCREENSHOT_DIR/desktop.png" \
+npx playwright screenshot "${PLAYWRIGHT_BASE_URL:-http://localhost:3000}" \
+      "$SCREENSHOT_DIR/desktop.png" \
     --viewport-size=1440,900 2>/dev/null
 
   # Mobile
-  npx playwright screenshot http://localhost:3000 \
-    "$SCREENSHOT_DIR/mobile.png" \
+npx playwright screenshot "${PLAYWRIGHT_BASE_URL:-http://localhost:3000}" \
+      "$SCREENSHOT_DIR/mobile.png" \
     --viewport-size=375,812 2>/dev/null
 
   # Tablet
-  npx playwright screenshot http://localhost:3000 \
-    "$SCREENSHOT_DIR/tablet.png" \
+npx playwright screenshot "${PLAYWRIGHT_BASE_URL:-http://localhost:3000}" \
+      "$SCREENSHOT_DIR/tablet.png" \
     --viewport-size=768,1024 2>/dev/null
 
   echo "Screenshots captured to $SCREENSHOT_DIR"
