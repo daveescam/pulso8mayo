@@ -7,7 +7,7 @@
  * API Base URL: https://api.wasender.com
  *
  * @see https://wasenderapi.com/api-docs
- */        "Authorization": "Bearer b544f6ee0c773272d5baf69b1cae447617f306f3b640e1967f37ba5f48e9a254"
+ */       
 
 
 import { createHmac } from 'crypto';
