@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { kpiDefinitions, kpiHistory, kpiAlerts } from "@/lib/db/schema";
 import { z } from "zod";
@@ -26,7 +26,7 @@ const kpiSchema = z.object({
 // GET /api/kpi - List all KPIs for the company
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
+    const session = await getSession();
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
     // Build query conditions
     const conditions = [
-      eq(kpiDefinitions.companyId, session.user.empresaId),
+      eq(kpiDefinitions.companyId, session.user.companyId),
     ];
 
     if (category) {
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
 // POST /api/kpi - Create a new KPI
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
+    const session = await getSession();
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     // Check for duplicate KPI name within company
     const existingKpi = await db.query.kpiDefinitions.findFirst({
       where: and(
-        eq(kpiDefinitions.companyId, session.user.empresaId),
+        eq(kpiDefinitions.companyId, session.user.companyId),
         eq(kpiDefinitions.name, validatedData.name)
       ),
     });
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
     const [newKpi] = await db
       .insert(kpiDefinitions)
       .values({
-        companyId: session.user.empresaId,
+        companyId: session.user.companyId,
         name: validatedData.name,
         description: validatedData.description,
         formula: validatedData.formula,
@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Datos inválidos", details: error.errors },
+        { error: "Datos inválidos", details: error.issues },
         { status: 400 }
       );
     }
@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
 // PATCH /api/kpi - Update an existing KPI
 export async function PATCH(request: NextRequest) {
   try {
-    const session = await auth();
+    const session = await getSession();
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -173,7 +173,7 @@ export async function PATCH(request: NextRequest) {
     const existingKpi = await db.query.kpiDefinitions.findFirst({
       where: and(
         eq(kpiDefinitions.id, kpiId),
-        eq(kpiDefinitions.companyId, session.user.empresaId)
+        eq(kpiDefinitions.companyId, session.user.companyId)
       ),
     });
 
@@ -219,7 +219,7 @@ export async function PATCH(request: NextRequest) {
 // DELETE /api/kpi - Delete or deactivate a KPI
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await auth();
+    const session = await getSession();
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -239,7 +239,7 @@ export async function DELETE(request: NextRequest) {
     const existingKpi = await db.query.kpiDefinitions.findFirst({
       where: and(
         eq(kpiDefinitions.id, kpiId),
-        eq(kpiDefinitions.companyId, session.user.empresaId)
+        eq(kpiDefinitions.companyId, session.user.companyId)
       ),
     });
 
