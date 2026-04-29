@@ -7,8 +7,18 @@
 
 import { Resend } from 'resend';
 
-// Initialize Resend client
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Resend client lazily to avoid build-time errors
+let resend: Resend | null = null;
+
+function getResendClient(): Resend {
+  if (!resend) {
+    if (!process.env.RESEND_API_KEY) {
+      console.warn('[Email Service] RESEND_API_KEY not set. Email functionality will be disabled.');
+    }
+    resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resend;
+}
 
 export interface EmailOptions {
   to: string | string[];
@@ -36,7 +46,21 @@ export interface EmailResult {
  */
 export async function sendEmail(options: EmailOptions): Promise<EmailResult> {
   try {
-    const { data, error } = await resend.emails.send({
+    const client = getResendClient();
+
+    // If no API key is configured, log and return early
+    if (!process.env.RESEND_API_KEY) {
+      console.log('[Email Service] Email not sent - RESEND_API_KEY not configured:', {
+        to: options.to,
+        subject: options.subject,
+      });
+      return {
+        success: false,
+        error: 'RESEND_API_KEY not configured',
+      };
+    }
+
+    const { data, error } = await client.emails.send({
       from: options.from || 'Pulso HORECA <notifications@pulso.app>',
       to: options.to,
       subject: options.subject,

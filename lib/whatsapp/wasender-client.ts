@@ -515,14 +515,35 @@ export class WasenderClient {
   }
 }
 
-// Singleton instance
-export const wasenderClient = new WasenderClient();
+// Singleton instance - lazy initialization to avoid build-time errors
+let wasenderClientInstance: WasenderClient | null = null;
+
+export function getWasenderClient(): WasenderClient {
+  if (!wasenderClientInstance) {
+    wasenderClientInstance = new WasenderClient();
+  }
+  return wasenderClientInstance;
+}
+
+// Export singleton instance (for backward compatibility)
+export const wasenderClient = {
+  sendMessage: (opts: SendMessageOptions) => getWasenderClient().sendMessage(opts),
+  sendMedia: (opts: SendMediaOptions) => getWasenderClient().sendMedia(opts),
+  createSession: (companyId: string) => getWasenderClient().createSession(companyId),
+  getSessions: () => getWasenderClient().getSessions(),
+  getSession: (sessionId: string) => getWasenderClient().getSession(sessionId),
+  deleteSession: (sessionId: string) => getWasenderClient().deleteSession(sessionId),
+  getQRCode: (sessionId: string) => getWasenderClient().getQRCode(sessionId),
+  checkRateLimit: (sessionId: string) => getWasenderClient().checkRateLimit(sessionId),
+  setRateLimits: (config: Partial<RateLimitConfig>) => getWasenderClient().setRateLimits(config),
+  verifyWebhookSignature: (payload: string, signature: string) => getWasenderClient().verifyWebhookSignature(payload, signature),
+};
 
 /**
  * Standalone function to send WhatsApp message (for backward compatibility)
  */
 export async function sendWhatsAppMessage(to: string, message: string): Promise<{ messageId: string }> {
-  return wasenderClient.sendMessage({
+  return getWasenderClient().sendMessage({
     sessionId: process.env.WHATSAPP_SESSION_ID || 'default',
     to,
     message,
