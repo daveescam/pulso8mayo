@@ -47,17 +47,47 @@ const kpiFormSchema = z.object({
 type KpiFormValues = z.infer<typeof kpiFormSchema>;
 
 interface KpiFormProps {
-    onSuccess?: () => void;
+  onSuccess?: () => void;
+  initialTemplate?: {
+    name: string;
+    description: string;
+    formula: string;
+    metricType: "PERCENTAGE" | "COUNT" | "AVERAGE" | "SUM" | "TIME" | "RATIO";
+    category: "OPERATIONS" | "COMPLIANCE" | "LABOR" | "INVENTORY";
+    target: number;
+    warningThreshold: number;
+    criticalThreshold: number;
+    thresholdType: "MIN" | "MAX" | "TARGET" | "RANGE";
+    frequency: "REALTIME" | "HOURLY" | "DAILY" | "WEEKLY" | "MONTHLY";
+    unit: string;
+    decimalPlaces: number;
+  };
+  onClearTemplate?: () => void;
 }
 
-export function KpiForm({ onSuccess }: KpiFormProps) {
-    const [isSubmitting, setIsSubmitting] = React.useState(false);
-    const [error, setError] = React.useState<string | null>(null);
-    const [success, setSuccess] = React.useState(false);
+export function KpiForm({ onSuccess, initialTemplate, onClearTemplate }: KpiFormProps) {
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [success, setSuccess] = React.useState(false);
 
-    const form = useForm<KpiFormValues>({
-        resolver: zodResolver(kpiFormSchema),
-    defaultValues: {
+  const getDefaultValues = (): KpiFormValues => {
+    if (initialTemplate) {
+      return {
+        name: initialTemplate.name,
+        description: initialTemplate.description,
+        formula: initialTemplate.formula,
+        metricType: initialTemplate.metricType,
+        target: String(initialTemplate.target),
+        warningThreshold: String(initialTemplate.warningThreshold),
+        criticalThreshold: String(initialTemplate.criticalThreshold),
+        thresholdType: initialTemplate.thresholdType,
+        frequency: initialTemplate.frequency,
+        unit: initialTemplate.unit,
+        decimalPlaces: String(initialTemplate.decimalPlaces),
+        category: initialTemplate.category,
+      };
+    }
+    return {
       name: "",
       description: "",
       formula: "",
@@ -70,8 +100,20 @@ export function KpiForm({ onSuccess }: KpiFormProps) {
       unit: "",
       decimalPlaces: "2",
       category: "OPERATIONS",
-    },
-    });
+    };
+  };
+
+  const form = useForm<KpiFormValues>({
+    resolver: zodResolver(kpiFormSchema),
+    defaultValues: getDefaultValues(),
+  });
+
+  // Update form when initialTemplate changes
+  React.useEffect(() => {
+    if (initialTemplate) {
+      form.reset(getDefaultValues());
+    }
+  }, [initialTemplate]);
 
     const onSubmit = async (data: KpiFormValues) => {
         setIsSubmitting(true);
@@ -380,16 +422,31 @@ export function KpiForm({ onSuccess }: KpiFormProps) {
                         {/* Preview */}
                         <KpiPreview values={form.watch()} />
 
-                        <Button type="submit" disabled={isSubmitting} className="w-full">
-                            {isSubmitting ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Creating KPI...
-                                </>
-                            ) : (
-                                "Create KPI"
-                            )}
-                        </Button>
+<div className="flex gap-3">
+      {initialTemplate && onClearTemplate && (
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={() => {
+            form.reset();
+            onClearTemplate();
+          }}
+          className="flex-1"
+        >
+          Limpiar
+        </Button>
+      )}
+      <Button type="submit" disabled={isSubmitting} className="flex-1">
+        {isSubmitting ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Creando KPI...
+          </>
+        ) : (
+          initialTemplate ? "Crear KPI desde Plantilla" : "Crear KPI Personalizado"
+        )}
+      </Button>
+    </div>
                     </form>
                 </Form>
             </CardContent>
