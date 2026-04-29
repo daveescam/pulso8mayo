@@ -1,7 +1,9 @@
 
 import { db } from "@/lib/db";
 import { shiftSessions, breakLogs, branches, plannedShifts, breakComplianceRules } from "@/lib/db/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, between, sql } from "drizzle-orm";
+import { Shift, ShiftFilters, CreateShiftInput, UpdateShiftInput, BulkCreateResult, DuplicateOptions } from "@/lib/types/shifts";
+import { parseISO, startOfWeek, endOfWeek, addWeeks } from "date-fns";
 import { ShiftApprovalService } from "./shift-approval-service";
 import { OvertimeAlertService } from "./overtime-alert-service";
 

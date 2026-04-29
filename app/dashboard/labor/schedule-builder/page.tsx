@@ -1,16 +1,9 @@
-import { UnifiedShiftScheduler } from "@/components/labor/unified-shift-scheduler";
+import { redirect } from "next/navigation";
 
+/**
+ * Schedule Builder Page - Redirects to Shifts Page
+ * The schedule-builder functionality has been consolidated into the main shifts page.
+ */
 export default function ScheduleBuilderPage() {
-    return (
-        <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">Constructor de Horarios</h1>
-                <p className="text-muted-foreground">
-                    Planifica y asigna turnos para tu personal de forma inteligente
-                </p>
-            </div>
-
-            <UnifiedShiftScheduler />
-        </div>
-    );
+  redirect("/dashboard/labor/shifts");
 }

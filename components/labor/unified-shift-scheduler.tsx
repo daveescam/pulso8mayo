@@ -1,5 +1,11 @@
 "use client"
 
+/**
+ * @deprecated This component is deprecated. Use ShiftSchedulerContainer from @/components/labor/shifts instead.
+ * Migration: Replace <UnifiedShiftScheduler /> with <ShiftSchedulerContainer />
+ * This component will be removed in a future version.
+ */
+
 import * as React from "react"
 import { format, addDays, startOfWeek, endOfWeek, isSameDay, parseISO, differenceInDays } from "date-fns"
 import { es } from "date-fns/locale"
