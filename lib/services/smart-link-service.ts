@@ -7,124 +7,158 @@ import jwt from "jsonwebtoken";
 const JWT_SECRET = process.env.JWT_SECRET || nanoid(32);
 
 export interface SmartLinkContext {
-    token: string;
-    expiresAt: Date;
-    url: string;
-    instanceId: string;
-    workflowTemplateId: string;
-    sessionId: string;
+  token: string;
+  expiresAt: Date;
+  url: string;
+  instanceId: string;
+  workflowTemplateId: string;
+  sessionId: string;
+  requiredRole?: string;
+  assignedTo?: string;
 }
 
 export interface ValidatedSmartLink {
-    link: typeof magicLinks.$inferSelect;
-    instance: typeof workflowInstances.$inferSelect;
+  link: typeof magicLinks.$inferSelect;
+  instance: typeof workflowInstances.$inferSelect;
+  decoded: {
+    instanceId: string;
+    templateId: string;
+    sessionId: string;
+    requiredRole?: string;
+    assignedTo?: string;
+    type: string;
+    iat: number;
+    exp: number;
+  };
 }
 
 export class SmartLinkService {
-    /**
-     * Generate a new smart link with encrypted JWT token for a specific workflow instance
-     * @param instanceId The ID of the workflow instance
-     * @param templateId The ID of the workflow template
-     * @param sessionId Optional session ID if linked to a specific shift
-     * @param expiresInMinutes Duration in minutes before the link expires
-     */
-    static async createSmartLink(
-        instanceId: string,
-        templateId: string,
-        sessionId: string,
-        expiresInMinutes: number = 60 * 24 // Default 24 hours
-    ): Promise<SmartLinkContext> {
-        const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
-        
-        // Create JWT token with encrypted payload containing instance and session info
-        const token = jwt.sign(
-            {
-                instanceId,
-                templateId,
-                sessionId,
-                type: 'SMART_LINK',
-                iat: Math.floor(Date.now() / 1000),
-                exp: Math.floor(expiresAt.getTime() / 1000)
-            },
-            JWT_SECRET,
-            { algorithm: 'HS256' }
-        );
+  /**
+   * Generate a new smart link with encrypted JWT token for a specific workflow instance
+   * @param instanceId The ID of the workflow instance
+   * @param templateId The ID of the workflow template
+   * @param sessionId Optional session ID if linked to a specific shift
+   * @param expiresInMinutes Duration in minutes before the link expires
+   * @param requiredRole Optional required role to access this workflow
+   * @param assignedTo Optional user ID this workflow is assigned to
+   */
+  static async createSmartLink(
+    instanceId: string,
+    templateId: string,
+    sessionId: string,
+    expiresInMinutes: number = 60 * 24, // Default 24 hours
+    requiredRole?: string,
+    assignedTo?: string
+  ): Promise<SmartLinkContext> {
+    const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
 
-        // Store the token in database for tracking
-        await db.insert(magicLinks).values({
-            token,
-            instanceId,
-            workflowTemplateId: templateId,
-            sessionId,
-            status: 'PENDING',
-            expiresAt,
-        });
+    // Create JWT token with encrypted payload containing instance and session info
+    const tokenPayload: any = {
+      instanceId,
+      templateId,
+      sessionId,
+      type: 'SMART_LINK',
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(expiresAt.getTime() / 1000)
+    };
 
-        return {
-            token,
-            expiresAt,
-            url: `${process.env.NEXT_PUBLIC_APP_URL}/workflow/public/${token}`,
-            instanceId,
-            workflowTemplateId: templateId,
-            sessionId
-        };
+    // Add optional fields if provided
+    if (requiredRole) {
+      tokenPayload.requiredRole = requiredRole;
+    }
+    if (assignedTo) {
+      tokenPayload.assignedTo = assignedTo;
     }
 
-    /**
-     * Validate a token and return the associated context
-     * @param token The smart link token (JWT)
-     */
-    static async validateSmartLink(token: string): Promise<ValidatedSmartLink | null> {
-        try {
-            // First verify the JWT token
-            const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as jwt.JwtPayload;
-            
-            // Check if it's a valid smart link token
-            if (decoded.type !== 'SMART_LINK') {
-                console.warn('[SmartLink] Invalid token type');
-                return null;
-            }
+    const token = jwt.sign(tokenPayload, JWT_SECRET, { algorithm: 'HS256' });
 
-            // Check database for the token status
-            const [link] = await db
-                .select()
-                .from(magicLinks)
-                .where(
-                    and(
-                        eq(magicLinks.token, token),
-                        eq(magicLinks.status, 'PENDING'),
-                        gt(magicLinks.expiresAt, new Date())
-                    )
-                )
-                .limit(1);
+    // Store the token in database for tracking
+    await db.insert(magicLinks).values({
+      token,
+      instanceId,
+      workflowTemplateId: templateId,
+      sessionId,
+      status: 'PENDING',
+      expiresAt,
+    });
 
-            if (!link) {
-                console.warn('[SmartLink] Link not found, already used, or expired');
-                return null;
-            }
+    return {
+      token,
+      expiresAt,
+      url: `${process.env.NEXT_PUBLIC_APP_URL}/workflow/public/${token}`,
+      instanceId,
+      workflowTemplateId: templateId,
+      sessionId,
+      requiredRole,
+      assignedTo,
+    };
+  }
 
-            // Also fetch the instance to ensure it's still valid/pending
-            const [instance] = await db
-                .select()
-                .from(workflowInstances)
-                .where(eq(workflowInstances.id, link.instanceId))
-                .limit(1);
+  /**
+   * Validate a token and return the associated context
+   * @param token The smart link token (JWT)
+   */
+  static async validateSmartLink(token: string): Promise<ValidatedSmartLink | null> {
+    try {
+      // First verify the JWT token
+      const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as jwt.JwtPayload;
 
-            if (!instance) {
-                console.warn('[SmartLink] Associated instance not found');
-                return null;
-            }
+      // Check if it's a valid smart link token
+      if (decoded.type !== 'SMART_LINK') {
+        console.warn('[SmartLink] Invalid token type');
+        return null;
+      }
 
-            return {
-                link,
-                instance
-            };
-        } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            console.error('[SmartLink] Token validation failed:', errorMessage);
-            return null;
+      // Check database for the token status
+      const [link] = await db
+        .select()
+        .from(magicLinks)
+        .where(
+          and(
+            eq(magicLinks.token, token),
+            eq(magicLinks.status, 'PENDING'),
+            gt(magicLinks.expiresAt, new Date())
+          )
+        )
+        .limit(1);
+
+      if (!link) {
+        console.warn('[SmartLink] Link not found, already used, or expired');
+        return null;
+      }
+
+      // Also fetch the instance to ensure it's still valid/pending
+      const [instance] = await db
+        .select()
+        .from(workflowInstances)
+        .where(eq(workflowInstances.id, link.instanceId))
+        .limit(1);
+
+      if (!instance) {
+        console.warn('[SmartLink] Associated instance not found');
+        return null;
+      }
+
+      return {
+        link,
+        instance,
+        decoded: {
+          instanceId: decoded.instanceId as string,
+          templateId: decoded.templateId as string,
+          sessionId: decoded.sessionId as string,
+          requiredRole: decoded.requiredRole as string | undefined,
+          assignedTo: decoded.assignedTo as string | undefined,
+          type: decoded.type as string,
+          iat: decoded.iat as number,
+          exp: decoded.exp as number,
         }
+      };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[SmartLink] Token validation failed:', errorMessage);
+      return null;
     }
+  }
 
     /**
      * Mark a smart link as used (after successful workflow completion)

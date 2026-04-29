@@ -866,13 +866,13 @@ Pulso is a multi-tenant SaaS platform that combines:
 
 ### Phase 6: WhatsApp Integration (Weeks 21-24)
 
-#### 6.1 WhatsApp Business API
+#### 6.1 WhatsApp wasender
 
 **Priority**: P1 (High)
 **Dependencies**: 3.2 Workflow Execution
 
 ##### 6.1.1 API Setup & Configuration
-- **Requirement**: Integrate WasenderAPI WhatsApp Business API
+- **Requirement**: Integrate WasenderAPI WhatsApp  API
 - **Acceptance Criteria**:
   - WasenderAPI account configured and authenticated
   - API credentials secured with bearer tokens
@@ -889,27 +889,7 @@ Pulso is a multi-tenant SaaS platform that combines:
   - [] Configure rate limits per company subscription
   - [] Test message sending and receiving
 
-##### 6.1.2 Message Capabilities
-- **Requirement**: Support various message types for workflow execution
-- **Acceptance Criteria**:
-  - Send text messages with workflow instructions
-  - Send media messages (images, videos, documents)
-  - Receive and process incoming messages
-  - Handle message status tracking
-  - Support location and contact sharing
-- **Message Types**:
-  - **Text**: Workflow instructions and responses
-  - **Image**: Photo evidence from workflows
-  - **Document**: Reports and forms
-  - **Location**: GPS verification for location-based tasks
-  - **Contact**: Employee contact sharing
-- **Subtasks**:
-  - [] Implement text message handling
-  - [] Add media message support
-  - [] Create message status tracking
-  - [] Implement incoming message processing
-  - [] Add location sharing capability
-  - [] Build message encryption/decryption
+
 
 ##### 6.1.3 Multi-tenant Session Management
 - **Requirement**: Maintain separate WhatsApp sessions for each company
@@ -934,68 +914,35 @@ Pulso is a multi-tenant SaaS platform that combines:
   - [] Implement session analytics per company
 
 ---
-
-#### 6.2 Workflow via WhatsApp
-
-**Priority**: P2 (Medium)
-**Dependencies**: 6.1 WhatsApp Business API
-
-##### 6.2.1 Interactive Workflow Execution
-- **Requirement**: Execute workflows through WhatsApp conversation
+WhatsApp Smartlink Workflow Execution
+- **Requirement**: Enable workflow execution through WhatsApp smartlinks with role-based access and AI verification
 - **Acceptance Criteria**:
-  - Start workflow via WhatsApp message
-  - Receive step instructions via WhatsApp
-  - Submit responses via WhatsApp
-  - Upload photos via WhatsApp
-  - Receive confirmation and next steps
-  - Handle media messages (photos, videos) from users
-- **Conversation Flow Example**:
-  ```
-  System: "¡Hola Ana! Es hora de hacer el checklist de apertura. ¿Lista para empezar?"
-  User: "Sí"
-  System: "Perfecto. Paso 1: Verificar temperatura de refrigeradores. Por favor envía una foto del termómetro."
-  User: [Sends photo]
-  System: "✅ Temperatura verificada: 4°C. Paso 2: ¿Las superficies están limpias?"
-  User: "Sí"
-  System: "Por favor envía una foto de las superficies limpias."
-  User: [Sends photo]
-  System: "✅ Verificado. Paso 3 de 5..."
-  ```
+  - Workflow notifications delivered via WhatsApp with smartlinks
+  - Smartlinks contain workflow template ID and role-based access token
+  - Users can execute workflows directly from WhatsApp smartlinks
+  - Multi-stepper UI accessible via smartlink with all workflow steps
+  - Photo evidence collected and sent to AI verification service
+  - Conditional alerts triggered based on AI verification results
+  - Escalation system for failed verifications or non-compliance
+  - Real-time progress synchronization between WhatsApp and web/mobile interfaces
+- **Technical Details**:
+  - Smartlink contains encrypted workflow instance ID and user role
+  - Token-based authentication for workflow access
+  - Seamless transition from WhatsApp to web workflow interface
+  - Integration with AI verification services for photo evidence
+  - Conditional logic engine for alert escalation
+  - Real-time progress synchronization across platforms
 - **Subtasks**:
-  - [] Design WhatsApp conversation flow
-  - [] Implement message parsing with WasenderAPI
-  - [] Create interactive responses using WasenderAPI
-  - [] Add photo and media handling in WhatsApp
-  - [] Build step progression logic
-  - [] Implement error handling for message failures
-  - [] Add help commands and fallback responses
-
-##### 6.2.2 Natural Language Processing & Message Processing
-- **Requirement**: Understand user responses in natural language and process various message types
-- **Acceptance Criteria**:
-  - Parse yes/no responses in Spanish
-  - Extract numbers from messages
-  - Handle common variations
-  - Process media messages (photos, videos, documents)
-  - Handle location and contact messages
-  - Provide clarification when uncertain
-- **Response Patterns**:
-  - Yes: "sí", "si", "yes", "ok", "vale", "confirmo"
-  - No: "no", "nop", "nope", "negativo"
-  - Numbers: "5", "cinco", "5°C", "5 grados"
-- **Media Processing**:
-  - **Photos**: Process as workflow evidence
-  - **Videos**: Validate and store for review
-  - **Documents**: Store for compliance records
-  - *Location**: Verify GPS coordinates for location-based tasks
-- **Subtasks**:
-  - [] Implement NLP parsing for Spanish responses
-  - [] Create response pattern matching
-  - [] Add language detection
-  - [] Build clarification logic
-  - [] Test common variations
-  - [] Add media processing capabilities
-  - [] Implement location verification
+  - [ ] Create smartlink generation with encrypted tokens
+  - [ ] Implement token-based authentication for workflows
+  - [ ] Develop seamless transition from WhatsApp to web interface
+  - [ ] Integrate AI verification for photo evidence
+  - [ ] Create conditional alert triggers based on AI results
+  - [ ] Implement escalation system for failed verifications
+  - [ ] Add real-time progress synchronization
+  - [ ] Create error handling for invalid smartlinks
+  - [ ] Implement role-based access validation
+  - [ ] Add notification delivery via WhatsApp WASENDER API
 
 ##### 6.2.3 Notifications & Reminders
 - **Requirement**: Automated notifications via WhatsApp

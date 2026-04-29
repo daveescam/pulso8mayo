@@ -96,9 +96,14 @@ export const workflowTemplates = pgTable("workflow_templates", {
     requiredFrequency: text("required_frequency"), // 'DAILY', 'WEEKLY'
     isCritical: boolean("is_critical").default(false),
 
-    active: boolean("active").default(true),
-    createdAt: timestamp("created_at").defaultNow(),
-    updatedAt: timestamp("updated_at").defaultNow(),
+  active: boolean("active").default(true),
+
+  // Reminder configuration - intervals in minutes before due date
+  // Default: [1440, 60, 30] = 24h, 1h, 30min
+  reminderIntervals: jsonb("reminder_intervals").default(sql`'[1440, 60, 30]'::jsonb`),
+
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const workflowSchedules = pgTable("workflow_schedules", {
@@ -174,12 +179,15 @@ export const workflowAssignments = pgTable("workflow_assignments", {
     dueDate: timestamp("due_date"),
     isOverdue: boolean("is_overdue").default(false),
 
-    // Metadata
-    priority: priorityEnum("priority").default('MEDIUM'),
-    notes: text("notes"),
+  // Metadata
+  priority: priorityEnum("priority").default('MEDIUM'),
+  notes: text("notes"),
 
-    createdAt: timestamp("created_at").defaultNow(),
-    updatedAt: timestamp("updated_at").defaultNow(),
+  // Reminder tracking for staggered reminders (24h, 1h, 30min)
+  remindersSent: jsonb("reminders_sent").default(sql`'[]'::jsonb`), // Array of {type: '24h'|'1h'|'30min', sentAt: ISO string}
+
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const incidents = pgTable("incidents", {

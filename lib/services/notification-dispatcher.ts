@@ -2,6 +2,15 @@ import { db } from "@/lib/db";
 import { notifications, notificationPreferences, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { WasenderClient } from "@/lib/whatsapp/wasender-client";
+import {
+  sendWorkflowAssignmentEmail,
+  sendWorkflowReminderEmail,
+  sendWorkflowOverdueEmail,
+  sendIncidentAlertEmail,
+  sendStockAlertEmail,
+  sendShiftReminderEmail,
+  sendDocumentExpirationEmail,
+} from "./email-service";
 
 export type NotificationChannel = "whatsapp" | "email" | "in-app";
 export type NotificationEventType =
@@ -178,12 +187,12 @@ const notificationTemplates: Record<string, NotificationTemplate> = {
     name: "Decisión de Aprobación de Turno",
     eventType: "shift_approval_decision",
     channels: ["whatsapp", "email", "in-app"],
-    whatsappTemplate: "📋 *Solicitud {decision}*\n\nHola {userName},\n\nTu solicitud de *{approvalType}* fue *{decision}* por {approverName}.\n\n{rejectionReason ? `Motivo: ${rejectionReason}` : ''}\n\nRevisa el dashboard para más detalles.",
+    whatsappTemplate: "📋 *Solicitud {decision}*\n\nHola {userName},\n\nTu solicitud de *{approvalType}* fue *{decision}* por {approverName}.\n\n{rejectionReasonSection}\n\nRevisa el dashboard para más detalles.",
     emailSubject: "📋 Solicitud {decision}: {approvalType}",
-    emailBody: `<h2>Solicitud {decision}</h2><p>Hola {userName},</p><p>Tu solicitud de <strong>{approvalType}</strong> fue <strong>{decision}</strong> por {approverName}.</p>{rejectionReason ? `<p><strong>Motivo:</strong> ${rejectionReason}</p>` : ''}<p>Revisa el dashboard para más detalles.</p>`,
+    emailBody: "<h2>Solicitud {decision}</h2><p>Hola {userName},</p><p>Tu solicitud de <strong>{approvalType}</strong> fue <strong>{decision}</strong> por {approverName}.</p>{rejectionReasonSection}<p>Revisa el dashboard para más detalles.</p>",
     inAppTitle: "Solicitud {decision}",
     inAppMessage: "{approvalType} fue {decision}",
-    variables: ["userName", "approvalType", "decision", "approverName", "rejectionReason"]
+    variables: ["userName", "approvalType", "decision", "approverName", "rejectionReasonSection"]
   }
 };
 
@@ -286,22 +295,113 @@ export class NotificationDispatcher {
         }
     }
 
-    /**
-     * Send email notification
-     */
-    private static async sendEmailNotification(
-        payload: NotificationPayload,
-        template: NotificationTemplate,
-        userData: UserData
-    ): Promise<void> {
-        try {
-            if (!template.emailSubject || !template.emailBody) return;
+  /**
+   * Send email notification
+   */
+  private static async sendEmailNotification(
+    payload: NotificationPayload,
+    template: NotificationTemplate,
+    userData: UserData
+  ): Promise<void> {
+    try {
+      if (!template.emailSubject || !template.emailBody) return;
 
-            // Get user's email
-            if (!userData?.email) {
-                console.log(`No email for user ${payload.userId}`);
-                return;
-            }
+      // Get user's email
+      if (!userData?.email) {
+        console.log(`No email for user ${payload.userId}`);
+        return;
+      }
+
+      // Send based on event type with appropriate email template
+      switch (payload.eventType) {
+        case 'workflow_assignment':
+          await sendWorkflowAssignmentEmail(userData.email, {
+            userName: userData.name || 'Usuario',
+            workflowName: payload.metadata?.workflowName || 'Tarea',
+            dueDate: payload.metadata?.dueDate || new Date().toISOString(),
+            priority: payload.metadata?.priority || 'MEDIUM',
+            assignmentUrl: payload.actionUrl || '#',
+          });
+          break;
+
+        case 'workflow_due_soon':
+          await sendWorkflowReminderEmail(userData.email, {
+            userName: userData.name || 'Usuario',
+            workflowName: payload.metadata?.workflowName || 'Tarea',
+            hoursUntilDue: payload.metadata?.hoursUntilDue || 1,
+            reminderType: payload.metadata?.reminderType || '1h',
+            assignmentUrl: payload.actionUrl || '#',
+          });
+          break;
+
+        case 'workflow_overdue':
+          await sendWorkflowOverdueEmail(userData.email, {
+            userName: userData.name || 'Usuario',
+            workflowName: payload.metadata?.workflowName || 'Tarea',
+            overdueTime: payload.metadata?.overdueTime || 'hace poco',
+            assignmentUrl: payload.actionUrl || '#',
+          });
+          break;
+
+        case 'incident':
+          await sendIncidentAlertEmail(userData.email, {
+            userName: userData.name || 'Usuario',
+            incidentTitle: payload.metadata?.incidentTitle || 'Incidente',
+            severity: payload.metadata?.severity || 'WARNING',
+            description: payload.metadata?.description,
+            incidentUrl: payload.actionUrl || '#',
+          });
+          break;
+
+        case 'stock_alert':
+          await sendStockAlertEmail(userData.email, {
+            userName: userData.name || 'Usuario',
+            itemName: payload.metadata?.itemName || 'Producto',
+            currentStock: payload.metadata?.currentStock || 0,
+            minLevel: payload.metadata?.minLevel || 0,
+            branchName: payload.metadata?.branchName || 'Sucursal',
+            inventoryUrl: payload.actionUrl || '#',
+          });
+          break;
+
+        case 'shift_reminder':
+          await sendShiftReminderEmail(userData.email, {
+            userName: userData.name || 'Usuario',
+            shiftDate: payload.metadata?.shiftDate || new Date().toLocaleDateString('es-MX'),
+            shiftTime: payload.metadata?.shiftTime || '00:00',
+            branchName: payload.metadata?.branchName || 'Sucursal',
+            scheduleUrl: payload.actionUrl,
+          });
+          break;
+
+        case 'document_expiration':
+          await sendDocumentExpirationEmail(userData.email, {
+            userName: userData.name || 'Usuario',
+            documentName: payload.metadata?.documentName || 'Documento',
+            documentType: payload.metadata?.documentType || 'General',
+            expirationDate: payload.metadata?.expirationDate || new Date().toISOString(),
+            daysUntilExpiration: payload.metadata?.daysUntilExpiration || 0,
+            documentsUrl: payload.actionUrl || '#',
+          });
+          break;
+
+        default:
+          // Fallback to generic template
+          const subject = this.replaceTemplateVariables(
+            template.emailSubject,
+            { ...payload.metadata, userName: userData.name }
+          );
+          const body = this.replaceTemplateVariables(
+            template.emailBody,
+            { ...payload.metadata, userName: userData.name }
+          );
+          // Generic email sending would go here if needed
+          console.log(`[Email] Fallback: To: ${userData.email}, Subject: ${subject}`);
+      }
+    } catch (error) {
+      console.error("Error sending email notification:", error);
+    }
+  }
 
             // Replace template variables
             const subject = this.replaceTemplateVariables(

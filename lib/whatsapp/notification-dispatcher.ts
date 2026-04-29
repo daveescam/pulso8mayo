@@ -11,6 +11,7 @@ import { eq, and } from 'drizzle-orm';
 import { wasenderClient } from './wasender-client';
 import { messageFormatter } from './message-formatter';
 import { sessionManager } from './session-manager';
+import { NotificationDispatcher, NotificationPayload } from '@/lib/services/notification-dispatcher';
 
 import { SessionInfo } from './session-manager';
 
@@ -281,7 +282,7 @@ export class WhatsAppNotificationDispatcher {
       });
 
       if (!prefs) return true; // Default to allowing if no preferences set
-      
+
       // Check if WhatsApp is enabled
       if (!prefs.whatsappEnabled) return false;
 
@@ -305,6 +306,72 @@ export class WhatsAppNotificationDispatcher {
       }
     } catch {
       return true;
+    }
+  }
+
+  /**
+   * Unified notification method - sends WhatsApp notification via the dispatcher
+   * This method wraps the WhatsApp-specific dispatching and integrates with
+   * the generic NotificationDispatcher
+   */
+  static async sendNotification(payload: NotificationPayload): Promise<boolean> {
+    try {
+      switch (payload.eventType) {
+        case 'workflow_assignment':
+          return await this.sendWorkflowAssignment(payload.userId, {
+            id: payload.metadata?.assignmentId || payload.userId,
+            workflowName: payload.metadata?.workflowName || 'Tarea',
+            dueDate: payload.metadata?.dueDate,
+            priority: payload.metadata?.priority,
+          });
+
+        case 'workflow_due_soon':
+          return await this.sendWorkflowDueSoon(payload.userId, {
+            id: payload.metadata?.assignmentId || payload.userId,
+            workflowName: payload.metadata?.workflowName || 'Tarea',
+            dueDate: payload.metadata?.dueDate,
+            priority: payload.metadata?.priority,
+          });
+
+        case 'workflow_overdue':
+          return await this.sendWorkflowOverdue(payload.userId, {
+            id: payload.metadata?.assignmentId || payload.userId,
+            workflowName: payload.metadata?.workflowName || 'Tarea',
+            dueDate: payload.metadata?.dueDate,
+            priority: payload.metadata?.priority,
+          });
+
+        case 'incident':
+          return await this.sendIncidentAlert(payload.userId, {
+            id: payload.metadata?.incidentId || payload.userId,
+            title: payload.metadata?.incidentTitle || 'Incidente',
+            severity: payload.metadata?.severity || 'WARNING',
+            description: payload.metadata?.description,
+          });
+
+        case 'stock_alert':
+          return await this.sendInventoryAlert(payload.userId, {
+            id: payload.metadata?.itemId || payload.userId,
+            name: payload.metadata?.itemName || 'Producto',
+            sku: payload.metadata?.sku || '',
+            currentStock: payload.metadata?.currentStock,
+            minStock: payload.metadata?.minLevel,
+          });
+
+        case 'shift_reminder':
+          return await this.sendShiftReminder(payload.userId, {
+            date: payload.metadata?.shiftDate || new Date().toLocaleDateString('es-MX'),
+            time: payload.metadata?.shiftTime || '',
+            branchName: payload.metadata?.branchName || '',
+          });
+
+        default:
+          console.log(`[WhatsAppNotificationDispatcher] No handler for event type: ${payload.eventType}`);
+          return false;
+      }
+    } catch (error) {
+      console.error('[WhatsAppNotificationDispatcher] Error in sendNotification:', error);
+      return false;
     }
   }
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { WorkflowExecutionService } from "@/lib/services/workflow-execution-service";
+import { emitWorkflowEvent } from "@/lib/websocket/workflow-handlers";
 import { auth } from "@/lib/auth";
 
 const startExecutionSchema = z.object({
@@ -27,14 +28,25 @@ export async function POST(req: Request) {
 
         // TODO: Check permissions (user belongs to branch/company)
 
-        const execution = await WorkflowExecutionService.createExecution(
-            templateId,
-            branchId,
-            session.user.id,
-            sessionId || null
-        );
+    const execution = await WorkflowExecutionService.createExecution(
+      templateId,
+      branchId,
+      session.user.id,
+      sessionId || null
+    );
 
-        return NextResponse.json(execution);
+    // Emit real-time event for new workflow execution
+    emitWorkflowEvent("execution_started", {
+      executionId: execution.id,
+      templateId,
+      branchId,
+      sessionId: sessionId || null,
+      startedBy: session.user.id,
+      startedAt: new Date().toISOString(),
+      status: execution.status,
+    });
+
+    return NextResponse.json(execution);
     } catch (error) {
         console.error("Error starting execution:", error);
         return new NextResponse("Internal Server Error", { status: 500 });

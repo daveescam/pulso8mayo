@@ -2,12 +2,13 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { WorkflowExecutionService } from "@/lib/services/workflow-execution-service";
 import { auth } from "@/lib/auth";
+import { emitWorkflowEvent } from "@/lib/websocket/workflow-handlers";
 
 const updateStepSchema = z.object({
-    value: z.any().optional(),
-    evidenceUrl: z.string().optional(),
-    comment: z.string().optional(),
-    status: z.enum(['COMPLETED', 'SKIPPED', 'FAILED']).optional(),
+  value: z.any().optional(),
+  evidenceUrl: z.string().optional(),
+  comment: z.string().optional(),
+  status: z.enum(['COMPLETED', 'SKIPPED', 'FAILED']).optional(),
 });
 
 import { headers } from "next/headers";
@@ -31,14 +32,38 @@ export async function PATCH(
         const { id, stepId } = await params;
 
 
-        const updatedStep = await WorkflowExecutionService.updateStep(
-            id, // Instance ID
-            stepId,
-            data,
-            session.user.id
-        );
+    const updatedStep = await WorkflowExecutionService.updateStep(
+      id, // Instance ID
+      stepId,
+      data,
+      session.user.id
+    );
 
-        return NextResponse.json(updatedStep);
+    // Emit real-time event for step update
+    emitWorkflowEvent("step_update", {
+      executionId: id,
+      stepId,
+      status: data.status || "UPDATED",
+      value: data.value,
+      evidenceUrl: data.evidenceUrl,
+      comment: data.comment,
+      performedBy: session.user.id,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Check if workflow is complete to emit completion event
+    if (data.status === 'COMPLETED') {
+      const execution = await WorkflowExecutionService.getExecution(id);
+      if (execution?.status === "COMPLETED") {
+        emitWorkflowEvent("execution_completed", {
+          executionId: id,
+          completedAt: new Date().toISOString(),
+          performedBy: session.user.id,
+        });
+      }
+    }
+
+    return NextResponse.json(updatedStep);
     } catch (error) {
         console.error("Error updating step:", error);
         return new NextResponse("Internal Server Error", { status: 500 });

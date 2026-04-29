@@ -5,10 +5,19 @@
  * Supports retry logic with exponential backoff
  */
 
-import { Client as QStashClient, resend } from '@upstash/qstash';
+import { Client as QStashClient } from '@upstash/qstash';
 import { db } from '@/lib/db';
 import { notifications, whatsappMessages } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import {
+  sendWorkflowAssignmentEmail,
+  sendWorkflowReminderEmail,
+  sendWorkflowOverdueEmail,
+  sendIncidentAlertEmail,
+  sendStockAlertEmail,
+  sendShiftReminderEmail,
+  sendDocumentExpirationEmail,
+} from '@/lib/services/email-service';
 
 // Initialize QStash client
 const qstashClient = new QStashClient({
@@ -197,14 +206,106 @@ export class NotificationQueue {
         }
     }
 
-    /**
-     * Send email notification
-     */
-    private static async sendEmail(options: QueueNotificationOptions): Promise<boolean> {
-        // TODO: Implement email sending via Resend or similar
-        console.log('[NotificationQueue] Email sending not yet implemented');
-        return false;
+  /**
+   * Send email notification
+   */
+  private static async sendEmail(options: QueueNotificationOptions): Promise<boolean> {
+    try {
+      const { template, payload, recipientAddress } = options;
+
+      // Get user data for personalization
+      const user = await db.query.users.findFirst({
+        where: eq(users.id, options.recipientId),
+      });
+
+      const userName = user?.name || 'Usuario';
+
+      // Route to appropriate email template based on template name
+      switch (template) {
+        case 'workflow_assignment':
+          const assignmentResult = await sendWorkflowAssignmentEmail(recipientAddress, {
+            userName,
+            workflowName: payload.workflowName || 'Tarea',
+            dueDate: payload.dueDate || new Date().toISOString(),
+            priority: payload.priority || 'MEDIUM',
+            assignmentUrl: payload.assignmentUrl || '#',
+          });
+          return assignmentResult.success;
+
+        case 'workflow_due_soon':
+        case 'workflow_reminder':
+          const reminderResult = await sendWorkflowReminderEmail(recipientAddress, {
+            userName,
+            workflowName: payload.workflowName || 'Tarea',
+            hoursUntilDue: payload.hoursUntilDue || 1,
+            reminderType: payload.reminderType || '1h',
+            assignmentUrl: payload.assignmentUrl || '#',
+          });
+          return reminderResult.success;
+
+        case 'workflow_overdue':
+          const overdueResult = await sendWorkflowOverdueEmail(recipientAddress, {
+            userName,
+            workflowName: payload.workflowName || 'Tarea',
+            overdueTime: payload.overdueTime || 'hace poco',
+            assignmentUrl: payload.assignmentUrl || '#',
+          });
+          return overdueResult.success;
+
+        case 'incident':
+          const incidentResult = await sendIncidentAlertEmail(recipientAddress, {
+            userName,
+            incidentTitle: payload.incidentTitle || 'Incidente',
+            severity: payload.severity || 'WARNING',
+            description: payload.description,
+            incidentUrl: payload.incidentUrl || '#',
+          });
+          return incidentResult.success;
+
+        case 'stock_alert':
+        case 'inventory_alert':
+          const stockResult = await sendStockAlertEmail(recipientAddress, {
+            userName,
+            itemName: payload.itemName || 'Producto',
+            currentStock: payload.currentStock || 0,
+            minLevel: payload.minLevel || 0,
+            branchName: payload.branchName || 'Sucursal',
+            inventoryUrl: payload.inventoryUrl || '#',
+          });
+          return stockResult.success;
+
+        case 'shift_reminder':
+          const shiftResult = await sendShiftReminderEmail(recipientAddress, {
+            userName,
+            shiftDate: payload.shiftDate || new Date().toLocaleDateString('es-MX'),
+            shiftTime: payload.shiftTime || '',
+            branchName: payload.branchName || '',
+            scheduleUrl: payload.scheduleUrl,
+          });
+          return shiftResult.success;
+
+        case 'document_expiration':
+          const docResult = await sendDocumentExpirationEmail(recipientAddress, {
+            userName,
+            documentName: payload.documentName || 'Documento',
+            documentType: payload.documentType || 'General',
+            expirationDate: payload.expirationDate || new Date().toISOString(),
+            daysUntilExpiration: payload.daysUntilExpiration || 0,
+            documentsUrl: payload.documentsUrl || '#',
+          });
+          return docResult.success;
+
+        default:
+          // For unknown templates, use a generic approach with the formatMessage helper
+          console.log(`[NotificationQueue] Unknown email template: ${template}, using generic formatting`);
+          // Could implement a generic email sending here
+          return false;
+      }
+    } catch (error) {
+      console.error('[NotificationQueue] Email send failed:', error);
+      return false;
     }
+  }
 
     /**
      * Send in-app notification

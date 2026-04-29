@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SmartLinkService } from "@/lib/services/smart-link-service";
 import { WorkflowExecutionService } from "@/lib/services/workflow-execution-service";
+import { emitWorkflowEvent } from "@/lib/websocket/workflow-handlers";
 import { z } from "zod";
 
 const updateStepSchema = z.object({
@@ -36,18 +37,38 @@ export async function POST(
         // We use the 'sessionId' or a placeholder as the userId since this is a public link execution
         const performedBy = linkData.link.sessionId || "public-link-user";
 
-        const result = await WorkflowExecutionService.updateStep(
-            linkData.instance.id,
-            stepId,
-            { value, evidenceUrl, comment, status },
-            performedBy
-        );
+    const result = await WorkflowExecutionService.updateStep(
+      linkData.instance.id,
+      stepId,
+      { value, evidenceUrl, comment, status },
+      performedBy
+    );
 
-        // 3. Check if workflow is complete to mark link as used? 
-        // Logic: If status is COMPLETED, maybe we don't mark link used yet? 
-        // Usually we keep link valid until expiry or explicit completion.
+    // 3. Emit real-time event for step update
+    const stepUpdateData = {
+      executionId: linkData.instance.id,
+      stepId,
+      status,
+      value,
+      evidenceUrl,
+      comment,
+      performedBy,
+      timestamp: new Date().toISOString(),
+    };
 
-        return NextResponse.json(result);
+    emitWorkflowEvent("step_update", stepUpdateData);
+
+    // 4. Check if workflow is complete to emit completion event
+    const updatedExecution = await WorkflowExecutionService.getExecution(linkData.instance.id);
+    if (updatedExecution?.status === "COMPLETED") {
+      emitWorkflowEvent("execution_completed", {
+        executionId: linkData.instance.id,
+        completedAt: new Date().toISOString(),
+        performedBy,
+      });
+    }
+
+    return NextResponse.json(result);
 
     } catch (error) {
         console.error("Error updating public workflow step:", error);

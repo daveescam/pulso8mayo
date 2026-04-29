@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { workflowAssignments, workflowInstances, workflowSchedules, users } from '@/lib/db/schema';
 import { eq, and, lte, gte, or, isNull, sql } from 'drizzle-orm';
+import { emitWorkflowEvent } from '@/lib/websocket/workflow-handlers';
 
 export type AssignmentStatus = 'PENDING' | 'NOTIFIED' | 'STARTED' | 'COMPLETED' | 'OVERDUE';
 export type AssignmentType = 'ROLE' | 'USER' | 'AUTO' | 'MANUAL';
@@ -41,34 +42,46 @@ export interface BranchAssignmentStats {
 }
 
 export class WorkflowAssignmentService {
-    /**
-     * Assign a workflow to a user
-     */
-    static async assignWorkflow(instanceId: string, config: AssignmentConfig) {
-        const [assignment] = await db.insert(workflowAssignments).values({
-            instanceId,
-            assignedTo: config.assignedTo,
-            assignedBy: config.assignedBy,
-            assignmentType: config.assignmentType,
-            dueDate: config.dueDate,
-            priority: config.priority || 'MEDIUM',
-            notes: config.notes,
-            status: 'PENDING',
-        }).returning();
+  /**
+   * Assign a workflow to a user
+   */
+  static async assignWorkflow(instanceId: string, config: AssignmentConfig) {
+    const [assignment] = await db.insert(workflowAssignments).values({
+      instanceId,
+      assignedTo: config.assignedTo,
+      assignedBy: config.assignedBy,
+      assignmentType: config.assignmentType,
+      dueDate: config.dueDate,
+      priority: config.priority || 'MEDIUM',
+      notes: config.notes,
+      status: 'PENDING',
+    }).returning();
 
-        // Update workflow instance with assignment info
-        await db
-            .update(workflowInstances)
-            .set({
-                assignmentId: assignment.id,
-                assigneeId: config.assignedTo,
-                dueDate: config.dueDate,
-                priority: config.priority || 'MEDIUM',
-            })
-            .where(eq(workflowInstances.id, instanceId));
+    // Update workflow instance with assignment info
+    await db
+      .update(workflowInstances)
+      .set({
+        assignmentId: assignment.id,
+        assigneeId: config.assignedTo,
+        dueDate: config.dueDate,
+        priority: config.priority || 'MEDIUM',
+      })
+      .where(eq(workflowInstances.id, instanceId));
 
-        return assignment;
-    }
+    // Emit real-time event for new assignment
+    emitWorkflowEvent('assignment_created', {
+      assignmentId: assignment.id,
+      instanceId,
+      assignedTo: config.assignedTo,
+      assignedBy: config.assignedBy,
+      assignmentType: config.assignmentType,
+      priority: config.priority || 'MEDIUM',
+      dueDate: config.dueDate,
+      createdAt: new Date().toISOString(),
+    });
+
+    return assignment;
+  }
 
     /**
      * Auto-assign workflow based on schedule configuration
@@ -176,22 +189,29 @@ export class WorkflowAssignmentService {
         return updated;
     }
 
-    /**
-     * Mark assignment as notified
-     */
-    static async markAsNotified(id: string) {
-        const [updated] = await db
-            .update(workflowAssignments)
-            .set({
-                status: 'NOTIFIED',
-                notifiedAt: new Date(),
-                updatedAt: new Date(),
-            })
-            .where(eq(workflowAssignments.id, id))
-            .returning();
+  /**
+   * Mark assignment as notified
+   */
+  static async markAsNotified(id: string) {
+    const [updated] = await db
+      .update(workflowAssignments)
+      .set({
+        status: 'NOTIFIED',
+        notifiedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(workflowAssignments.id, id))
+      .returning();
 
-        return updated;
-    }
+    // Emit real-time event
+    emitWorkflowEvent('assignment_notified', {
+      assignmentId: id,
+      status: 'NOTIFIED',
+      notifiedAt: new Date().toISOString(),
+    });
+
+    return updated;
+  }
 
     /**
      * Mark assignment as started
