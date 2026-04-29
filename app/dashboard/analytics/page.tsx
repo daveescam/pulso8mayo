@@ -1,31 +1,25 @@
 "use client";
 
 import * as React from "react";
-import { KpiCard } from "@/components/analytics/kpi-card";
-import { KpiChart } from "@/components/analytics/kpi-chart";
-import { KpiAlerts } from "@/components/analytics/kpi-alerts";
+import { RestaurantKpiDashboard } from "@/components/analytics/restaurant-kpi-dashboard";
 import { Button } from "@/components/ui/button";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Download, Filter, RefreshCw } from "lucide-react";
+import { Plus, Download, Filter, RefreshCw, Store, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { KpiCard } from "@/components/analytics/kpi-card";
+import { KpiChart } from "@/components/analytics/kpi-chart";
+import { KpiAlerts } from "@/components/analytics/kpi-alerts";
+import { KpiTemplates } from "@/components/analytics/kpi-templates";
+import { allRestaurantKPIs } from "@/lib/analytics/restaurant-kpis";
 
 interface KpiData {
     id: string;
