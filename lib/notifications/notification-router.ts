@@ -78,14 +78,30 @@ const routingRules: Record<NotificationEventType, RoutingRule> = {
         retryDelayMs: 3000,
         businessHoursOnly: false
     },
-    document_expiration: {
-        eventType: "document_expiration",
-        priority: "high",
-        channels: ["whatsapp", "email", "in-app"],
-        retryAttempts: 3,
-        retryDelayMs: 2000,
-        businessHoursOnly: false
-    }
+  document_expiration: {
+    eventType: "document_expiration",
+    priority: "high",
+    channels: ["whatsapp", "email", "in-app"],
+    retryAttempts: 3,
+    retryDelayMs: 2000,
+    businessHoursOnly: false
+  },
+  shift_approval_request: {
+    eventType: "shift_approval_request",
+    priority: "normal",
+    channels: ["whatsapp", "email", "in-app"],
+    retryAttempts: 3,
+    retryDelayMs: 3000,
+    businessHoursOnly: false
+  },
+  shift_approval_decision: {
+    eventType: "shift_approval_decision",
+    priority: "normal",
+    channels: ["whatsapp", "email", "in-app"],
+    retryAttempts: 2,
+    retryDelayMs: 3000,
+    businessHoursOnly: false
+  }
 };
 
 export class NotificationRouter {

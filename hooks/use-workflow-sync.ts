@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useSession } from '@/lib/auth-client';
+import { authClient } from '@/lib/auth-client';
 
 export type WorkflowEventType =
   | 'step_completed'
@@ -49,7 +49,7 @@ export interface WorkflowSyncActions {
 export function useWorkflowSync(
   workflowInstanceId: string | null
 ): WorkflowSyncState & WorkflowSyncActions {
-  const { data: session } = useSession();
+  const { data: session } = authClient.useSession();
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);

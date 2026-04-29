@@ -429,7 +429,7 @@ async function getInventoryReportData(companyId: string, branchId?: string) {
 }
 
 async function getLaborReportData(companyId: string, dateFrom?: string, dateTo?: string, branchId?: string) {
-  const conditions = [eq(shiftSessions.companyId, companyId)];
+  const conditions = [eq(branches.companyId, companyId)];
 
   if (dateFrom) conditions.push(gte(shiftSessions.startedAt, new Date(dateFrom)));
   if (dateTo) conditions.push(lte(shiftSessions.startedAt, new Date(dateTo)));
@@ -516,7 +516,7 @@ async function getKPIReportData(companyId: string, dateFrom?: string, dateTo?: s
     .where(incidentConditions);
 
   const shiftConditions = [
-    eq(shiftSessions.companyId, companyId),
+    eq(branches.companyId, companyId),
     gte(shiftSessions.startedAt, fromDate),
     lte(shiftSessions.startedAt, toDate),
   ];

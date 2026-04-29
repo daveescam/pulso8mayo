@@ -119,26 +119,26 @@ export class SessionManager {
     /**
      * Refresh QR code for a session
      */
-    async refreshQRCode(sessionId: string): Promise<string | null> {
-        try {
-            const qrCode = await wasenderClient.getQRCode(sessionId);
+  async refreshQRCode(sessionId: string): Promise<string | null> {
+    try {
+      const qrCodeData = await wasenderClient.getQRCode(sessionId);
 
-            if (qrCode) {
-                await db.update(whatsappSessions)
-                    .set({
-                        qrCode,
-                        qrCodeExpiresAt: new Date(Date.now() + 60000), // 1 minute expiry
-                        updatedAt: new Date(),
-                    })
-                    .where(eq(whatsappSessions.sessionId, sessionId));
-            }
+      if (qrCodeData?.qrCode) {
+        await db.update(whatsappSessions)
+          .set({
+            qrCode: qrCodeData.qrCode,
+            qrCodeExpiresAt: new Date(Date.now() + 60000), // 1 minute expiry
+            updatedAt: new Date(),
+          })
+          .where(eq(whatsappSessions.sessionId, sessionId));
+      }
 
-            return qrCode;
-        } catch (error) {
-            console.error('[SessionManager] Failed to refresh QR code:', error);
-            return null;
-        }
+      return qrCodeData?.qrCode || qrCodeData?.code || null;
+    } catch (error) {
+      console.error('[SessionManager] Failed to refresh QR code:', error);
+      return null;
     }
+  }
 
     /**
      * Delete a session

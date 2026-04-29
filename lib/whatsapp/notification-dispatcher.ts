@@ -317,53 +317,46 @@ export class WhatsAppNotificationDispatcher {
   static async sendNotification(payload: NotificationPayload): Promise<boolean> {
     try {
       switch (payload.eventType) {
-        case 'workflow_assignment':
-          return await this.sendWorkflowAssignment(payload.userId, {
-            id: payload.metadata?.assignmentId || payload.userId,
-            workflowName: payload.metadata?.workflowName || 'Tarea',
-            dueDate: payload.metadata?.dueDate,
-            priority: payload.metadata?.priority,
-          });
+      case 'workflow_assignment':
+        return await this.sendWorkflowAssignment(payload.userId, {
+          id: payload.metadata?.assignmentId as string | undefined || payload.userId,
+          workflowName: (payload.metadata?.workflowName as string) || 'Tarea',
+          dueDate: payload.metadata?.dueDate as string | undefined,
+          priority: payload.metadata?.priority as string | undefined,
+        });
 
-        case 'workflow_due_soon':
-          return await this.sendWorkflowDueSoon(payload.userId, {
-            id: payload.metadata?.assignmentId || payload.userId,
-            workflowName: payload.metadata?.workflowName || 'Tarea',
-            dueDate: payload.metadata?.dueDate,
-            priority: payload.metadata?.priority,
-          });
+      case 'workflow_due_soon':
+        return await this.sendWorkflowDueSoon(payload.userId, {
+          id: payload.metadata?.assignmentId as string | undefined || payload.userId,
+          workflowName: (payload.metadata?.workflowName as string) || 'Tarea',
+          dueDate: payload.metadata?.dueDate as string | undefined,
+          priority: payload.metadata?.priority as string | undefined,
+        });
 
-        case 'workflow_overdue':
-          return await this.sendWorkflowOverdue(payload.userId, {
-            id: payload.metadata?.assignmentId || payload.userId,
-            workflowName: payload.metadata?.workflowName || 'Tarea',
-            dueDate: payload.metadata?.dueDate,
-            priority: payload.metadata?.priority,
-          });
+      case 'workflow_overdue':
+        return await this.sendWorkflowOverdue(payload.userId, {
+          id: payload.metadata?.assignmentId as string | undefined || payload.userId,
+          workflowName: (payload.metadata?.workflowName as string) || 'Tarea',
+          dueDate: payload.metadata?.dueDate as string | undefined,
+          priority: payload.metadata?.priority as string | undefined,
+        });
 
-        case 'incident':
-          return await this.sendIncidentAlert(payload.userId, {
-            id: payload.metadata?.incidentId || payload.userId,
-            title: payload.metadata?.incidentTitle || 'Incidente',
-            severity: payload.metadata?.severity || 'WARNING',
-            description: payload.metadata?.description,
-          });
+      case 'incident':
+        return await this.sendIncidentDetected(payload.userId, {
+          id: payload.metadata?.incidentId as string | undefined || payload.userId,
+          title: (payload.metadata?.incidentTitle as string) || 'Incidente',
+          severity: (payload.metadata?.severity as string) || 'WARNING',
+          description: payload.metadata?.description as string | undefined,
+        });
 
-        case 'stock_alert':
-          return await this.sendInventoryAlert(payload.userId, {
-            id: payload.metadata?.itemId || payload.userId,
-            name: payload.metadata?.itemName || 'Producto',
-            sku: payload.metadata?.sku || '',
-            currentStock: payload.metadata?.currentStock,
-            minStock: payload.metadata?.minLevel,
-          });
-
-        case 'shift_reminder':
-          return await this.sendShiftReminder(payload.userId, {
-            date: payload.metadata?.shiftDate || new Date().toLocaleDateString('es-MX'),
-            time: payload.metadata?.shiftTime || '',
-            branchName: payload.metadata?.branchName || '',
-          });
+      case 'stock_alert':
+        return await this.sendLowStockAlert(payload.userId, {
+          id: payload.metadata?.itemId as string | undefined || payload.userId,
+          name: (payload.metadata?.itemName as string) || 'Producto',
+          sku: (payload.metadata?.sku as string) || '',
+          currentStock: payload.metadata?.currentStock as number | undefined,
+          minStock: payload.metadata?.minLevel as number | undefined,
+        });
 
         default:
           console.log(`[WhatsAppNotificationDispatcher] No handler for event type: ${payload.eventType}`);

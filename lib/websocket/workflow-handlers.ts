@@ -38,6 +38,27 @@ export interface WorkflowServerEvent {
 }
 
 /**
+ * Emit generic workflow event
+ */
+export async function emitWorkflowEvent(
+  eventType: string,
+  data: Record<string, any>
+): Promise<void> {
+  const event: WorkflowServerEvent = {
+    type: 'workflow:updated',
+    workflowInstanceId: data.executionId || 'all',
+    userId: data.startedBy || 'system',
+    timestamp: new Date().toISOString(),
+    data: { eventType, ...data },
+  };
+
+  workflowEvents.emit(`workflow:${event.workflowInstanceId}`, event);
+  workflowEvents.emit('workflow:all', event);
+
+  console.log(`[WorkflowEvents] Event ${eventType} emitted`);
+}
+
+/**
  * Emit workflow step completed event
  */
 export async function emitStepCompleted(

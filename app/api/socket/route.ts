@@ -1,4 +1,6 @@
-import { Server as SocketIOServer } from "socket.io";
+// Socket.io is an optional dependency - import dynamically
+// @ts-expect-error socket.io may not be installed
+import type { Server as SocketIOServer } from "socket.io";
 import { Server as NetServer } from "http";
 import { NextRequest, NextResponse } from "next/server";
 

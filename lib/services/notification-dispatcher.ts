@@ -314,76 +314,76 @@ export class NotificationDispatcher {
 
       // Send based on event type with appropriate email template
       switch (payload.eventType) {
-        case 'workflow_assignment':
-          await sendWorkflowAssignmentEmail(userData.email, {
-            userName: userData.name || 'Usuario',
-            workflowName: payload.metadata?.workflowName || 'Tarea',
-            dueDate: payload.metadata?.dueDate || new Date().toISOString(),
-            priority: payload.metadata?.priority || 'MEDIUM',
-            assignmentUrl: payload.actionUrl || '#',
-          });
-          break;
+      case 'workflow_assignment':
+        await sendWorkflowAssignmentEmail(userData.email, {
+          userName: userData.name || 'Usuario',
+          workflowName: (payload.metadata?.workflowName as string) || 'Tarea',
+          dueDate: (payload.metadata?.dueDate as string) || new Date().toISOString(),
+          priority: (payload.metadata?.priority as string) || 'MEDIUM',
+          assignmentUrl: payload.actionUrl || '#',
+        });
+        break;
 
-        case 'workflow_due_soon':
-          await sendWorkflowReminderEmail(userData.email, {
-            userName: userData.name || 'Usuario',
-            workflowName: payload.metadata?.workflowName || 'Tarea',
-            hoursUntilDue: payload.metadata?.hoursUntilDue || 1,
-            reminderType: payload.metadata?.reminderType || '1h',
-            assignmentUrl: payload.actionUrl || '#',
-          });
-          break;
+      case 'workflow_due_soon':
+        await sendWorkflowReminderEmail(userData.email, {
+          userName: userData.name || 'Usuario',
+          workflowName: (payload.metadata?.workflowName as string) || 'Tarea',
+          hoursUntilDue: (payload.metadata?.hoursUntilDue as number) || 1,
+          reminderType: (payload.metadata?.reminderType as '24h' | '1h' | '30min') || '1h',
+          assignmentUrl: payload.actionUrl || '#',
+        });
+        break;
 
-        case 'workflow_overdue':
-          await sendWorkflowOverdueEmail(userData.email, {
-            userName: userData.name || 'Usuario',
-            workflowName: payload.metadata?.workflowName || 'Tarea',
-            overdueTime: payload.metadata?.overdueTime || 'hace poco',
-            assignmentUrl: payload.actionUrl || '#',
-          });
-          break;
+      case 'workflow_overdue':
+        await sendWorkflowOverdueEmail(userData.email, {
+          userName: userData.name || 'Usuario',
+          workflowName: (payload.metadata?.workflowName as string) || 'Tarea',
+          overdueTime: (payload.metadata?.overdueTime as string) || 'hace poco',
+          assignmentUrl: payload.actionUrl || '#',
+        });
+        break;
 
-        case 'incident':
-          await sendIncidentAlertEmail(userData.email, {
-            userName: userData.name || 'Usuario',
-            incidentTitle: payload.metadata?.incidentTitle || 'Incidente',
-            severity: payload.metadata?.severity || 'WARNING',
-            description: payload.metadata?.description,
-            incidentUrl: payload.actionUrl || '#',
-          });
-          break;
+      case 'incident':
+        await sendIncidentAlertEmail(userData.email, {
+          userName: userData.name || 'Usuario',
+          incidentTitle: (payload.metadata?.incidentTitle as string) || 'Incidente',
+          severity: (payload.metadata?.severity as string) || 'WARNING',
+          description: payload.metadata?.description as string | undefined,
+          incidentUrl: payload.actionUrl || '#',
+        });
+        break;
 
-        case 'stock_alert':
-          await sendStockAlertEmail(userData.email, {
-            userName: userData.name || 'Usuario',
-            itemName: payload.metadata?.itemName || 'Producto',
-            currentStock: payload.metadata?.currentStock || 0,
-            minLevel: payload.metadata?.minLevel || 0,
-            branchName: payload.metadata?.branchName || 'Sucursal',
-            inventoryUrl: payload.actionUrl || '#',
-          });
-          break;
+      case 'stock_alert':
+        await sendStockAlertEmail(userData.email, {
+          userName: userData.name || 'Usuario',
+          itemName: (payload.metadata?.itemName as string) || 'Producto',
+          currentStock: (payload.metadata?.currentStock as number) || 0,
+          minLevel: (payload.metadata?.minLevel as number) || 0,
+          branchName: (payload.metadata?.branchName as string) || 'Sucursal',
+          inventoryUrl: payload.actionUrl || '#',
+        });
+        break;
 
-        case 'shift_reminder':
-          await sendShiftReminderEmail(userData.email, {
-            userName: userData.name || 'Usuario',
-            shiftDate: payload.metadata?.shiftDate || new Date().toLocaleDateString('es-MX'),
-            shiftTime: payload.metadata?.shiftTime || '00:00',
-            branchName: payload.metadata?.branchName || 'Sucursal',
-            scheduleUrl: payload.actionUrl,
-          });
-          break;
+      case 'shift_reminder':
+        await sendShiftReminderEmail(userData.email, {
+          userName: userData.name || 'Usuario',
+          shiftDate: (payload.metadata?.shiftDate as string) || new Date().toLocaleDateString('es-MX'),
+          shiftTime: (payload.metadata?.shiftTime as string) || '00:00',
+          branchName: (payload.metadata?.branchName as string) || 'Sucursal',
+          scheduleUrl: payload.actionUrl,
+        });
+        break;
 
-        case 'document_expiration':
-          await sendDocumentExpirationEmail(userData.email, {
-            userName: userData.name || 'Usuario',
-            documentName: payload.metadata?.documentName || 'Documento',
-            documentType: payload.metadata?.documentType || 'General',
-            expirationDate: payload.metadata?.expirationDate || new Date().toISOString(),
-            daysUntilExpiration: payload.metadata?.daysUntilExpiration || 0,
-            documentsUrl: payload.actionUrl || '#',
-          });
-          break;
+      case 'document_expiration':
+        await sendDocumentExpirationEmail(userData.email, {
+          userName: userData.name || 'Usuario',
+          documentName: (payload.metadata?.documentName as string) || 'Documento',
+          documentType: (payload.metadata?.documentType as string) || 'General',
+          expirationDate: (payload.metadata?.expirationDate as string) || new Date().toISOString(),
+          daysUntilExpiration: (payload.metadata?.daysUntilExpiration as number) || 0,
+          documentsUrl: payload.actionUrl || '#',
+        });
+        break;
 
         default:
           // Fallback to generic template
@@ -403,36 +403,7 @@ export class NotificationDispatcher {
     }
   }
 
-            // Replace template variables
-            const subject = this.replaceTemplateVariables(
-                template.emailSubject,
-                { ...payload.metadata, userName: userData.name }
-            );
-
-            const body = this.replaceTemplateVariables(
-                template.emailBody,
-                { ...payload.metadata, userName: userData.name }
-            );
-
-            // Send via email service (Resend, SendGrid, etc.)
-            // TODO: Implement actual email service call
-            console.log(`[Email] To: ${userData.email}, Subject: ${subject}`);
-
-            // Example with Resend:
-            // const resend = new Resend(process.env.RESEND_API_KEY);
-            // await resend.emails.send({
-            //     from: 'Pulso <notifications@pulso.app>',
-            //     to: userData.email,
-            //     subject,
-            //     html: body
-            // });
-
-        } catch (error) {
-            console.error("Error sending email notification:", error);
-        }
-    }
-
-    /**
+  /**
      * Send in-app notification
      */
     private static async sendInAppNotification(
