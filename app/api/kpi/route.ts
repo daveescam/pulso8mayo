@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { kpis } from "@/lib/db/schema";
+import { kpiDefinitions, kpiHistory, kpiAlerts } from "@/lib/db/schema";
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 
@@ -37,20 +37,20 @@ export async function GET(request: NextRequest) {
 
     // Build query conditions
     const conditions = [
-      eq(kpis.empresaId, session.user.empresaId),
+      eq(kpiDefinitions.companyId, session.user.empresaId),
     ];
 
     if (category) {
-      conditions.push(eq(kpis.category, category as any));
+      conditions.push(eq(kpiDefinitions.category, category as any));
     }
 
     if (activeOnly) {
-      conditions.push(eq(kpis.isActive, true));
+      conditions.push(eq(kpiDefinitions.active, true));
     }
 
-    const results = await db.query.kpis.findMany({
+    const results = await db.query.kpiDefinitions.findMany({
       where: and(...conditions),
-      orderBy: (kpis, { asc }) => [asc(kpis.category), asc(kpis.name)],
+      orderBy: (kpiDefinitions, { asc }) => [asc(kpiDefinitions.category), asc(kpiDefinitions.name)],
     });
 
     return NextResponse.json({ kpis: results });
@@ -81,15 +81,15 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    
+
     // Validate request body
     const validatedData = kpiSchema.parse(body);
 
     // Check for duplicate KPI name within company
-    const existingKpi = await db.query.kpis.findFirst({
+    const existingKpi = await db.query.kpiDefinitions.findFirst({
       where: and(
-        eq(kpis.empresaId, session.user.empresaId),
-        eq(kpis.name, validatedData.name)
+        eq(kpiDefinitions.companyId, session.user.empresaId),
+        eq(kpiDefinitions.name, validatedData.name)
       ),
     });
 
@@ -102,9 +102,9 @@ export async function POST(request: NextRequest) {
 
     // Create the KPI
     const [newKpi] = await db
-      .insert(kpis)
+      .insert(kpiDefinitions)
       .values({
-        empresaId: session.user.empresaId,
+        companyId: session.user.empresaId,
         name: validatedData.name,
         description: validatedData.description,
         formula: validatedData.formula,
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
         frequency: validatedData.frequency,
         unit: validatedData.unit,
         decimalPlaces: parseInt(validatedData.decimalPlaces),
-        isActive: validatedData.isActive,
+        active: validatedData.isActive,
         isSystem: validatedData.isSystem,
         createdBy: session.user.id,
         createdAt: new Date(),
@@ -126,10 +126,10 @@ export async function POST(request: NextRequest) {
       .returning();
 
     return NextResponse.json(
-      { 
-        success: true, 
+      {
+        success: true,
         message: "KPI creado exitosamente",
-        kpi: newKpi 
+        kpi: newKpi
       },
       { status: 201 }
     );
@@ -168,12 +168,12 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    
+
     // Check if KPI exists and belongs to user's company
-    const existingKpi = await db.query.kpis.findFirst({
+    const existingKpi = await db.query.kpiDefinitions.findFirst({
       where: and(
-        eq(kpis.id, kpiId),
-        eq(kpis.empresaId, session.user.empresaId)
+        eq(kpiDefinitions.id, kpiId),
+        eq(kpiDefinitions.companyId, session.user.empresaId)
       ),
     });
 
@@ -194,12 +194,12 @@ export async function PATCH(request: NextRequest) {
 
     // Update the KPI
     const [updatedKpi] = await db
-      .update(kpis)
+      .update(kpiDefinitions)
       .set({
         ...body,
         updatedAt: new Date(),
       })
-      .where(eq(kpis.id, kpiId))
+      .where(eq(kpiDefinitions.id, kpiId))
       .returning();
 
     return NextResponse.json({
@@ -236,10 +236,10 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Check if KPI exists and belongs to user's company
-    const existingKpi = await db.query.kpis.findFirst({
+    const existingKpi = await db.query.kpiDefinitions.findFirst({
       where: and(
-        eq(kpis.id, kpiId),
-        eq(kpis.empresaId, session.user.empresaId)
+        eq(kpiDefinitions.id, kpiId),
+        eq(kpiDefinitions.companyId, session.user.empresaId)
       ),
     });
 
@@ -260,13 +260,13 @@ export async function DELETE(request: NextRequest) {
 
     if (hardDelete && session.user.role === "SUPER_ADMIN") {
       // Hard delete (only SUPER_ADMIN)
-      await db.delete(kpis).where(eq(kpis.id, kpiId));
+      await db.delete(kpiDefinitions).where(eq(kpiDefinitions.id, kpiId));
     } else {
       // Soft delete - deactivate
       await db
-        .update(kpis)
-        .set({ isActive: false, updatedAt: new Date() })
-        .where(eq(kpis.id, kpiId));
+        .update(kpiDefinitions)
+        .set({ active: false, updatedAt: new Date() })
+        .where(eq(kpiDefinitions.id, kpiId));
     }
 
     return NextResponse.json({
