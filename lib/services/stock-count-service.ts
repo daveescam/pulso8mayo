@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { inventoryItems, inventoryBatches, inventoryMovements, workflowTemplates, workflowInstances, workflowInstanceSteps } from "@/lib/db/schema";
 import { eq, and, sql, desc, inArray, isNotNull } from "drizzle-orm";
 import { InventoryService } from "./inventory-service";
+import { templateLibrary } from "@/templates";
 
 export const STOCK_COUNT_TEMPLATE_NAME = "Conteo de Inventario";
 
@@ -15,35 +16,44 @@ export const DEFAULT_CATEGORIES = [
 ];
 
 export class StockCountService {
-    static async getOrCreateTemplate(companyId: string) {
-        const existing = await db.select()
-            .from(workflowTemplates)
-            .where(and(
-                eq(workflowTemplates.companyId, companyId),
-                eq(workflowTemplates.name, STOCK_COUNT_TEMPLATE_NAME),
-                eq(workflowTemplates.active, true)
-            ))
-            .limit(1);
+  static getCategoryName(categoryValue: string): string {
+    const cat = DEFAULT_CATEGORIES.find(c => c.value === categoryValue);
+    return cat?.name || categoryValue;
+  }
 
-        if (existing.length > 0) return existing[0];
+  static async getOrCreateTemplate(companyId: string) {
+    const existing = await db.select()
+      .from(workflowTemplates)
+      .where(and(
+        eq(workflowTemplates.companyId, companyId),
+        eq(workflowTemplates.name, STOCK_COUNT_TEMPLATE_NAME),
+        eq(workflowTemplates.active, true)
+      ))
+      .limit(1);
 
-        const [template] = await db.insert(workflowTemplates).values({
-            companyId,
-            name: STOCK_COUNT_TEMPLATE_NAME,
-            description: " conteo físico de inventario por categoría",
-            category: "INVENTORY",
-            steps: JSON.stringify(DEFAULT_CATEGORIES.map(cat => ({
-                id: `cat-${cat.id}`,
-                type: "multiple_choice",
-                title: "¿Qué área vas a contar?",
-                options: DEFAULT_CATEGORIES.map(c => c.name),
-                required: true,
-            }))),
-            active: true,
-        }).returning();
+    if (existing.length > 0) return existing[0];
 
-        return template;
-    }
+    const staticTemplate = templateLibrary['conteo-inventario-v1'];
+
+    const [template] = await db.insert(workflowTemplates).values({
+      companyId,
+      name: staticTemplate?.title || STOCK_COUNT_TEMPLATE_NAME,
+      description: staticTemplate?.description || "Conteo físico de inventario por categoría",
+      category: staticTemplate?.category || "INVENTORY",
+      steps: staticTemplate
+        ? JSON.stringify(staticTemplate.steps)
+        : JSON.stringify(DEFAULT_CATEGORIES.map(cat => ({
+            id: `cat-${cat.id}`,
+            type: "multiple_choice",
+            title: "¿Qué área vas a contar?",
+            options: DEFAULT_CATEGORIES.map(c => c.name),
+            required: true,
+          }))),
+      active: true,
+    }).returning();
+
+    return template;
+  }
 
     static async getProductsByCategory(companyId: string, categoryValue: string) {
         return db.select({
@@ -91,14 +101,33 @@ export class StockCountService {
         return items;
     }
 
-    static async createStockCountInstance(data: {
-        companyId: string;
-        branchId: string;
-        assigneeId: string;
-        categoryValue: string;
-    }) {
-        const template = await this.getOrCreateTemplate(data.companyId);
-        const products = await this.getProductsWithStock(data.companyId, data.branchId, data.categoryValue);
+  static async getActiveCountForBranch(branchId: string) {
+    const active = await db.select({ id: workflowInstances.id })
+      .from(workflowInstances)
+      .innerJoin(workflowTemplates, sql`${workflowInstances.workflowTemplateId}::text = ${workflowTemplates.id}::text`)
+      .where(and(
+        eq(workflowInstances.branchId, branchId),
+        eq(workflowInstances.status, "IN_PROGRESS"),
+        eq(workflowTemplates.name, STOCK_COUNT_TEMPLATE_NAME),
+      ))
+      .limit(1);
+
+    return active.length > 0 ? active[0] : null;
+  }
+
+  static async createStockCountInstance(data: {
+    companyId: string;
+    branchId: string;
+    assigneeId: string;
+    categoryValue: string;
+  }) {
+    const activeCount = await this.getActiveCountForBranch(data.branchId);
+    if (activeCount) {
+      throw new Error(`Ya existe un conteo activo para esta sucursal. ID: ${activeCount.id}`);
+    }
+
+    const template = await this.getOrCreateTemplate(data.companyId);
+    const products = await this.getProductsWithStock(data.companyId, data.branchId, data.categoryValue);
 
         if (products.length === 0) {
             throw new Error("No products found for selected category");
@@ -189,12 +218,14 @@ export class StockCountService {
             throw new Error("Count not confirmed");
         }
 
-        const results: Array<{
-            itemId: string;
-            systemQuantity: number;
-            physicalQuantity: number;
-            variance: number;
-        }> = [];
+  const results: Array<{
+    itemId: string;
+    systemQuantity: number;
+    physicalQuantity: number;
+    variance: number;
+    variancePercent: number;
+    isAlert: boolean;
+  }> = [];
 
         for (const step of steps) {
             if (step.stepId.startsWith("count-")) {
@@ -217,12 +248,16 @@ export class StockCountService {
                     });
                 }
 
-                results.push({
-                    itemId,
-                    systemQuantity: systemQty,
-                    physicalQuantity: physicalQty,
-                    variance,
-                });
+  const variancePercent = systemQty > 0 ? Math.abs(variance) / systemQty * 100 : (physicalQty > 0 ? 100 : 0);
+
+        results.push({
+          itemId,
+          systemQuantity: systemQty,
+          physicalQuantity: physicalQty,
+          variance,
+          variancePercent: Math.round(variancePercent * 100) / 100,
+          isAlert: variancePercent > 10,
+        });
             }
         }
 
@@ -242,28 +277,101 @@ export class StockCountService {
         return { instanceId, results };
     }
 
-    static async getStockCountHistory(companyId: string, branchId?: string) {
-        const conditions: any[] = [
-            sql`${workflowTemplates.name} = ${STOCK_COUNT_TEMPLATE_NAME}`,
-        ];
+  static async getStockCountHistory(companyId: string, branchId?: string) {
+    const conditions: any[] = [
+      sql`${workflowTemplates.name} = ${STOCK_COUNT_TEMPLATE_NAME}`,
+    ];
 
-        if (branchId) {
-            conditions.push(eq(workflowInstances.branchId, branchId));
-        }
-
-        const history = await db.select({
-            id: workflowInstances.id,
-            branchId: workflowInstances.branchId,
-            status: workflowInstances.status,
-            data: workflowInstances.data,
-            createdAt: workflowInstances.createdAt,
-            completedAt: workflowInstances.completedAt,
-        })
-            .from(workflowInstances)
-            .innerJoin(workflowTemplates, sql`${workflowInstances.workflowTemplateId}::text = ${workflowTemplates.id}::text`)
-            .where(and(...conditions))
-            .orderBy(desc(workflowInstances.completedAt));
-
-        return history;
+    if (branchId) {
+      conditions.push(eq(workflowInstances.branchId, branchId));
     }
+
+    const history = await db.select({
+      id: workflowInstances.id,
+      branchId: workflowInstances.branchId,
+      status: workflowInstances.status,
+      data: workflowInstances.data,
+      createdAt: workflowInstances.createdAt,
+      completedAt: workflowInstances.completedAt,
+    })
+      .from(workflowInstances)
+      .innerJoin(workflowTemplates, sql`${workflowInstances.workflowTemplateId}::text = ${workflowTemplates.id}::text`)
+      .where(and(...conditions))
+      .orderBy(desc(workflowInstances.completedAt));
+
+    return history;
+  }
+
+  static async getStockCountResults(instanceId: string) {
+    const instance = await db.query.workflowInstances.findFirst({
+      where: eq(workflowInstances.id, instanceId),
+    });
+
+    if (!instance) throw new Error("Instance not found");
+
+    const steps = await db.select()
+      .from(workflowInstanceSteps)
+      .where(eq(workflowInstanceSteps.instanceId, instanceId));
+
+    const template = await db.query.workflowTemplates.findFirst({
+      where: eq(workflowTemplates.id, instance.workflowTemplateId),
+    });
+
+    const instanceData = instance.data as Record<string, any> || {};
+    const results = (instanceData.results || []) as Array<{
+      itemId: string;
+      systemQuantity: number;
+      physicalQuantity: number;
+      variance: number;
+      variancePercent?: number;
+      isAlert?: boolean;
+    }>;
+
+    const itemIds = results.map(r => r.itemId).filter(Boolean);
+    const items = itemIds.length > 0 ? await db.select({
+      id: inventoryItems.id,
+      name: inventoryItems.name,
+      sku: inventoryItems.sku,
+      unit: inventoryItems.unit,
+    })
+      .from(inventoryItems)
+      .where(inArray(inventoryItems.id, itemIds)) : [];
+
+    const itemMap = new Map(items.map(i => [i.id, i]));
+
+    const enrichedResults = results.map(r => {
+      const item = itemMap.get(r.itemId);
+      const variancePercent = r.variancePercent ?? (r.systemQuantity > 0 ? Math.round(Math.abs(r.variance) / r.systemQuantity * 10000) / 100 : (r.physicalQuantity > 0 ? 100 : 0));
+      const isAlert = r.isAlert ?? variancePercent > 10;
+
+      return {
+        itemId: r.itemId,
+        itemName: item?.name || r.itemId,
+        sku: item?.sku || "",
+        unit: item?.unit || "",
+        systemQuantity: r.systemQuantity,
+        physicalQuantity: r.physicalQuantity,
+        variance: r.variance,
+        variancePercent,
+        isAlert,
+      };
+    });
+
+    const totalProducts = enrichedResults.length;
+    const alertCount = enrichedResults.filter(r => r.isAlert).length;
+    const totalAdjustments = enrichedResults.filter(r => r.variance !== 0).length;
+
+    return {
+      instanceId: instance.id,
+      status: instance.status,
+      branchId: instance.branchId,
+      category: instanceData.category || "",
+      productCount: instanceData.productCount || totalProducts,
+      completedAt: instance.completedAt,
+      createdAt: instance.createdAt,
+      templateName: template?.name || "",
+      results: enrichedResults,
+      summary: { totalProducts, alertCount, totalAdjustments },
+    };
+  }
 }

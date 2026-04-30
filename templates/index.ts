@@ -37,6 +37,9 @@ import onboardingEmpleadoV2 from './recursos_humanos/onboarding-empleado-v2-enha
 import controlAccesos from './seguridad/control-accesos-v1.json';
 import seguridadLocal from './seguridad/seguridad-local-v1.json';
 
+// Inventario
+import conteoInventarioV1 from './inventory/conteo-inventario-v1.json';
+
 
 const normalizeTemplate = (json: any): Template => {
   return {
@@ -88,6 +91,9 @@ export const templateLibrary: Record<string, Template> = {
   // Seguridad (2)
   'control-accesos-v1': normalizeTemplate(controlAccesos),
   'seguridad-local-v1': normalizeTemplate(seguridadLocal),
+
+  // Inventario (1)
+  'conteo-inventario-v1': normalizeTemplate(conteoInventarioV1),
 };
 
 

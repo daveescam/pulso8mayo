@@ -1,0 +1,41 @@
+{
+  "id": "tpl-conteo-inventario-v1",
+  "nombre": "📦 Conteo de Inventario",
+  "descripcion": "Conteo físico de inventario por categoría con generación automática de ajustes. Los pasos de conteo de productos se generan dinámicamente al iniciar el workflow según la categoría seleccionada.",
+  "tipo": "INVENTORY",
+  "categoria": "INVENTORY",
+  "version": 1,
+  "activo": true,
+  "requiereIA": false,
+  "duracionEstimada": "20-45 min",
+  "cumplimientoNormativo": [],
+  "tags": ["inventario", "conteo", "ajuste", "stock"],
+  "dynamicSteps": true,
+  "pasos": [
+    {
+      "id": "category-select",
+      "type": "SelectField",
+      "title": "¿Qué área vas a contar?",
+      "description": "Selecciona la categoría de productos a contar",
+      "required": true,
+      "options": [
+        "Cocina - Materias Primas",
+        "Cocina - Verduras",
+        "Bebidas",
+        "Limpieza",
+        "Utilería"
+      ]
+    },
+    {
+      "id": "confirm-count",
+      "type": "SelectField",
+      "title": "¿Confirmas que el conteo está correcto?",
+      "description": "Una vez confirmado, se generarán los ajustes automáticamente. Los pasos de conteo de productos se agregan dinámicamente al iniciar el workflow.",
+      "required": true,
+      "options": [
+        { "value": "yes", "label": "Sí, confirmar y generar ajustes" },
+        { "value": "no", "label": "No, revisar conteo" }
+      ]
+    }
+  ]
+}
