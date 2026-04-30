@@ -1,13 +1,8 @@
 "use client";
 
-/**
- * useShiftValidation Hook
- * Provides real-time LFT compliance validation for shifts
- */
-
 import { useState, useCallback, useMemo } from "react";
-import { shiftValidationService } from "@/lib/services";
-import { Shift, LFTViolation, ValidationResult } from "@/lib/types";
+import { Shift, LFTViolation, ValidationResult } from "@/lib/types/shifts";
+import { validateShift as validateShiftAction, validateShifts as validateShiftsAction } from "@/app/actions/shifts";
 
 export interface ValidationState {
   errors: LFTViolation[];
@@ -41,7 +36,7 @@ export function useShiftValidation(): UseShiftValidationReturn {
     async (shift: Shift, existingShifts: Shift[] = []): Promise<ValidationResult> => {
       setValidationState((prev) => ({ ...prev, isValidating: true }));
 
-      const result = shiftValidationService.validateShift(shift, existingShifts);
+      const result = await validateShiftAction(shift, existingShifts);
 
       setValidationState({
         errors: result.errors,
@@ -58,7 +53,7 @@ export function useShiftValidation(): UseShiftValidationReturn {
   const validateShifts = useCallback(async (shifts: Shift[]): Promise<ValidationResult> => {
     setValidationState((prev) => ({ ...prev, isValidating: true }));
 
-    const result = shiftValidationService.validateShifts(shifts);
+    const result = await validateShiftsAction(shifts);
 
     setValidationState({
       errors: result.errors,

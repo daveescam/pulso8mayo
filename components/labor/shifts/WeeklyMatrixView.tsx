@@ -23,13 +23,14 @@ export function WeeklyMatrixView({ branches, roles, employees }: WeeklyMatrixVie
 
   const { shifts, isLoading, createShift, updateShift, deleteShift } = useShifts(filters);
   const {
-    weekDays,
-    weekLabel,
-    isCurrentWeek,
-    goToPreviousWeek,
-    goToNextWeek,
-    goToCurrentWeek,
-    getShiftsForDay,
+  weekDays,
+  weekLabel,
+  isCurrentWeek,
+  goToPreviousWeek,
+  goToNextWeek,
+  goToCurrentWeek,
+  getShiftsForDay,
+  getShiftsForWeek,
   } = useWeeklySchedule();
 
   const weekShifts = getShiftsForWeek(shifts);

@@ -70,13 +70,17 @@ export default async function StockCountPage() {
                                     headers: { "Content-Type": "application/json" },
                                     body: JSON.stringify({ branchId, category }),
                                 });
-                                const result = await res.json();
-                                if (result.instance?.id) {
-                                    redirect(`/dashboard/workflows/${result.instance.id}/execute`);
-                                }
-                                if (result.error) {
-                                    console.error(result.error);
-                                }
+            const result = await res.json();
+            if (result.instance?.id) {
+              redirect(`/dashboard/workflows/${result.instance.id}/execute`);
+            }
+            if (result.error) {
+              const activeIdMatch = result.error.match(/ID:\s*([a-f0-9-]+)/i);
+              if (activeIdMatch) {
+                redirect(`/dashboard/workflows/${activeIdMatch[1]}/execute`);
+              }
+              console.error(result.error);
+            }
                             }}>
                                 <div className="grid gap-4">
                                     <div className="grid gap-2">

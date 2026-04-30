@@ -33,8 +33,8 @@ export class WorkflowExecutionService {
             // Generate dynamic steps
             steps = [
                 {
-                    id: "category-select",
-                    type: "SELECT",
+      id: "category-select",
+      type: "SELECT" as const,
                     title: "¿Qué área vas a contar?",
                     description: "Selecciona la categoría de productos a contar",
                     required: true,
@@ -42,25 +42,25 @@ export class WorkflowExecutionService {
                         options: DEFAULT_CATEGORIES.map(c => ({ value: c.value, label: c.name }))
                     }
                 },
-                ...products.map(p => ({
-                    id: `count-${p.id}`,
-                    type: "NUMBER",
-                    title: `${p.name} (SKU: ${p.sku})`,
-                    description: `Cantidad en sistema: ${p.currentStock || 0} ${p.unit}. Ingresa la cantidad física encontrada:`,
-                    required: true,
-                    unit: p.unit,
-                    config: {
-                        min: 0,
-                        unit: p.unit
-                    },
-                    metadata: {
-                        systemQuantity: p.currentStock || 0,
-                        itemId: p.id
-                    }
-                })),
-                {
-                    id: "confirm-count",
-                    type: "SELECT",
+    ...products.map(p => ({
+      id: `count-${p.id}`,
+      type: "NUMBER" as const,
+      title: `${p.name} (SKU: ${p.sku})`,
+      description: `Cantidad en sistema: ${p.currentStock || 0} ${p.unit}. Ingresa la cantidad física encontrada:`,
+      required: true,
+      unit: p.unit,
+      config: {
+        min: 0,
+        unit: p.unit
+      },
+      metadata: {
+        systemQuantity: p.currentStock || 0,
+        itemId: p.id
+      }
+    })),
+    {
+      id: "confirm-count",
+      type: "SELECT" as const,
                     title: "¿Confirmas que el conteo está correcto?",
                     description: "Una vez confirmado, se generarán los ajustes automáticamente",
                     required: true,
@@ -414,7 +414,7 @@ return {
                 if (template && template.name === STOCK_COUNT_TEMPLATE_NAME) {
                     const confirmStep = allSteps.find(s => s.stepId === "confirm-count");
                     const confirmValue = confirmStep?.value;
-                    const isConfirmed = confirmValue === "yes" || confirmValue === '{"value":"yes"}' || (confirmValue && confirmValue.includes('"yes"'));
+                    const isConfirmed = confirmValue === "yes" || confirmValue === '{"value":"yes"}' || (typeof confirmValue === 'string' && confirmValue.includes('"yes"'));
                     
                     if (isConfirmed) {
                         try {

@@ -156,7 +156,7 @@ export class ShiftTemplateService {
 
     const schedule = SHIFT_TYPE_SCHEDULES[shiftType as keyof typeof SHIFT_TYPE_SCHEDULES];
     if (schedule) {
-      return schedule;
+      return { startTime: schedule.start, endTime: schedule.end };
     }
 
     return { startTime: "09:00", endTime: "17:00" }; // Default

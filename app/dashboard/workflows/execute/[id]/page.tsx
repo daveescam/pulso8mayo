@@ -53,7 +53,14 @@ export default function WorkflowExecutionPage() {
     }
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
+    try {
+      const checkRes = await fetch(`/api/inventory/stock-count/${params.id}`);
+      if (checkRes.ok) {
+        router.push(`/dashboard/inventory/stock-count/${params.id}/results`);
+        return;
+      }
+    } catch {}
     toast.success('Workflow completado exitosamente');
     router.push('/dashboard/workflows');
   };

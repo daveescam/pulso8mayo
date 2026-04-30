@@ -1,4 +1,4 @@
-import { AppSidebar } from "@/components/app-sidebar"
+import { AppSidebarClient } from "@/components/app-sidebar-client"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -55,7 +55,7 @@ export default async function DashboardLayout({
         initialBranches={branches}
       >
         <SidebarProvider>
-          <AppSidebar
+          <AppSidebarClient
             user={{
               name: session.user.name,
               email: session.user.email,

@@ -85,26 +85,27 @@ export class InventoryService {
 
     // --- Transactions (Movements) ---
 
-    static async recordMovement(data: {
-        branchId: string;
-        itemId: string;
-        batchId?: string;
-        type: 'RECEIVING' | 'USAGE' | 'ADJUSTMENT' | 'TRANSFER' | 'WASTE' | 'RETURN';
-        quantityChange: number;
-        reason?: string;
-        performedBy: string;
-    }) {
-        return await db.transaction(async (tx) => {
-            // 1. Record Movement
-            const [movement] = await tx.insert(inventoryMovements).values({
-                branchId: data.branchId,
-                itemId: data.itemId,
-                batchId: data.batchId,
-                type: data.type,
-                quantityChange: data.quantityChange,
-                reason: data.reason,
-                performedBy: data.performedBy,
-            }).returning();
+ static async recordMovement(data: {
+  branchId: string;
+  itemId: string;
+  batchId?: string;
+  type: 'RECEIVING' | 'USAGE' | 'ADJUSTMENT' | 'TRANSFER' | 'WASTE' | 'RETURN';
+  quantityChange: number;
+  reason?: string;
+  performedBy: string;
+  referenceId?: string;
+ }) {
+  return await db.transaction(async (tx) => {
+  const [movement] = await tx.insert(inventoryMovements).values({
+  branchId: data.branchId,
+  itemId: data.itemId,
+  batchId: data.batchId,
+  type: data.type,
+  quantityChange: data.quantityChange,
+  reason: data.reason,
+  performedBy: data.performedBy,
+  referenceId: data.referenceId,
+  }).returning();
 
             // 2. Update Batch if exists
             if (data.batchId) {

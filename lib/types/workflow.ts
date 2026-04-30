@@ -1,12 +1,14 @@
 export type WorkflowStepType = "TEXT" | "NUMBER" | "SELECT" | "PHOTO" | "CHECKBOX" | "DATE" | "INFO" | "SIGNATURE";
 
 export interface WorkflowStep {
-    id: string; // Changed from UniqueIdentifier to string for easier DB storage
-    type: WorkflowStepType;
-    title: string;
-    description?: string;
-    required: boolean;
-    config?: any; // Specific config for each type (e.g. options for select)
+  id: string;
+  type: WorkflowStepType;
+  title: string;
+  description?: string;
+  required: boolean;
+  config?: any;
+  unit?: string;
+  metadata?: Record<string, any>;
 }
 
 export interface WorkflowTemplateData {

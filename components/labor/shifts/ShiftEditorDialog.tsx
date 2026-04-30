@@ -63,7 +63,7 @@ export function ShiftEditorDialog({
         startTime: shift.startTime,
         endTime: shift.endTime,
         notes: shift.notes,
-        status: shift.status,
+        status: (shift.status === "DRAFT" || shift.status === "PUBLISHED") ? shift.status : "DRAFT",
       });
     } else if (selectedDate) {
       setFormData((prev) => ({

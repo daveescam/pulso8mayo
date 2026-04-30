@@ -129,7 +129,7 @@ export function WorkflowStepper({ steps, existingSteps, mode = 'execution', ...p
 }
 
 // 2. Content Component
-function StepperContent({ useStepper, steps, initialStep, token, executionId, existingSteps, mode }: {
+function StepperContent({ useStepper, steps, initialStep, token, executionId, existingSteps, mode, instance }: {
     useStepper: any;
     steps: WorkflowStep[];
     initialStep: string;
@@ -137,6 +137,7 @@ function StepperContent({ useStepper, steps, initialStep, token, executionId, ex
     executionId?: string;
     existingSteps: WorkflowStepExecution[];
     mode: 'execution' | 'preview';
+  instance: WorkflowInstance;
 }) {
     const stepper = useStepper({ initialStep });
 
@@ -422,9 +423,19 @@ function StepperContent({ useStepper, steps, initialStep, token, executionId, ex
             setCheckboxValues({});
             setRemediation({ active: false });
 
-            if (stepper.isLast) {
-                window.location.reload();
-            } else {
+        if (stepper.isLast) {
+          const instanceId = instance?.id;
+          if (instanceId) {
+            try {
+              const checkRes = await fetch(`/api/inventory/stock-count/${instanceId}`);
+              if (checkRes.ok) {
+                window.location.href = `/dashboard/inventory/stock-count/${instanceId}/results`;
+                return;
+              }
+            } catch {}
+          }
+          window.location.reload();
+        } else {
                 stepper.next();
             }
 
@@ -526,7 +537,10 @@ function StepperContent({ useStepper, steps, initialStep, token, executionId, ex
                     )}
 
       {/* ===== SELECT (Radio ≤5, Dropdown >5) ===== */}
-      {currentStepDef.type === 'SELECT' && (
+      {currentStepDef.type === 'SELECT' && currentStepDef.id === 'confirm-count' && (
+        <StockCountConfirmSummary existingSteps={existingSteps} onConfirm={(val: string) => { setValue(val); setHasUnsavedChanges(true); }} value={value} />
+      )}
+      {currentStepDef.type === 'SELECT' && currentStepDef.id !== 'confirm-count' && (
         <div className="space-y-3">
           <Label>Selecciona una opción</Label>
           {((currentStepDef.config?.options as any[]) || []).length <= 5 ? (
@@ -798,6 +812,100 @@ function RemediationTimer({ seconds, onComplete }: { seconds: number, onComplete
             {formatTime(timeLeft)}
         </div>
     );
+}
+
+function StockCountConfirmSummary({ existingSteps, onConfirm, value }: { existingSteps: WorkflowStepExecution[]; onConfirm: (val: string) => void; value: string }) {
+  const countSteps = existingSteps.filter(s => s.stepId.startsWith("count-") && s.value);
+
+  const rows = countSteps.map(s => {
+    let systemQty = 0;
+    let physicalQty = 0;
+    let itemName = s.stepId.replace("count-", "");
+    try {
+      const parsed = typeof s.value === 'string' ? JSON.parse(s.value) : s.value;
+      systemQty = parsed.systemQuantity || 0;
+      physicalQty = parsed.inputValue ? parseInt(String(parsed.inputValue), 10) : 0;
+    } catch {
+      physicalQty = parseInt(String(s.value), 10) || 0;
+    }
+    const variance = physicalQty - systemQty;
+    const variancePercent = systemQty > 0 ? Math.abs(variance) / systemQty * 100 : (physicalQty > 0 ? 100 : 0);
+    const isAlert = variancePercent > 10;
+
+    return { stepId: s.stepId, itemName, systemQty, physicalQty, variance, variancePercent: Math.round(variancePercent), isAlert };
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/50">
+            <tr>
+              <th className="text-left p-2 font-medium">Producto</th>
+              <th className="text-right p-2 font-medium">Sistema</th>
+              <th className="text-right p-2 font-medium">Físico</th>
+              <th className="text-right p-2 font-medium">Diferencia</th>
+              <th className="text-center p-2 font-medium">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(row => (
+              <tr key={row.stepId} className={`border-t ${row.isAlert ? 'bg-red-50 dark:bg-red-950/20' : ''}`}>
+                <td className="p-2">{row.itemName}</td>
+                <td className="text-right p-2">{row.systemQty}</td>
+                <td className="text-right p-2">{row.physicalQty}</td>
+                <td className={`text-right p-2 font-medium ${row.variance > 0 ? 'text-green-600' : row.variance < 0 ? 'text-red-600' : ''}`}>
+                  {row.variance > 0 ? '+' : ''}{row.variance}
+                </td>
+                <td className="text-center p-2">
+                  {row.isAlert ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                      <AlertCircle className="h-3 w-3" /> {row.variancePercent}%
+                    </span>
+                  ) : row.variance === 0 ? (
+                    <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">OK</span>
+                  ) : (
+                    <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">{row.variancePercent}%</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {rows.some(r => r.isAlert) && (
+        <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg flex gap-2 text-red-600 dark:text-red-400 text-sm">
+          <AlertCircle className="h-5 w-5 shrink-0" />
+          <span>Se detectaron varianzas mayores al 10%. Revisa antes de confirmar.</span>
+        </div>
+      )}
+
+      <div className="space-y-2 pt-2">
+        <Label>Confirmación</Label>
+        <div className="grid gap-2">
+          <div
+            className={`flex items-center space-x-2 rounded-lg border p-3 cursor-pointer hover:bg-muted/50 transition-colors ${value === 'yes' ? 'border-primary bg-primary/5' : ''}`}
+            onClick={() => onConfirm('yes')}
+          >
+            <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${value === 'yes' ? 'border-primary' : 'border-muted-foreground'}`}>
+              {value === 'yes' && <div className="h-2 w-2 rounded-full bg-primary" />}
+            </div>
+            <span className="font-medium">Sí, confirmar y generar ajustes</span>
+          </div>
+          <div
+            className={`flex items-center space-x-2 rounded-lg border p-3 cursor-pointer hover:bg-muted/50 transition-colors ${value === 'no' ? 'border-primary bg-primary/5' : ''}`}
+            onClick={() => onConfirm('no')}
+          >
+            <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${value === 'no' ? 'border-primary' : 'border-muted-foreground'}`}>
+              {value === 'no' && <div className="h-2 w-2 rounded-full bg-primary" />}
+            </div>
+            <span>No, revisar conteo</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function CompletionScreen() {
