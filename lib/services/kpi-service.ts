@@ -394,21 +394,26 @@ export class KpiService {
     /**
      * Get active alerts
      */
-    async getActiveAlerts(companyId: string, branchId?: string) {
-        // This would need a join with kpiDefinitions to filter by companyId
-        // For now, return all active alerts
-        const conditions = [eq(kpiAlerts.status, 'ACTIVE')];
-        
-        if (branchId) {
-            conditions.push(eq(kpiAlerts.branchId, branchId));
-        }
+  async getActiveAlerts(companyId: string, branchId?: string) {
+    const isUuid = branchId && branchId !== 'all' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(branchId);
 
-        return await db
-            .select()
-            .from(kpiAlerts)
-            .where(and(...conditions))
-            .orderBy(desc(kpiAlerts.createdAt));
-    }
+    const alerts = await db
+      .select({
+        alert: kpiAlerts,
+      })
+      .from(kpiAlerts)
+      .innerJoin(kpiDefinitions, eq(kpiAlerts.kpiId, kpiDefinitions.id))
+      .where(
+        and(
+          eq(kpiDefinitions.companyId, companyId),
+          eq(kpiAlerts.status, 'ACTIVE'),
+          ...(isUuid ? [eq(kpiAlerts.branchId, branchId)] : [])
+        )
+      )
+      .orderBy(desc(kpiAlerts.createdAt));
+
+    return alerts.map(a => a.alert);
+  }
 
     /**
      * Acknowledge an alert

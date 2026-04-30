@@ -3,6 +3,10 @@ import { z } from "zod";
 import { WorkflowExecutionService } from "@/lib/services/workflow-execution-service";
 import { auth } from "@/lib/auth";
 import { emitWorkflowEvent } from "@/lib/websocket/workflow-handlers";
+import { StockCountService, STOCK_COUNT_TEMPLATE_NAME } from "@/lib/services/stock-count-service";
+import { db } from "@/lib/db";
+import { workflowTemplates, workflowInstances } from "@/lib/db/schema";
+import { eq, sql } from "drizzle-orm";
 
 const updateStepSchema = z.object({
   value: z.any().optional(),
@@ -60,6 +64,18 @@ export async function PATCH(
           completedAt: new Date().toISOString(),
           performedBy: session.user.id,
         });
+
+        // Check if this is a stock count workflow confirmation
+        if (stepId === "confirm-count" && data.value === "yes") {
+          const template = await db.select({ name: workflowTemplates.name })
+            .from(workflowTemplates)
+            .where(sql`${workflowTemplates.id}::text = ${execution.workflowTemplateId}::text`)
+            .limit(1);
+
+          if (template.length > 0 && template[0].name === STOCK_COUNT_TEMPLATE_NAME) {
+            await StockCountService.completeStockCount(id, session.user.id);
+          }
+        }
       }
     }
 

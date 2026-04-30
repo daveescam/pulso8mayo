@@ -8,7 +8,7 @@
 import { db } from '@/lib/db';
 import { users, whatsappSessions, whatsappMessages, notificationPreferences } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { wasenderClient } from './wasender-client';
+import { whatsappClient } from './client-factory';
 import { messageFormatter } from './message-formatter';
 import { sessionManager } from './session-manager';
 import { NotificationDispatcher, NotificationPayload } from '@/lib/services/notification-dispatcher';
@@ -69,7 +69,7 @@ export class WhatsAppNotificationDispatcher {
       if (!phone || !session) return false;
 
       const message = messageFormatter.formatWorkflowAssignment(assignment, userName || 'Usuario');
-      await wasenderClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
+      await whatsappClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
       return true;
     } catch (error) {
       console.error('[WhatsAppNotificationDispatcher] Error sending workflow assignment:', error);
@@ -86,7 +86,7 @@ export class WhatsAppNotificationDispatcher {
       if (!phone || !session) return false;
 
       const message = messageFormatter.formatWorkflowDueSoon(assignment, userName || 'Usuario');
-      await wasenderClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
+      await whatsappClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
       return true;
     } catch (error) {
       console.error('[WhatsAppNotificationDispatcher] Error sending due soon:', error);
@@ -103,7 +103,7 @@ export class WhatsAppNotificationDispatcher {
       if (!phone || !session) return false;
 
       const message = messageFormatter.formatWorkflowOverdue(assignment, userName || 'Usuario');
-      await wasenderClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
+      await whatsappClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
       return true;
     } catch (error) {
       console.error('[WhatsAppNotificationDispatcher] Error sending overdue:', error);
@@ -120,7 +120,7 @@ export class WhatsAppNotificationDispatcher {
       if (!phone || !session) return false;
 
       const message = messageFormatter.formatWorkflowEscalation(assignment, userName || 'Usuario');
-      await wasenderClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
+      await whatsappClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
       return true;
     } catch (error) {
       console.error('[WhatsAppNotificationDispatcher] Error sending escalation:', error);
@@ -137,7 +137,7 @@ export class WhatsAppNotificationDispatcher {
       if (!phone || !session) return false;
 
       const message = messageFormatter.formatWorkflowCompleted(instance, userName || 'Usuario');
-      await wasenderClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
+      await whatsappClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
       return true;
     } catch (error) {
       console.error('[WhatsAppNotificationDispatcher] Error sending completed:', error);
@@ -154,7 +154,7 @@ export class WhatsAppNotificationDispatcher {
             if (!phone || !session) return false;
 
       const message = messageFormatter.formatIncidentDetected(incident, userName || 'Usuario');
-      await wasenderClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
+      await whatsappClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
       return true;
     } catch (error) {
       console.error('[WhatsAppNotificationDispatcher] Error sending incident:', error);
@@ -171,7 +171,7 @@ export class WhatsAppNotificationDispatcher {
       if (!phone || !session) return false;
 
       const message = messageFormatter.formatIncidentEscalated(incident, userName || 'Usuario');
-      await wasenderClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
+      await whatsappClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
       return true;
     } catch (error) {
       console.error('[WhatsAppNotificationDispatcher] Error sending escalation:', error);
@@ -188,7 +188,7 @@ export class WhatsAppNotificationDispatcher {
       if (!phone || !session) return false;
 
       const message = messageFormatter.formatIncidentResolved(incident, userName || 'Usuario');
-      await wasenderClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
+      await whatsappClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
       return true;
     } catch (error) {
       console.error('[WhatsAppNotificationDispatcher] Error sending resolved:', error);
@@ -205,7 +205,7 @@ export class WhatsAppNotificationDispatcher {
       if (!phone || !session) return false;
 
       const message = messageFormatter.formatLowStockAlert(product, userName || 'Usuario');
-      await wasenderClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
+      await whatsappClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
       return true;
     } catch (error) {
       console.error('[WhatsAppNotificationDispatcher] Error sending low stock:', error);
@@ -222,7 +222,7 @@ export class WhatsAppNotificationDispatcher {
       if (!phone || !session) return false;
 
       const message = messageFormatter.formatExpirationAlert(batch, userName || 'Usuario');
-      await wasenderClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
+      await whatsappClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
       return true;
     } catch (error) {
       console.error('[WhatsAppNotificationDispatcher] Error sending expiration:', error);
@@ -239,7 +239,7 @@ export class WhatsAppNotificationDispatcher {
       if (!phone || !session) return false;
 
       const message = messageFormatter.formatOrderReceived(order, userName || 'Usuario');
-      await wasenderClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
+      await whatsappClient.sendMessage({ sessionId: session.sessionId, to: phone, message });
       return true;
     } catch (error) {
       console.error('[WhatsAppNotificationDispatcher] Error sending order received:', error);

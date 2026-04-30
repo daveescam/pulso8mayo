@@ -1,0 +1,33 @@
+# Docker Compose para WAHA (WhatsApp HTTP API)
+# Motor NOWEB: Sin necesidad de Chromium/Chrome
+# Ventajas: Menor consumo de CPU y memoria
+
+version: '3.8'
+
+services:
+  waha:
+    image: devlikeapro/waha:latest
+    container_name: waha-server
+    ports:
+      - "3001:3001"
+    environment:
+      # Motor NOWEB: No requiere navegador (WebSocket directo)
+      - WHATSAPP_DEFAULT_ENGINE=NOWEB
+      # Almacenamiento de mensajes/contactos habilitado
+      - WHATSAPP_STORE_ENABLED=true
+      - WHATSAPP_STORE_FULL_SYNC=false
+      # Configuración de webhook
+      - WEBHOOK_URL=${WAHA_WEBHOOK_URL:-http://host.docker.internal:3000/api/whatsapp/webhook}
+      - WEBHOOK_SECRET=${WAHA_WEBHOOK_SECRET:-}
+      # Eventos a enviar al webhook
+      - WEBHOOK_EVENTS=message,message.ack,session.status
+    volumes:
+      # Persistencia de sesiones y base de datos SQLite
+      - ./.sessions:/app/.sessions
+    restart: unless-stopped
+    networks:
+      - waha-network
+
+networks:
+  waha-network:
+    driver: bridge

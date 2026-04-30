@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { workflowTemplates } from '@/lib/db/schema';
-import { eq, and, or } from 'drizzle-orm';
+import { eq, and, or, desc } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 
@@ -21,10 +21,9 @@ export async function GET(request: NextRequest) {
         let query = db.select()
             .from(workflowTemplates)
             .where(eq(workflowTemplates.companyId, session.user.companyId))
-            .orderBy(workflowTemplates.updatedAt);
+            .orderBy(desc(workflowTemplates.updatedAt));
 
         if (onboarding) {
-            // For onboarding, filter by category only
             query = db.select()
                 .from(workflowTemplates)
                 .where(
@@ -36,7 +35,7 @@ export async function GET(request: NextRequest) {
                         )
                     )
                 )
-                .orderBy(workflowTemplates.updatedAt);
+                .orderBy(desc(workflowTemplates.updatedAt));
         }
 
         const templates = await query;

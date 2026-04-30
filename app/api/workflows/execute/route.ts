@@ -8,6 +8,7 @@ const startExecutionSchema = z.object({
     templateId: z.string(),
     branchId: z.string(),
     sessionId: z.string().optional(),
+    categoryValue: z.string().optional(),
 });
 
 import { headers } from "next/headers";
@@ -24,7 +25,7 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { templateId, branchId, sessionId } = startExecutionSchema.parse(body);
+        const { templateId, branchId, sessionId, categoryValue } = startExecutionSchema.parse(body);
 
         // TODO: Check permissions (user belongs to branch/company)
 
@@ -32,7 +33,8 @@ export async function POST(req: Request) {
       templateId,
       branchId,
       session.user.id,
-      sessionId || null
+      sessionId || null,
+      categoryValue
     );
 
     // Emit real-time event for new workflow execution

@@ -51,19 +51,19 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     try {
         const { id } = await params;
         const body = await request.json();
-        const { action, stepId, response, stepMetadata } = body;
+        const { action, stepId, value, stepMetadata } = body;
 
         if (action === "complete") {
             const result = await StockCountService.completeStockCount(id, session.user.id);
             return NextResponse.json(result);
         }
 
-        if (action === "updateStep" && stepId && response !== undefined) {
+        if (action === "updateStep" && stepId && value !== undefined) {
+            const stepData = stepMetadata ? JSON.stringify(stepMetadata) : undefined;
+            
             await db.update(workflowInstanceSteps)
                 .set({
-                    value: response,
-                    metadata: stepMetadata ? JSON.stringify(stepMetadata) : undefined,
-                    completedAt: new Date(),
+                    value: stepData ? JSON.stringify({ ...JSON.parse(stepData), inputValue: value }) : value,
                 })
                 .where(sql`${workflowInstanceSteps.instanceId} = ${id} AND ${workflowInstanceSteps.stepId} = ${stepId}`);
 

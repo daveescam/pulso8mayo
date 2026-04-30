@@ -27,11 +27,11 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: "User not associated with a company" }, { status: 400 });
         }
 
-        const searchParams = request.nextUrl.searchParams;
-        const branchId = searchParams.get("branchId");
-        const effectiveBranchId = branchId || user.branchId;
+    const searchParams = request.nextUrl.searchParams;
+    const branchId = searchParams.get("branchId");
+    const effectiveBranchId = (branchId && branchId !== "all") ? branchId : (user.branchId || undefined);
 
-        const alerts = await kpiService.getActiveAlerts(user.companyId, effectiveBranchId || undefined);
+    const alerts = await kpiService.getActiveAlerts(user.companyId, effectiveBranchId);
 
         return NextResponse.json({ alerts });
     } catch (error) {

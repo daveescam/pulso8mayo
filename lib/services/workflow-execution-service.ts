@@ -1,11 +1,12 @@
 import { db } from "@/lib/db";
 import { workflowInstances, workflowInstanceSteps, workflowTemplates, users } from "@/lib/db/schema";
 import { WorkflowStep } from "@/lib/types/workflow";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
+import { STOCK_COUNT_TEMPLATE_NAME, DEFAULT_CATEGORIES } from "./stock-count-service";
 
 export class WorkflowExecutionService {
 
-    static async createExecution(templateId: string, branchId: string, assigneeId: string | null = null, sessionId: string | null = null) {
+    static async createExecution(templateId: string, branchId: string, assigneeId: string | null = null, sessionId: string | null = null, categoryValue?: string, companyId?: string) {
         // 1. Get Template
         const template = await db.query.workflowTemplates.findFirst({
             where: eq(workflowTemplates.id, templateId)
@@ -15,7 +16,63 @@ export class WorkflowExecutionService {
             throw new Error("Workflow template not found");
         }
 
-        const steps = template.steps as unknown as WorkflowStep[];
+        let steps = template.steps as unknown as WorkflowStep[];
+
+        // 2. If Stock Count template, generate dynamic product steps
+        if (template.name === STOCK_COUNT_TEMPLATE_NAME) {
+            const category = categoryValue || DEFAULT_CATEGORIES[0].value;
+            
+            // Get products with stock for the category
+            const { StockCountService } = await import("./stock-count-service");
+            
+            // Use provided companyId or get from assignee
+            const cid = companyId || (await db.query.users.findFirst({ where: eq(users.id, assigneeId || "") }))?.companyId || "";
+            
+            const products = await StockCountService.getProductsWithStock(cid, branchId, category);
+
+            // Generate dynamic steps
+            steps = [
+                {
+                    id: "category-select",
+                    type: "SELECT",
+                    title: "¿Qué área vas a contar?",
+                    description: "Selecciona la categoría de productos a contar",
+                    required: true,
+                    config: {
+                        options: DEFAULT_CATEGORIES.map(c => ({ value: c.value, label: c.name }))
+                    }
+                },
+                ...products.map(p => ({
+                    id: `count-${p.id}`,
+                    type: "NUMBER",
+                    title: `${p.name} (SKU: ${p.sku})`,
+                    description: `Cantidad en sistema: ${p.currentStock || 0} ${p.unit}. Ingresa la cantidad física encontrada:`,
+                    required: true,
+                    unit: p.unit,
+                    config: {
+                        min: 0,
+                        unit: p.unit
+                    },
+                    metadata: {
+                        systemQuantity: p.currentStock || 0,
+                        itemId: p.id
+                    }
+                })),
+                {
+                    id: "confirm-count",
+                    type: "SELECT",
+                    title: "¿Confirmas que el conteo está correcto?",
+                    description: "Una vez confirmado, se generarán los ajustes automáticamente",
+                    required: true,
+                    config: {
+                        options: [
+                            { value: "yes", label: "Sí, confirmar y generar ajustes" },
+                            { value: "no", label: "No, revisar conteo" }
+                        ]
+                    }
+                }
+            ];
+        }
 
         return await db.transaction(async (tx) => {
             // 2. Create Instance
@@ -26,7 +83,11 @@ export class WorkflowExecutionService {
                 sessionId: sessionId,
                 status: 'PENDING',
                 currentStepId: steps.length > 0 ? steps[0].id : null,
-                score: 0
+                score: 0,
+                data: template.name === STOCK_COUNT_TEMPLATE_NAME ? { 
+                    category: categoryValue || DEFAULT_CATEGORIES[0].value,
+                    productCount: steps.filter(s => s.id.startsWith("count-")).length
+                } : undefined
             }).returning();
 
             // 3. Create Steps
@@ -36,7 +97,7 @@ export class WorkflowExecutionService {
                         instanceId: instance.id,
                         stepId: step.id,
                         status: 'PENDING',
-                        value: null,
+                        value: step.metadata ? JSON.stringify(step.metadata) : null,
                     }))
                 );
             }
@@ -339,6 +400,34 @@ return {
         const complianceScore = totalCount > 0 ? Math.round((passedCount / totalCount) * 100) : 0;
 
         if (allCompleted) {
+            // Check if this is a stock count workflow and execute completion
+            const instance = await db.query.workflowInstances.findFirst({
+                where: eq(workflowInstances.id, instanceId)
+            });
+            
+            if (instance) {
+                const template = await db.query.workflowTemplates.findFirst({
+                    where: sql`${workflowTemplates.id}::text = ${instance.workflowTemplateId}::text`
+                });
+
+                // If Stock Count and confirmed, execute completion
+                if (template && template.name === STOCK_COUNT_TEMPLATE_NAME) {
+                    const confirmStep = allSteps.find(s => s.stepId === "confirm-count");
+                    const confirmValue = confirmStep?.value;
+                    const isConfirmed = confirmValue === "yes" || confirmValue === '{"value":"yes"}' || (confirmValue && confirmValue.includes('"yes"'));
+                    
+                    if (isConfirmed) {
+                        try {
+                            const { StockCountService } = await import("./stock-count-service");
+                            await StockCountService.completeStockCount(instanceId, instance.assigneeId || "");
+                            console.log("[StockCount] AJUSTE movements generated successfully");
+                        } catch (error) {
+                            console.error("[StockCount] Error generating AJUSTE:", error);
+                        }
+                    }
+                }
+            }
+
             await db.update(workflowInstances)
                 .set({
                     status: 'COMPLETED',

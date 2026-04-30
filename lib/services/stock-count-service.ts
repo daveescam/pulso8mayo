@@ -115,7 +115,7 @@ export class StockCountService {
             },
             ...products.map(p => ({
                 id: `count-${p.id}`,
-                type: "number" as const,
+                type: "NUMBER" as const,
                 title: `${p.name} (SKU: ${p.sku})`,
                 description: `Cantidad en sistema: ${p.currentStock || 0} ${p.unit}. Ingresa la cantidad física encontrada:`,
                 required: true,
@@ -125,9 +125,14 @@ export class StockCountService {
             })),
             {
                 id: "confirm-count",
-                type: "yes_no" as const,
+                type: "SELECT" as const,
                 title: "¿Confirmas que el conteo está correcto?",
                 description: "Una vez confirmado, se generarán los ajustes automáticamente",
+                options: [
+                    { value: "yes", label: "Sí, confirmar y generar ajustes" },
+                    { value: "no", label: "No, revisar conteo" },
+                ],
+                required: true,
             },
         ];
 

@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { whatsappSessions, users, branches, workflowInstances, workflowTemplates } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { WasenderClient } from "@/lib/whatsapp/wasender-client";
+import { whatsappClient, getWhatsAppClient } from "@/lib/whatsapp/client-factory";
 import { NotificationDispatcher } from "./notification-dispatcher";
 
 export interface WorkflowAssignmentNotification {
@@ -38,19 +38,12 @@ export interface ShiftReminderNotification {
 }
 
 export class WhatsAppNotificationService {
-    private static client: WasenderClient | null = null;
-
-    private static getClient(): WasenderClient | null {
-        if (!this.client) {
-            const apiKey = process.env.WASENDER_API_KEY;
-            if (!apiKey) {
-                console.warn("[WhatsApp] API key not configured");
-                return null;
-            }
-            this.client = new WasenderClient(apiKey);
-        }
-        return this.client;
-    }
+  /**
+   * Get WhatsApp client (dynamically loads Wasender or WAHA based on USE_WAHA flag)
+   */
+  private static async getClient() {
+    return await getWhatsAppClient();
+  }
 
     /**
      * Get active WhatsApp session for a branch
@@ -112,37 +105,37 @@ export class WhatsAppNotificationService {
                 return false;
             }
 
-            const client = this.getClient();
-            if (!client) {
-                await NotificationDispatcher.sendNotification({
-                    userId: data.userId,
-                    title: "Nueva Tarea Asignada",
-                    message: `Se te ha asignado: ${data.workflowName}`,
-                    type: "info",
-                    eventType: "workflow_assignment"
-                });
-                return false;
-            }
+const client = await this.getClient();
+    if (!client) {
+      await NotificationDispatcher.sendNotification({
+        userId: data.userId,
+        title: "Nueva Tarea Asignada",
+        message: `Se te ha asignado: ${data.workflowName}`,
+        type: "info",
+        eventType: "workflow_assignment"
+      });
+      return false;
+    }
 
-            // Format due date
-            const dueDateStr = data.dueDate
-                ? new Date(data.dueDate).toLocaleDateString("es-MX", {
-                    day: "numeric",
-                    month: "short",
-                    hour: "2-digit",
-                    minute: "2-digit"
-                })
-                : "Sin fecha límite";
+    // Format due date
+    const dueDateStr = data.dueDate
+      ? new Date(data.dueDate).toLocaleDateString("es-MX", {
+          day: "numeric",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit"
+        })
+      : "Sin fecha límite";
 
-            const message = `📋 *Nueva Tarea Asignada*\n\n` +
-                `Hola ${user.name || "Usuario"},\n\n` +
-                `Se te ha asignado una nueva tarea:\n` +
-                `*${data.workflowName}*\n\n` +
-                `📅 *Fecha límite:* ${dueDateStr}\n\n` +
-                `Por favor, revisa tu dashboard para más detalles.\n\n` +
-                `_Pulso - Business Management Platform_`;
+    const message = `📋 *Nueva Tarea Asignada*\n\n` +
+      `Hola ${user.name || "Usuario"},\n\n` +
+      `Se te ha asignado una nueva tarea:\n` +
+      `*${data.workflowName}*\n\n` +
+      `📅 *Fecha límite:* ${dueDateStr}\n\n` +
+      `Por favor, revisa tu dashboard para más detalles.\n\n` +
+      `_Pulso - Business Management Platform_`;
 
-            const result = await client.sendMessage({
+    const result = await client.sendMessage({
                 sessionId: session.sessionId,
                 to: phone!,
                 message
@@ -193,7 +186,7 @@ export class WhatsAppNotificationService {
                 return false;
             }
 
-            const client = this.getClient();
+            const client = await this.getClient();
             if (!client) {
                 await NotificationDispatcher.sendNotification({
                     userId: data.userId,
@@ -271,7 +264,7 @@ export class WhatsAppNotificationService {
                 return false;
             }
 
-            const client = this.getClient();
+            const client = await this.getClient();
             if (!client) {
                 await NotificationDispatcher.sendNotification({
                     userId: data.userId,
@@ -348,7 +341,7 @@ export class WhatsAppNotificationService {
                 return false;
             }
 
-            const client = this.getClient();
+            const client = await this.getClient();
             if (!client) {
                 await NotificationDispatcher.sendNotification({
                     userId: data.userId,
@@ -435,7 +428,7 @@ export class WhatsAppNotificationService {
                 return false;
             }
 
-            const client = this.getClient();
+            const client = await this.getClient();
             if (!client) {
                 await NotificationDispatcher.sendNotification({
                     userId,
@@ -488,7 +481,7 @@ export class WhatsAppNotificationService {
         branchId?: string
     ): Promise<{ success: number; failed: number }> {
         const session = branchId ? await this.getBranchSession(branchId) : null;
-        const client = this.getClient();
+        const client = await this.getClient();
 
         let success = 0;
         let failed = 0;

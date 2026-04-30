@@ -821,6 +821,10 @@ export const whatsappMessages = pgTable("whatsapp_messages", {
     processed: boolean("processed").default(false),
     processingError: text("processing_error"),
 
+    // Status tracking
+    status: text("status").default('pending'), // 'pending' | 'sent' | 'delivered' | 'read' | 'failed'
+    updatedAt: timestamp("updated_at").defaultNow(),
+
     // Metadata
     externalMessageId: text("external_message_id"), // WasenderAPI message ID
     timestamp: timestamp("timestamp").defaultNow().notNull(),
