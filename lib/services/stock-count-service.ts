@@ -1,0 +1,264 @@
+// lib/services/stock-count-service.ts
+import { db } from "@/lib/db";
+import { inventoryItems, inventoryBatches, inventoryMovements, workflowTemplates, workflowInstances, workflowInstanceSteps } from "@/lib/db/schema";
+import { eq, and, sql, desc, inArray, isNotNull } from "drizzle-orm";
+import { InventoryService } from "./inventory-service";
+
+export const STOCK_COUNT_TEMPLATE_NAME = "Conteo de Inventario";
+
+export const DEFAULT_CATEGORIES = [
+    { id: "cocina-mp", name: "Cocina - Materias Primas", value: "MATERIA_PRIMA" },
+    { id: "cocina-verduras", name: "Cocina - Verduras", value: "VERDURA" },
+    { id: "bebidas", name: "Bebidas", value: "BEBIDA" },
+    { id: "limpieza", name: "Limpieza", value: "LIMPIEZA" },
+    { id: "utensilios", name: "Utilería", value: "UTENSILIO" },
+];
+
+export class StockCountService {
+    static async getOrCreateTemplate(companyId: string) {
+        const existing = await db.select()
+            .from(workflowTemplates)
+            .where(and(
+                eq(workflowTemplates.companyId, companyId),
+                eq(workflowTemplates.name, STOCK_COUNT_TEMPLATE_NAME),
+                eq(workflowTemplates.active, true)
+            ))
+            .limit(1);
+
+        if (existing.length > 0) return existing[0];
+
+        const [template] = await db.insert(workflowTemplates).values({
+            companyId,
+            name: STOCK_COUNT_TEMPLATE_NAME,
+            description: " conteo físico de inventario por categoría",
+            category: "INVENTORY",
+            steps: JSON.stringify(DEFAULT_CATEGORIES.map(cat => ({
+                id: `cat-${cat.id}`,
+                type: "multiple_choice",
+                title: "¿Qué área vas a contar?",
+                options: DEFAULT_CATEGORIES.map(c => c.name),
+                required: true,
+            }))),
+            active: true,
+        }).returning();
+
+        return template;
+    }
+
+    static async getProductsByCategory(companyId: string, categoryValue: string) {
+        return db.select({
+            id: inventoryItems.id,
+            name: inventoryItems.name,
+            sku: inventoryItems.sku,
+            category: inventoryItems.category,
+            unit: inventoryItems.unit,
+        })
+            .from(inventoryItems)
+            .where(and(
+                eq(inventoryItems.companyId, companyId),
+                eq(inventoryItems.category, categoryValue),
+                eq(inventoryItems.active, true)
+            ));
+    }
+
+    static async getProductsWithStock(companyId: string, branchId: string, categoryValue?: string) {
+        const conditions = [
+            eq(inventoryItems.companyId, companyId),
+            eq(inventoryItems.active, true),
+        ];
+        
+        if (categoryValue) {
+            conditions.push(eq(inventoryItems.category, categoryValue));
+        }
+
+        const items = await db.select({
+            id: inventoryItems.id,
+            name: inventoryItems.name,
+            sku: inventoryItems.sku,
+            category: inventoryItems.category,
+            unit: inventoryItems.unit,
+            currentStock: sql<number>`COALESCE((
+                SELECT sum(${inventoryBatches.currentQuantity})
+                FROM ${inventoryBatches}
+                WHERE ${inventoryBatches.itemId} = ${inventoryItems.id}
+                AND ${inventoryBatches.branchId} = ${branchId}
+                AND ${inventoryBatches.status} = 'AVAILABLE'
+            ), 0)`,
+        })
+            .from(inventoryItems)
+            .where(and(...conditions));
+
+        return items;
+    }
+
+    static async createStockCountInstance(data: {
+        companyId: string;
+        branchId: string;
+        assigneeId: string;
+        categoryValue: string;
+    }) {
+        const template = await this.getOrCreateTemplate(data.companyId);
+        const products = await this.getProductsWithStock(data.companyId, data.branchId, data.categoryValue);
+
+        if (products.length === 0) {
+            throw new Error("No products found for selected category");
+        }
+
+        const steps = [
+            {
+                id: "category-select",
+                type: "multiple_choice" as const,
+                title: "¿Qué área vas a contar?",
+                options: DEFAULT_CATEGORIES.map(c => c.name),
+                required: true,
+                value: data.categoryValue,
+            },
+            ...products.map(p => ({
+                id: `count-${p.id}`,
+                type: "number" as const,
+                title: `${p.name} (SKU: ${p.sku})`,
+                description: `Cantidad en sistema: ${p.currentStock || 0} ${p.unit}. Ingresa la cantidad física encontrada:`,
+                required: true,
+                unit: p.unit,
+                systemQuantity: p.currentStock || 0,
+                itemId: p.id,
+            })),
+            {
+                id: "confirm-count",
+                type: "yes_no" as const,
+                title: "¿Confirmas que el conteo está correcto?",
+                description: "Una vez confirmado, se generarán los ajustes automáticamente",
+            },
+        ];
+
+        const [instance] = await db.insert(workflowInstances).values({
+            workflowTemplateId: template.id,
+            branchId: data.branchId,
+            assigneeId: data.assigneeId,
+            status: "IN_PROGRESS",
+            startedAt: new Date(),
+            data: {
+                category: data.categoryValue,
+                productCount: products.length,
+                startTime: new Date().toISOString(),
+            },
+        }).returning();
+
+        for (const step of steps) {
+            const stepData = 'systemQuantity' in step 
+                ? JSON.stringify({ 
+                    systemQuantity: (step as { systemQuantity: number }).systemQuantity, 
+                    itemId: (step as { itemId: string }).itemId,
+                    inputValue: 'value' in step ? (step as { value: string }).value ?? null : null 
+                })
+                : ('value' in step ? (step as { value: string }).value ?? null : null);
+            
+            await db.insert(workflowInstanceSteps).values({
+                instanceId: instance.id,
+                stepId: step.id,
+                status: "PENDING",
+                value: stepData,
+            });
+        }
+
+        return { instance, template, products, steps };
+    }
+
+    static async completeStockCount(instanceId: string, userId: string) {
+        const instance = await db.query.workflowInstances.findFirst({
+            where: eq(workflowInstances.id, instanceId),
+        });
+
+        if (!instance) throw new Error("Instance not found");
+        if (instance.status === "COMPLETED") throw new Error("Already completed");
+
+        const steps = await db.select()
+            .from(workflowInstanceSteps)
+            .where(eq(workflowInstanceSteps.instanceId, instanceId));
+
+        const instanceData = instance.data as Record<string, unknown> || {};
+
+        const confirmStep = steps.find(s => s.stepId === "confirm-count");
+        const confirmValue = confirmStep?.value as string | null;
+        if (!confirmValue || confirmValue !== "yes") {
+            throw new Error("Count not confirmed");
+        }
+
+        const results: Array<{
+            itemId: string;
+            systemQuantity: number;
+            physicalQuantity: number;
+            variance: number;
+        }> = [];
+
+        for (const step of steps) {
+            if (step.stepId.startsWith("count-")) {
+                const stepValue = step.value as string | null;
+                const stepData = stepValue ? JSON.parse(stepValue) : {};
+                const itemId = stepData.itemId as string;
+                const systemQty = stepData.systemQuantity as number || 0;
+                const physicalQty = stepData.inputValue ? parseInt(String(stepData.inputValue), 10) : 0;
+                const variance = physicalQty - systemQty;
+
+                if (variance !== 0) {
+                    await InventoryService.recordAdjustment({
+                        branchId: instance.branchId,
+                        itemId,
+                        quantityChange: variance,
+                        reason: `Stock count variance: sistema=${systemQty}, físico=${physicalQty}`,
+                        performedBy: userId,
+                        referenceId: instanceId,
+                        metadata: { systemQuantity: systemQty, physicalQuantity: physicalQty },
+                    });
+                }
+
+                results.push({
+                    itemId,
+                    systemQuantity: systemQty,
+                    physicalQuantity: physicalQty,
+                    variance,
+                });
+            }
+        }
+
+        await db.update(workflowInstances)
+            .set({
+                status: "COMPLETED",
+                completedAt: new Date(),
+                score: 100,
+                data: {
+                    ...instanceData,
+                    results,
+                    completedAt: new Date().toISOString(),
+                },
+            })
+            .where(eq(workflowInstances.id, instanceId));
+
+        return { instanceId, results };
+    }
+
+    static async getStockCountHistory(companyId: string, branchId?: string) {
+        const conditions: any[] = [
+            sql`${workflowTemplates.name} = ${STOCK_COUNT_TEMPLATE_NAME}`,
+        ];
+
+        if (branchId) {
+            conditions.push(eq(workflowInstances.branchId, branchId));
+        }
+
+        const history = await db.select({
+            id: workflowInstances.id,
+            branchId: workflowInstances.branchId,
+            status: workflowInstances.status,
+            data: workflowInstances.data,
+            createdAt: workflowInstances.createdAt,
+            completedAt: workflowInstances.completedAt,
+        })
+            .from(workflowInstances)
+            .innerJoin(workflowTemplates, sql`${workflowInstances.workflowTemplateId}::text = ${workflowTemplates.id}::text`)
+            .where(and(...conditions))
+            .orderBy(desc(workflowInstances.completedAt));
+
+        return history;
+    }
+}

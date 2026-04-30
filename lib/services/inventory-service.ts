@@ -426,11 +426,11 @@ static async shipTransfer(transferId: string, shippedBy: string) {
                     .where(eq(inventoryTransferItems.id, item.id));
             }
 
-            return updatedTransfer;
-        });
-    }
+    return updatedTransfer;
+  });
+}
 
-static async receiveTransfer(transferId: string, receivedBy: string, items?: Array<{ id: string; receivedQuantity: number }>) {
+  static async receiveTransfer(transferId: string, receivedBy: string, items?: Array<{ id: string; receivedQuantity: number }>) {
   return await db.transaction(async (tx) => {
     // Get transfer
     const [transfer] = await tx.select()
@@ -510,5 +510,21 @@ static async receiveTransfer(transferId: string, receivedBy: string, items?: Arr
 
     return updatedTransfer;
   });
-}
+  }
+
+  static async recordAdjustment(data: {
+    branchId: string;
+    itemId: string;
+    batchId?: string;
+    quantityChange: number;
+    reason?: string;
+    performedBy: string;
+    referenceId?: string;
+    metadata?: { systemQuantity?: number; physicalQuantity?: number };
+  }) {
+    return await this.recordMovement({
+      ...data,
+      type: 'ADJUSTMENT',
+    });
+  }
 }
