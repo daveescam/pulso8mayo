@@ -1,5 +1,11 @@
 "use client"
 
+/**
+ * @deprecated This component is deprecated. Use ShiftSchedulerContainer from @/components/labor/shifts instead.
+ * Migration: Template functionality is now integrated into the new shift scheduler.
+ * This component will be removed in a future version.
+ */
+
 import * as React from "react"
 import { format, addDays, startOfWeek, eachDayOfInterval, parseISO } from "date-fns"
 import { es } from "date-fns/locale"
