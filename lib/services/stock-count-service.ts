@@ -133,37 +133,62 @@ export class StockCountService {
             throw new Error("No products found for selected category");
         }
 
-        const steps = [
-            {
-                id: "category-select",
-                type: "multiple_choice" as const,
-                title: "¿Qué área vas a contar?",
-                options: DEFAULT_CATEGORIES.map(c => c.name),
-                required: true,
-                value: data.categoryValue,
-            },
-            ...products.map(p => ({
-                id: `count-${p.id}`,
-                type: "NUMBER" as const,
-                title: `${p.name} (SKU: ${p.sku})`,
-                description: `Cantidad en sistema: ${p.currentStock || 0} ${p.unit}. Ingresa la cantidad física encontrada:`,
-                required: true,
-                unit: p.unit,
-                systemQuantity: p.currentStock || 0,
-                itemId: p.id,
-            })),
-            {
-                id: "confirm-count",
-                type: "SELECT" as const,
-                title: "¿Confirmas que el conteo está correcto?",
-                description: "Una vez confirmado, se generarán los ajustes automáticamente",
-                options: [
-                    { value: "yes", label: "Sí, confirmar y generar ajustes" },
-                    { value: "no", label: "No, revisar conteo" },
-                ],
-                required: true,
-            },
-        ];
+        const templateSteps = typeof template.steps === 'string' ? JSON.parse(template.steps) : template.steps;
+        const confirmStepIndex = templateSteps.findIndex((s: any) => s.id === "confirm-count");
+
+        const dynamicProductSteps = products.map(p => ({
+            id: `count-${p.id}`,
+            type: "NUMBER" as const,
+            title: `${p.name} (SKU: ${p.sku})`,
+            description: `Cantidad en sistema: ${p.currentStock || 0} ${p.unit}. Ingresa la cantidad física encontrada:`,
+            required: true,
+            unit: p.unit,
+            systemQuantity: p.currentStock || 0,
+            itemId: p.id,
+        }));
+
+        let steps: any[] = [];
+        
+        if (confirmStepIndex >= 0) {
+            // Pre-fill the category-select value if present so the user doesn't have to select it again
+            const baseSteps = templateSteps.map((s: any) => {
+                if (s.id === "category-select") {
+                    return { ...s, value: data.categoryValue };
+                }
+                return s;
+            });
+            
+            // Inject dynamic product steps right before the confirm step
+            steps = [
+                ...baseSteps.slice(0, confirmStepIndex),
+                ...dynamicProductSteps,
+                ...baseSteps.slice(confirmStepIndex)
+            ];
+        } else {
+            // Fallback in case the template is malformed
+            steps = [
+                {
+                    id: "category-select",
+                    type: "multiple_choice" as const,
+                    title: "¿Qué área vas a contar?",
+                    options: DEFAULT_CATEGORIES.map(c => c.name),
+                    required: true,
+                    value: data.categoryValue,
+                },
+                ...dynamicProductSteps,
+                {
+                    id: "confirm-count",
+                    type: "SELECT" as const,
+                    title: "¿Confirmas que el conteo está correcto?",
+                    description: "Una vez confirmado, se generarán los ajustes automáticamente",
+                    options: [
+                        { value: "yes", label: "Sí, confirmar y generar ajustes" },
+                        { value: "no", label: "No, revisar conteo" },
+                    ],
+                    required: true,
+                },
+            ];
+        }
 
         const [instance] = await db.insert(workflowInstances).values({
             workflowTemplateId: template.id,

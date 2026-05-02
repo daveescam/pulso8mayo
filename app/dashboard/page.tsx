@@ -9,12 +9,25 @@ import { eq, desc, and, sql } from "drizzle-orm";
 import { RecentWorkflowsTable } from "@/components/dashboard/recent-workflows-table";
 import { ComplianceReportGenerator } from "@/components/compliance/report-generator";
 import { getTranslations } from "next-intl/server";
+import { KpiSummaryCards } from "@/components/dashboard/kpi-summary-cards"
+import { ExecutiveSummary } from "@/components/dashboard/executive-summary"
 
-export default async function Page() {
+export default async function Page({ searchParams }: { searchParams: Promise<{ branch?: string; startDate?: string; endDate?: string }> }) {
+  const params = await searchParams;
+  const selectedBranch = params.branch;
+  const startDate = params.startDate;
+  const endDate = params.endDate;
+
   const t = await getTranslations("dashboard.executive");
   const session = await auth.api.getSession({
     headers: await headers()
   });
+
+  const workflowConditions = [eq(workflowTemplates.companyId, session?.user?.companyId ?? '')];
+  if (selectedBranch && selectedBranch !== 'all') {
+    // @ts-ignore
+    workflowConditions.push(eq(workflowInstances.branchId, selectedBranch));
+  }
 
   const recentWorkflows = session?.user?.companyId ? await db.select({
     id: workflowInstances.id,
@@ -27,7 +40,7 @@ export default async function Page() {
     .from(workflowInstances)
     .leftJoin(workflowTemplates, eq(workflowInstances.workflowTemplateId, sql`cast(${workflowTemplates.id} as text)`))
     .leftJoin(users, eq(workflowInstances.assigneeId, users.id))
-    .where(eq(workflowTemplates.companyId, session.user.companyId))
+    .where(and(...workflowConditions))
     .orderBy(desc(workflowInstances.updatedAt))
     .limit(10) : [];
 
@@ -92,10 +105,18 @@ export default async function Page() {
               </div>
             )}
 
-            {/* KPI Cards section */}
-            <ComplianceMetrics />
-            
-            {/* Charts Section */}
+      {/* KPI Cards section */}
+      <ComplianceMetrics />
+
+      {/* Executive Summary: Alerts + Branch Overview + Cost Trends */}
+      <ExecutiveSummary />
+
+      {/* KPI Summary Cards */}
+      <div className="px-4 lg:px-6">
+        <KpiSummaryCards />
+      </div>
+
+      {/* Charts Section */}
             <div className="px-4 lg:px-6">
                 <DashboardCharts />
             </div>

@@ -37,12 +37,19 @@ export const ROUTE_PERMISSIONS: RoutePermission[] = [
         description: 'User management and team settings'
     },
 
-    // Analytics - Admin, Gerente, ReadOnly
-    {
-        path: '/dashboard/analytics',
-        allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'GERENTE', 'SUPERVISOR', 'READONLY'],
-        description: 'Analytics and reports'
-    },
+  // Analytics - Admin, Gerente, Supervisor, ReadOnly
+  {
+    path: '/dashboard/analytics',
+    allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'GERENTE', 'SUPERVISOR', 'READONLY'],
+    description: 'Analytics and reports'
+  },
+
+  // Branch Performance - Admin, Gerente, Supervisor, ReadOnly
+  {
+    path: '/dashboard/branches',
+    allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'GERENTE', 'SUPERVISOR', 'READONLY'],
+    description: 'Branch performance comparison and ranking'
+  },
 
     // Workflow Builder - Admin and Gerente
     {

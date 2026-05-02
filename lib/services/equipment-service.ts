@@ -153,12 +153,48 @@ export class EquipmentService {
 
   /**
    * Create a new branch equipment
+   * Auto-creates/updates catalog entry and links via catalogId
    */
   async createEquipment(data: CreateEquipmentInput, createdBy: string) {
+    let catalogId = data.catalogId;
+
+    if (!catalogId) {
+      const existingCatalog = await db
+        .select({ id: equipmentCatalog.id })
+        .from(equipmentCatalog)
+        .where(and(
+          eq(equipmentCatalog.companyId, data.companyId),
+          eq(equipmentCatalog.name, data.name),
+          eq(equipmentCatalog.type, data.type as any),
+        ))
+        .limit(1);
+
+      if (existingCatalog.length > 0) {
+        catalogId = existingCatalog[0].id;
+      } else {
+        const [catalogEntry] = await db
+          .insert(equipmentCatalog)
+          .values({
+            companyId: data.companyId,
+            name: data.name,
+            type: data.type as any,
+            brand: data.brand || null,
+            model: data.model || null,
+            specifications: data.specifications || {},
+            defaultMaintenanceFrequency: data.maintenanceFrequency || null,
+            defaultMaintenanceTasks: [],
+            createdBy,
+          } as any)
+          .returning();
+        catalogId = catalogEntry.id;
+      }
+    }
+
     const [equipment] = await db
       .insert(branchEquipments)
       .values({
         ...data,
+        catalogId,
         createdBy,
       } as any)
       .returning();

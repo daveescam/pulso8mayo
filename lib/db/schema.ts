@@ -98,6 +98,14 @@ export const workflowTemplates = pgTable("workflow_templates", {
 
   active: boolean("active").default(true),
 
+  // Advanced Configuration (per TEMPLATE_SCHEMA.md)
+  version: integer("version").default(1),
+  duracionEstimada: text("duracion_estimada"),
+  tags: jsonb("tags").default(sql`'[]'::jsonb`),
+  aiConfig: jsonb("ai_config"),
+  complianceConfig: jsonb("compliance_config"),
+  completionActions: jsonb("completion_actions").default(sql`'[]'::jsonb`),
+
   // Reminder configuration - intervals in minutes before due date
   // Default: [1440, 60, 30] = 24h, 1h, 30min
   reminderIntervals: jsonb("reminder_intervals").default(sql`'[1440, 60, 30]'::jsonb`),
@@ -595,6 +603,42 @@ export const inventoryMovements = pgTable("inventory_movements", {
     referenceId: text("reference_id"), // Could be workflow instance ID or order ID
     performedBy: text("performed_by"), // User ID
     timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
+// Temperature Monitoring Logs
+export const temperatureLogs = pgTable("temperature_logs", {
+  id: uuid("id").default(sql`gen_random_uuid()`).primaryKey().notNull(),
+  branchId: uuid("branch_id").notNull(),
+  equipmentId: uuid("equipment_id"),
+  workflowInstanceId: uuid("workflow_instance_id"),
+  readingValue: integer("reading_value").notNull(),
+  unit: text("unit").default('C'),
+  location: text("location"),
+  isCompliant: boolean("is_compliant").default(true),
+  minThreshold: integer("min_threshold"),
+  maxThreshold: integer("max_threshold"),
+  capturedBy: uuid("captured_by"),
+  captureMethod: text("capture_method").default('MANUAL'),
+  photoUrl: text("photo_url"),
+  notes: text("notes"),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Cost Tracking Records
+export const costRecords = pgTable("cost_records", {
+  id: uuid("id").default(sql`gen_random_uuid()`).primaryKey().notNull(),
+  companyId: uuid("company_id").notNull(),
+  branchId: uuid("branch_id"),
+  category: text("category").notNull(),
+  amount: integer("amount").notNull(),
+  description: text("description"),
+  referenceId: text("reference_id"),
+  recordedBy: uuid("recorded_by"),
+  periodStart: timestamp("period_start"),
+  periodEnd: timestamp("period_end"),
+  recordedAt: timestamp("recorded_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Inventory Transfers between branches

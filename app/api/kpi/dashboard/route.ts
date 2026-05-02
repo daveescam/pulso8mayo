@@ -13,9 +13,10 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { searchParams } = new URL(req.url);
-        const branchId = searchParams.get("branchId");
-        const periodParam = searchParams.get("period") || "7d"; // 24h, 7d, 30d, 90d
+    const { searchParams } = new URL(req.url);
+  const branchIdParam = searchParams.get("branchId");
+  const branchId = branchIdParam && branchIdParam !== "all" ? branchIdParam : undefined;
+  const periodParam = searchParams.get("period") || "7d";
 
         let daysToSubtract = 7;
         if (periodParam === "24h") daysToSubtract = 1;
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest) {
         const startDate = startOfDay(subDays(new Date(), daysToSubtract));
 
         // 1. Get KPIs definitions for the company
-        const kpis = await kpiService.getKpis(session.user.companyId, branchId === "all" ? undefined : branchId || undefined);
+        const kpis = await kpiService.getKpis(session.user.companyId, branchId);
 
         // 2. Fetch history for each KPI within the period
         const dashboardStats = await Promise.all(kpis.map(async (kpi) => {
@@ -57,7 +58,7 @@ export async function GET(req: NextRequest) {
                 }
             } else {
                 // If no history exists yet, we could potentially call calculateKpiValue
-                const calculated = await kpiService.calculateKpiValue(kpi, branchId || undefined);
+                const calculated = await kpiService.calculateKpiValue(kpi, branchId);
                 currentValue = calculated.value;
                 status = calculated.status;
 

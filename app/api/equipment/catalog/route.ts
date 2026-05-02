@@ -1,11 +1,20 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { equipmentCatalog } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { requireTenant, requireAuth } from "@/lib/tenant-context";
 
 export async function GET() {
   try {
+    const tenant = await requireTenant();
+
+    if (!tenant.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const catalog = await db.query.equipmentCatalog.findMany({
+      where: (catalog, { eq, and }) => and(
+        eq(catalog.companyId, tenant.id!),
+      ),
       orderBy: (catalog, { asc }) => [asc(catalog.name)],
     });
 
@@ -18,12 +27,19 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { name, type, brand, model, companyId, createdBy, specifications, defaultMaintenanceFrequency, defaultMaintenanceTasks } = body;
+    const { user } = await requireAuth();
+    const tenant = await requireTenant();
 
-    if (!name || !type || !companyId || !createdBy) {
+    if (!tenant.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { name, type, brand, model, specifications, defaultMaintenanceFrequency, defaultMaintenanceTasks, serialNumberFormat, manualUrl, technicalSpecsUrl, isActive } = body;
+
+    if (!name || !type) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Missing required fields: name, type" },
         { status: 400 }
       );
     }
@@ -33,11 +49,15 @@ export async function POST(request: Request) {
       type,
       brand,
       model,
-      companyId,
-      createdBy,
+      companyId: tenant.id,
+      createdBy: user.id,
       specifications: specifications || {},
       defaultMaintenanceFrequency,
       defaultMaintenanceTasks: defaultMaintenanceTasks || [],
+      serialNumberFormat,
+      manualUrl,
+      technicalSpecsUrl,
+      isActive: isActive !== undefined ? isActive : true,
     }).returning();
 
     return NextResponse.json(newCatalogItem[0], { status: 201 });

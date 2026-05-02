@@ -6,12 +6,15 @@ import { OverviewTab } from "./overview-tab";
 import { ScheduledTab } from "./scheduled-tab";
 import { TemplatesTab } from "./templates-tab";
 import { RecentWorkflowsTable } from "../recent-workflows-table";
+import { TemperatureMonitor } from "./temperature-monitor";
 
 interface OperationsTabsProps {
-    recentWorkflows: any[];
+  recentWorkflows: any[];
+  period?: string;
+  branchId?: string;
 }
 
-export function OperationsTabs({ recentWorkflows }: OperationsTabsProps) {
+export function OperationsTabs({ recentWorkflows, period = "30d", branchId }: OperationsTabsProps) {
     return (
         <Tabs defaultValue="overview" className="space-y-4">
             <TabsList>
@@ -20,9 +23,10 @@ export function OperationsTabs({ recentWorkflows }: OperationsTabsProps) {
                 <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
                 <TabsTrigger value="templates">Templates</TabsTrigger>
             </TabsList>
-            <TabsContent value="overview" className="space-y-4">
-                <OverviewTab />
-            </TabsContent>
+    <TabsContent value="overview" className="space-y-4">
+      <OverviewTab />
+      <TemperatureMonitor period={period} branchId={branchId} />
+    </TabsContent>
             <TabsContent value="activity" className="space-y-4">
                 <Card>
                     <CardHeader>

@@ -291,25 +291,22 @@ export class KpiService {
      * Calculate current KPI value based on formula
      * This is a simplified implementation - in production, you'd parse and execute the formula
      */
-    async calculateKpiValue(kpi: KpiDefinitionRow, branchId?: string): Promise<KpiValueResult> {
-        // This is a placeholder - actual implementation would parse the formula
-        // and execute it against the database
-        
-        // For now, return a mock calculation
-        const mockValue = Math.random() * 100;
-        const status = this.determineStatus(mockValue, kpi);
-        const targetAchieved = this.checkTargetAchieved(mockValue, kpi);
+  async calculateKpiValue(kpi: KpiDefinitionRow, branchId?: string): Promise<KpiValueResult> {
+    const { kpiCalculator } = await import("./kpi-calculator");
+    const value = await kpiCalculator.calculate(kpi.formula, kpi.companyId, branchId);
+    const status = this.determineStatus(value, kpi);
+    const targetAchieved = this.checkTargetAchieved(value, kpi);
 
-        return {
-            kpiId: kpi.id,
-            value: mockValue,
-            formattedValue: this.formatValue(mockValue, kpi.metricType, kpi.unit, kpi.decimalPlaces),
-            status,
-            target: kpi.target || undefined,
-            targetAchieved,
-            metadata: {},
-        };
-    }
+    return {
+      kpiId: kpi.id,
+      value,
+      formattedValue: this.formatValue(value, kpi.metricType, kpi.unit, kpi.decimalPlaces),
+      status,
+      target: kpi.target || undefined,
+      targetAchieved,
+      metadata: { formula: kpi.formula, computedAt: new Date().toISOString() },
+    };
+  }
 
     /**
      * Determine status based on thresholds

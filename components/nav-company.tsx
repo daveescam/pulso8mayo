@@ -27,7 +27,9 @@ import { toast } from "sonner"
 export function NavCompany({
   company: propCompany = { name: "", plan: "" },
   branches: propBranches = [],
-  currentBranchId: initialBranchId
+  currentBranchId: initialBranchId,
+  userRole,
+  userBranchId,
 }: {
   company: {
     name: string
@@ -38,6 +40,8 @@ export function NavCompany({
     name: string
   }[],
   currentBranchId?: string
+  userRole?: string
+  userBranchId?: string
 }) {
   const { isMobile } = useSidebar()
   const router = useRouter()
@@ -47,15 +51,22 @@ export function NavCompany({
   const tSuccess = useTranslations("success")
   const tErrors = useTranslations("errors")
 
+  const isBranchScoped = userRole === "GERENTE" || userRole === "SUPERVISOR"
+  const displayBranches = isBranchScoped && userBranchId
+    ? propBranches.filter(b => b.id === userBranchId)
+    : propBranches
+
   const company = propCompany.name ? propCompany : { name: t("selectBranch"), plan: "" }
 
   // Initialize branches in context
   React.useEffect(() => {
-    setBranches(propBranches);
-  }, [propBranches, setBranches]);
+    setBranches(displayBranches);
+  }, [displayBranches, setBranches]);
 
   // Use context branch ID or fallback to prop
-  const activeBranchId = selectedBranchId || initialBranchId;
+  const activeBranchId = isBranchScoped && userBranchId
+    ? userBranchId
+    : (selectedBranchId || initialBranchId);
 
   const handleBranchSwitch = async (branchId: string) => {
     if (branchId === activeBranchId) return;
@@ -73,17 +84,17 @@ export function NavCompany({
     });
   }
 
-  const activeBranch = propBranches.find(b => b.id === activeBranchId) || propBranches[0];
+  const activeBranch = displayBranches.find(b => b.id === activeBranchId) || displayBranches[0];
 
     return (
         <SidebarMenu>
             <SidebarMenuItem>
                 <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <SidebarMenuButton
-                            size="lg"
-                            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                        >
+        <DropdownMenuTrigger asChild disabled={isBranchScoped}>
+          <SidebarMenuButton
+            size="lg"
+            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+          >
                             <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                                 <Building2 className="size-4" />
                             </div>
@@ -103,7 +114,7 @@ export function NavCompany({
                         <DropdownMenuLabel className="text-xs text-muted-foreground">
                             Sucursales
                         </DropdownMenuLabel>
-                        {propBranches.map((branch) => (
+                        {displayBranches.map((branch) => (
             <DropdownMenuItem
               key={branch.id}
               onClick={() => handleBranchSwitch(branch.id)}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,17 @@ export default function ReportsPage() {
     const [reportType, setReportType] = useState<"summary" | "detailed" | "compliance">("summary");
     const [branchId, setBranchId] = useState<string>("all");
     const [generating, setGenerating] = useState<string | null>(null);
+  const [availableBranches, setAvailableBranches] = useState<{id: string; name: string}[]>([]);
+
+  useEffect(() => {
+    fetch('/api/branches')
+      .then(res => res.json())
+      .then(data => {
+        const branches = Array.isArray(data) ? data : data.branches || [];
+        setAvailableBranches(branches.map((b: any) => ({ id: b.id, name: b.name })));
+      })
+      .catch(() => {});
+  }, []);
 
     const reports = [
         {
@@ -250,10 +261,10 @@ export default function ReportsPage() {
                                     <SelectValue placeholder="Todas las sucursales" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Todas las sucursales</SelectItem>
-                                    <SelectItem value="branch1">Sucursal Centro</SelectItem>
-                                    <SelectItem value="branch2">Sucursal Norte</SelectItem>
-                                    <SelectItem value="branch3">Sucursal Sur</SelectItem>
+<SelectItem value="all">Todas las sucursales</SelectItem>
+                {availableBranches.map((branch) => (
+                  <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>
+                ))}
                                 </SelectContent>
                             </Select>
                         </div>

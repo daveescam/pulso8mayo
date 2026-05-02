@@ -8,6 +8,7 @@ import { headers } from "next/headers";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { BRANCH_COOKIE_NAME } from "@/lib/tenant-context";
+import { isBranchScopedRole } from "@/lib/branch-scope";
 
 export async function switchBranch(branchId: string) {
   const session = await auth.api.getSession({
@@ -18,11 +19,19 @@ export async function switchBranch(branchId: string) {
     throw new Error("Unauthorized");
   }
 
-  // Verify branch exists and belongs to user's company (optional but recommended)
+  const userRole = (session.user as any).role as string;
+
+  if (isBranchScopedRole(userRole as any)) {
+    const userBranchId = (session.user as any).branchId as string | undefined;
+    if (userBranchId && branchId !== userBranchId) {
+      throw new Error("Access denied: you can only access your assigned branch");
+    }
+  }
+
   const branch = await db.query.branches.findFirst({
     where: (branches, { eq, and }) => and(
       eq(branches.id, branchId),
-      eq(branches.companyId, session.user.companyId!) // Non-null assertion valid if logged in
+      eq(branches.companyId, session.user.companyId!)
     )
   });
 

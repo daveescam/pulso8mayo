@@ -2,11 +2,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
+import { db } from '@/lib/db';
+import { workflowTemplates } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 import { WorkflowScheduleService } from '@/lib/services/workflow-schedule-service';
 import { WorkflowTriggerService } from '@/lib/services/workflow-trigger-service';
 import { z } from 'zod';
 
 const scheduleSchema = z.object({
+  // Scheduling
   enabled: z.boolean(),
   frequency: z.enum(['daily', 'weekly', 'monthly', 'on_demand']),
   shiftTimes: z.record(z.string(), z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)),
@@ -17,7 +21,29 @@ const scheduleSchema = z.object({
   triggers: z.array(z.object({
     eventName: z.string(),
     conditions: z.record(z.string(), z.any()).optional()
-  })).optional()
+  })).optional(),
+
+  // Template metadata
+  version: z.number().optional(),
+  activo: z.boolean().optional(),
+  requiereIA: z.boolean().optional(),
+  duracionEstimada: z.string().optional(),
+  cumplimientoNormativo: z.array(z.string()).optional(),
+  tags: z.array(z.string()).optional(),
+  aiConfig: z.object({
+    provider: z.string().optional(),
+    fallbackProvider: z.string().optional(),
+    maxRetries: z.number().optional(),
+  }).optional(),
+  complianceConfig: z.object({
+    complianceType: z.string().optional(),
+    regulationSection: z.string().optional(),
+    requiredFrequency: z.string().optional(),
+    auditable: z.boolean().optional(),
+    evidenceRequired: z.boolean().optional(),
+    criticalForCompliance: z.boolean().optional(),
+  }).optional(),
+  completionActions: z.array(z.record(z.string(), z.any())).optional(),
 });
 
 export async function GET(
@@ -31,7 +57,7 @@ export async function GET(
             headers: await headers()
         });
 
-        const user = session?.user as any; // Cast to any to avoid TS errors for implicit custom fields
+        const user = session?.user as any;
 
         if (!user?.email || !user?.branchId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -42,16 +68,33 @@ export async function GET(
 
         console.log(`[API] Fetching schedule settings for template ${templateId} in branch ${branchId}`);
 
-        // Get existing schedule & triggers
-        const [schedule, triggers] = await Promise.all([
+        // Fetch template metadata, schedule and triggers in parallel
+        const [template, schedule, triggers] = await Promise.all([
+            db.query.workflowTemplates.findFirst({
+                where: eq(workflowTemplates.id, templateId),
+            }),
             WorkflowScheduleService.getScheduleByTemplateId(templateId, branchId),
             WorkflowTriggerService.getTriggersForTemplate(templateId, branchId)
         ]);
+
+        // Build template metadata from DB row (or defaults if template not found)
+        const templateMeta = {
+            version: template?.version ?? 1,
+            activo: template?.active ?? true,
+            requiereIA: false, // Not a separate DB column — derived from aiConfig presence
+            duracionEstimada: template?.duracionEstimada ?? '',
+            cumplimientoNormativo: [] as string[], // Stored separately if needed; defaults to []
+            tags: (template?.tags as string[]) ?? [],
+            aiConfig: (template?.aiConfig as Record<string, any>) ?? null,
+            complianceConfig: (template?.complianceConfig as Record<string, any>) ?? null,
+            completionActions: (template?.completionActions as Record<string, any>[]) ?? [],
+        };
 
         if (!schedule) {
             // Return defaults if no schedule exists
             return NextResponse.json({
                 settings: {
+                    ...templateMeta,
                     enabled: false,
                     frequency: 'daily',
                     shiftTimes: {
@@ -76,7 +119,6 @@ export async function GET(
         // Handle both old format (single timeOfDay) and new format (JSON shiftTimes)
         let shiftTimes: Record<string, string>;
         try {
-            // Try to parse as JSON first (new format)
             shiftTimes = schedule.timeOfDay ? JSON.parse(schedule.timeOfDay) : {
                 morning: '08:00',
                 afternoon: '15:00',
@@ -84,7 +126,6 @@ export async function GET(
                 all: '08:00'
             };
         } catch {
-            // Fallback to old format - use single time for all shifts
             const singleTime = schedule.timeOfDay || '08:00';
             shiftTimes = {
                 morning: singleTime,
@@ -95,6 +136,7 @@ export async function GET(
         }
 
         const settings = {
+            ...templateMeta,
             enabled: schedule.isActive,
             frequency: schedule.frequency.toLowerCase(),
             shiftTimes,
@@ -154,11 +196,25 @@ export async function POST(
         const data = validation.data;
         console.log(`[API] Saving schedule settings for template ${templateId}`, data);
 
-        // Check if schedule exists
+        // 1. Update workflowTemplates row with metadata
+        await db
+            .update(workflowTemplates)
+            .set({
+                version: data.version ?? 1,
+                active: data.activo ?? true,
+                duracionEstimada: data.duracionEstimada ?? null,
+                tags: data.tags ?? [],
+                aiConfig: data.aiConfig ?? null,
+                complianceConfig: data.complianceConfig ?? null,
+                completionActions: data.completionActions ?? [],
+                updatedAt: new Date(),
+            })
+            .where(eq(workflowTemplates.id, templateId));
+
+        // 2. Create or update schedule
         const existingSchedule = await WorkflowScheduleService.getScheduleByTemplateId(templateId, branchId);
 
-        // Map frontend frequency to DB enum
-        const dbFrequency = data.frequency.toUpperCase() as 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'ONCE';
+        const dbFrequency = (data.frequency === 'on_demand' ? 'ONCE' : data.frequency.toUpperCase()) as 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'ONCE';
 
         let dayOfWeek: number | undefined;
         if (dbFrequency === 'WEEKLY' && data.days && data.days.length > 0) {
@@ -171,7 +227,7 @@ export async function POST(
             assignmentType: data.autoAssign ? 'AUTO' : 'ROLE',
             assignedRole: data.assignedRoles && data.assignedRoles.length > 0 ? data.assignedRoles[0] as any : null,
             frequency: dbFrequency,
-            timeOfDay: JSON.stringify(data.shiftTimes), // Store as JSON
+            timeOfDay: JSON.stringify(data.shiftTimes),
             dayOfWeek: dayOfWeek,
             startDate: new Date(),
             title: `Schedule for ${templateId}`,
@@ -195,15 +251,15 @@ export async function POST(
             });
         }
 
-  // Save Triggers
-    if (data.triggers) {
-      await WorkflowTriggerService.syncTriggers(
-        templateId,
-        branchId,
-        data.triggers.map(t => ({ ...t, conditions: t.conditions || {} })),
-        user.id
-      );
-    }
+        // 3. Save Triggers
+        if (data.triggers) {
+            await WorkflowTriggerService.syncTriggers(
+                templateId,
+                branchId,
+                data.triggers.map(t => ({ ...t, conditions: t.conditions || {} })),
+                user.id
+            );
+        }
 
         return NextResponse.json({ success: true });
 

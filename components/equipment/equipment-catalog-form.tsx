@@ -69,11 +69,12 @@ export function EquipmentCatalogForm({ initialData, onSuccess }: EquipmentCatalo
     try {
       setIsSubmitting(true);
 
-      const response = await fetch("/api/equipment/catalog", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+    const { ...submitData } = data;
+    const response = await fetch("/api/equipment/catalog", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(submitData),
+    });
 
       if (!response.ok) {
         const error = await response.json();

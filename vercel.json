@@ -20,9 +20,17 @@
             "path": "/api/cron/overdue-workflows",
             "schedule": "0 * * * *"
         },
-        {
-            "path": "/api/cron/inventory-checks",
-            "schedule": "0 */6 * * *"
-        }
-    ]
+    {
+      "path": "/api/cron/inventory-checks",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/compliance-alerts",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/scheduled-reports",
+      "schedule": "0 6 * * *"
+    }
+  ]
 }

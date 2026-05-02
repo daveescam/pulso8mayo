@@ -34,12 +34,15 @@ export interface ShiftAssignment {
     employeeId: string
     employeeName: string
     employeeImage?: string
-    shiftType: "MATUTINO" | "VESPERTINO" | "NOCTURNO" | "MIXTO"
+    shiftType: "MATUTINO" | "VESPERTINO" | "NOCTURNO" | "MIXTO" | "CUSTOM"
     date: string
     startTime: string
     endTime: string
     status: "DRAFT" | "PUBLISHED"
     notes?: string
+    role: string
+    branchId: string
+    branchName: string
 }
 
 export interface VacationRequest {
@@ -83,6 +86,12 @@ const SHIFT_TYPES: Record<string, ShiftTypeConfig> = {
         defaultEnd: "18:00",
         color: "bg-green-500",
     },
+    CUSTOM: {
+        label: "Personalizado",
+        defaultStart: "09:00",
+        defaultEnd: "17:00",
+        color: "bg-gray-500",
+    }
 }
 
 type RecurrencePattern = "none" | "daily" | "weekly" | "custom"
@@ -224,7 +233,10 @@ export function BulkShiftAssignment({
                         date: date.toISOString(),
                         startTime: customStart || config.defaultStart,
                         endTime: customEnd || config.defaultEnd,
-                        status: "DRAFT"
+                        status: "DRAFT",
+                        role: employee.role,
+                        branchId: employee.branchId,
+                        branchName: "Default" // Add proper branchName if available
                     })
                 }
             })

@@ -1,36 +1,35 @@
+"use client";
+
+import { useSearchParams } from "next/navigation";
 import { OperationsTabs } from "@/components/dashboard/operations/operations-tabs";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { db } from "@/lib/db";
-import { workflowInstances, workflowTemplates, users } from "@/lib/db/schema";
-import { eq, desc, sql } from "drizzle-orm";
+import { DashboardFilters } from "@/components/dashboard/dashboard-filters";
+import { TemperatureMonitor } from "@/components/dashboard/operations/temperature-monitor";
 
-export default async function OperationsPage() {
-    const session = await auth.api.getSession({
-        headers: await headers()
-    });
+export default function OperationsPage() {
+  const searchParams = useSearchParams();
+  const branchId = searchParams.get("branch") || "all";
+  const startDate = searchParams.get("startDate");
+  const endDate = searchParams.get("endDate");
 
-    const recentWorkflows = session?.user?.companyId ? await db.select({
-        id: workflowInstances.id,
-        templateName: workflowTemplates.name,
-        status: workflowInstances.status,
-        score: workflowInstances.score,
-        assigneeName: users.name,
-        updatedAt: workflowInstances.updatedAt
-    })
-        .from(workflowInstances)
-        .leftJoin(workflowTemplates, eq(workflowInstances.workflowTemplateId, sql`cast(${workflowTemplates.id} as text)`))
-        .leftJoin(users, eq(workflowInstances.assigneeId, users.id))
-        .where(eq(workflowTemplates.companyId, session.user.companyId))
-        .orderBy(desc(workflowInstances.updatedAt))
-        .limit(20) : [];
+  const period = (() => {
+    if (!startDate) return "30d";
+    const now = new Date();
+    const start = new Date(startDate);
+    const diffDays = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays <= 1) return "7d";
+    if (diffDays <= 8) return "7d";
+    if (diffDays <= 32) return "30d";
+    return "90d";
+  })();
 
-    return (
-        <div className="flex flex-col gap-4 p-8">
-            <div className="flex items-center justify-between space-y-2">
-                <h2 className="text-3xl font-bold tracking-tight">Operations Dashboard</h2>
-            </div>
-            <OperationsTabs recentWorkflows={recentWorkflows} />
-        </div>
-    );
+  return (
+    <div className="flex flex-col gap-4 p-8">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <h2 className="text-3xl font-bold tracking-tight">Operations Dashboard</h2>
+        <DashboardFilters />
+      </div>
+      <TemperatureMonitor period={period} branchId={branchId} />
+      <OperationsTabs recentWorkflows={[]} period={period} branchId={branchId} />
+    </div>
+  );
 }

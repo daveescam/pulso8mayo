@@ -2,69 +2,65 @@
 
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
-const data = [
-    {
-        date: "Jan 01",
-        rate: 85,
-    },
-    {
-        date: "Jan 02",
-        rate: 88,
-    },
-    {
-        date: "Jan 03",
-        rate: 92,
-    },
-    {
-        date: "Jan 04",
-        rate: 90,
-    },
-    {
-        date: "Jan 05",
-        rate: 95,
-    },
-    {
-        date: "Jan 06",
-        rate: 94,
-    },
-    {
-        date: "Jan 07",
-        rate: 98,
-    },
-];
+interface CompletionDataPoint {
+  date: string;
+  rate: number;
+}
 
 export function CompletionRateChart() {
-    const { theme } = useTheme();
+  const { theme } = useTheme();
+  const [data, setData] = useState<CompletionDataPoint[]>([]);
+  const [loading, setLoading] = useState(true);
 
-    return (
-        <ResponsiveContainer width="100%" height={350}>
-            <LineChart data={data}>
-                <XAxis
-                    dataKey="date"
-                    stroke="#888888"
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                />
-                <YAxis
-                    stroke="#888888"
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(value) => `${value}%`}
-                />
-                <Tooltip
-                    contentStyle={{ backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', borderRadius: '8px' }}
-                />
-                <Line
-                    type="monotone"
-                    dataKey="rate"
-                    stroke="#2563eb" // Blue-600
-                    activeDot={{ r: 8 }}
-                    strokeWidth={2}
-                />
-            </LineChart>
-        </ResponsiveContainer>
-    );
+  useEffect(() => {
+    fetch('/api/reports/stats')
+      .then(res => res.json())
+      .then(data => {
+        setData(data.completionRate || []);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-[350px] text-muted-foreground">Cargando...</div>;
+  }
+
+  if (data.length === 0) {
+    return <div className="flex items-center justify-center h-[350px] text-muted-foreground">Sin datos de completitud</div>;
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height={350}>
+      <LineChart data={data}>
+        <XAxis
+          dataKey="date"
+          stroke="#888888"
+          fontSize={12}
+          tickLine={false}
+          axisLine={false}
+        />
+        <YAxis
+          stroke="#888888"
+          fontSize={12}
+          tickLine={false}
+          axisLine={false}
+          tickFormatter={(value) => `${value}%`}
+        />
+        <Tooltip
+          contentStyle={{ backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', borderRadius: '8px' }}
+          formatter={(value: number) => [`${value}%`, 'Tasa de Completitud']}
+        />
+        <Line
+          type="monotone"
+          dataKey="rate"
+          stroke="#2563eb"
+          activeDot={{ r: 8 }}
+          strokeWidth={2}
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  );
 }

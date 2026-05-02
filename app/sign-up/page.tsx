@@ -26,7 +26,7 @@ export default function SignUp() {
       name,
       fetchOptions: {
         onSuccess: () => {
-          router.push("/dashboard");
+          router.push("/onboarding");
         },
         onError: (ctx) => {
           alert(ctx.error.message);

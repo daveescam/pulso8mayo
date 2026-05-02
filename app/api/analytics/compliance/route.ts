@@ -1,8 +1,8 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { incidents, workflowInstances, workflowTemplates } from "@/lib/db/schema";
-import { eq, sql, and, gte, lte, desc } from "drizzle-orm";
+import { incidents, workflowInstances, workflowTemplates, branches } from "@/lib/db/schema";
+import { eq, sql, and, gte, lte, desc, inArray } from "drizzle-orm";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
@@ -12,22 +12,23 @@ export async function GET(req: Request) {
             headers: await headers()
         });
 
-        if (!session?.user?.id) {
-            return new NextResponse("Unauthorized", { status: 401 });
-        }
+    if (!session?.user?.id) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
 
-        // Get params for date range (optional)
-        const { searchParams } = new URL(req.url);
-        const startDate = searchParams.get('startDate');
-        const endDate = searchParams.get('endDate');
+    const companyId = session.user.companyId;
 
-        // Build conditions
-        const conditions = [];
+    // Get params for date range (optional)
+    const { searchParams } = new URL(req.url);
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
 
-        // Filter by company? Ideally yes, but schema might not link instances directly to company, 
-        // usually via Branch.
-        // For MVP, we assume user can see all or we filter by their managed branches.
-        // Let's just fetch all for now and aggregate.
+    const companyBranches = await db
+      .select({ id: branches.id })
+      .from(branches)
+      .where(eq(branches.companyId, companyId));
+
+    const branchIds = companyBranches.map(b => b.id);
 
         // 1. Average Score (Compliance Rate)
         // 2. Total Inspections (Completed Instances)
@@ -39,22 +40,24 @@ export async function GET(req: Request) {
                 count: sql<number>`count(*)`
             })
             .from(workflowInstances)
-            .where(
-                and(
-                    eq(workflowInstances.status, 'COMPLETED'),
-                )
-            );
+      .where(
+        and(
+          eq(workflowInstances.status, 'COMPLETED'),
+          inArray(workflowInstances.branchId, branchIds)
+        )
+      );
 
         const openIncidentsResult = await db
             .select({
                 count: sql<number>`count(*)`
             })
             .from(incidents)
-            .where(
-                and(
-                    eq(incidents.status, 'DETECTED')
-                )
-            );
+      .where(
+        and(
+          eq(incidents.status, 'DETECTED'),
+          inArray(incidents.branchId, branchIds),
+        )
+      );
 
         // EXTRA: Workflows by Status
         // @ts-ignore - status exists but TS might be picky
@@ -63,8 +66,9 @@ export async function GET(req: Request) {
                 status: workflowInstances.status,
                 count: sql<number>`count(*)`
             })
-            .from(workflowInstances)
-            .groupBy(workflowInstances.status);
+    .from(workflowInstances)
+    .where(inArray(workflowInstances.branchId, branchIds))
+    .groupBy(workflowInstances.status);
 
         // EXTRA: Compliance by Category (Radial Chart)
         const categoriesResult = await db
@@ -74,7 +78,7 @@ export async function GET(req: Request) {
             })
             .from(workflowInstances)
             .innerJoin(workflowTemplates, eq(workflowInstances.workflowTemplateId, sql`cast(${workflowTemplates.id} as text)`))
-            .where(eq(workflowInstances.status, 'COMPLETED'))
+            .where(and(eq(workflowInstances.status, 'COMPLETED'), inArray(workflowInstances.branchId, branchIds)))
             .groupBy(workflowTemplates.complianceType);
 
         // EXTRA: Labor Stats (Shifts)
@@ -82,8 +86,8 @@ export async function GET(req: Request) {
             .select({
                 count: sql<number>`count(*)`
             })
-            .from(workflowInstances)
-            .where(eq(workflowInstances.status, 'IN_PROGRESS'));
+    .from(workflowInstances)
+    .where(and(eq(workflowInstances.status, 'IN_PROGRESS'), inArray(workflowInstances.branchId, branchIds)));
 
         // EXTRA: 7-Day Trend
         const sevenDaysAgo = new Date();
@@ -94,12 +98,13 @@ export async function GET(req: Request) {
                 count: sql<number>`count(*)`
             })
             .from(workflowInstances)
-            .where(
-                and(
-                    eq(workflowInstances.status, 'COMPLETED'),
-                    gte(workflowInstances.completedAt, sevenDaysAgo)
-                )
-            )
+      .where(
+        and(
+          eq(workflowInstances.status, 'COMPLETED'),
+          gte(workflowInstances.completedAt, sevenDaysAgo),
+          inArray(workflowInstances.branchId, branchIds)
+        )
+      )
             .groupBy(sql`DATE(${workflowInstances.completedAt})`)
             .orderBy(sql`DATE(${workflowInstances.completedAt})`);
 
@@ -113,12 +118,13 @@ export async function GET(req: Request) {
                 status: incidents.status
             })
             .from(incidents)
-            .where(
-                and(
-                    sql`${incidents.severity} IN ('CRITICAL', 'WARNING')`,
-                    sql`${incidents.status} != 'RESOLVED'`
-                )
-            )
+      .where(
+        and(
+          sql`${incidents.severity} IN ('CRITICAL', 'WARNING')`,
+          sql`${incidents.status} != 'RESOLVED'`,
+          inArray(incidents.branchId, branchIds),
+        )
+      )
             .orderBy(desc(incidents.createdAt))
             .limit(3);
 

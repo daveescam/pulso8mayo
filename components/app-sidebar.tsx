@@ -59,6 +59,10 @@ const navMain = [
         url: "/dashboard/analytics",
       },
       {
+        title: "Sucursales",
+        url: "/dashboard/branches",
+      },
+      {
         title: "Constructor KPIs",
         url: "/dashboard/analytics/kpi-builder",
       },
@@ -103,6 +107,13 @@ const navMain = [
       {
         title: "Plantillas",
         url: "/dashboard/builder/templates",
+      }, {
+        title: "Indidentes",
+        url: "/dashboard/incidents",
+      },
+      {
+        title: "Evidencias",
+        url: "/dashboard/evidence",
       },
       {
         title: "Historial",
@@ -116,8 +127,8 @@ const navMain = [
     icon: BookOpen,
     items: [
       {
-        title: "Mis Tareas",
-        url: "/dashboard/my-tasks",
+        title: "Dashboard",
+        url: "/dashboard/operations",
       },
       {
         title: "Ejecución Rápida",
@@ -133,7 +144,7 @@ const navMain = [
       },
       {
         title: "Programación",
-        url: "/dashboard/schedules",
+        url: "/dashboard/labor/schedule-builder",
       },
     ],
   },
@@ -326,7 +337,8 @@ export interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
     name: string;
     email: string;
     avatar: string;
-    role?: 'ADMIN' | 'GERENTE' | 'EMPLEADO';
+    role?: 'SUPER_ADMIN' | 'ADMIN' | 'GERENTE' | 'SUPERVISOR' | 'EMPLEADO' | 'READONLY';
+    branchId?: string;
   },
   company: {
     name: string;
@@ -344,22 +356,26 @@ export function AppSidebar({ user, company, branches, currentBranchId, ...props 
   const userRole = user.role || 'EMPLEADO';
 
   const filteredNavMain = navMain.filter(section => {
-    // EMPLEADO: Only show Operación and Personal
-    if (userRole === 'EMPLEADO') {
-      return section.title === 'Operación' || section.title === 'Personal';
+    if (userRole === 'EMPLEADO' || userRole === 'READONLY') {
+      if (userRole === 'EMPLEADO') {
+        return section.title === 'Operación' || section.title === 'Personal';
+      }
+      return section.title === 'Tablero' || section.title === 'Cumplimiento' || section.title === 'Desempeño' || section.title === 'Perfil';
     }
-    // GERENTE: Hide Organización (company/branches management)
+    if (userRole === 'SUPERVISOR') {
+      return section.title !== 'Organización';
+    }
     if (userRole === 'GERENTE') {
       return section.title !== 'Organización';
     }
-    // ADMIN: Show everything
     return true;
   }).map(section => {
-    // Filter sub-items based on role
     const filteredItems = section.items?.filter(item => {
       if (userRole === 'EMPLEADO') {
-        // Empleados can't access schedules, builder, or HR management
         return !item.url.includes('/schedules') && !item.url.includes('/builder') && !item.url.includes('/employees');
+      }
+      if (userRole === 'READONLY') {
+        return !item.url.includes('/builder') && !item.url.includes('/employees/onboarding') && !item.url.includes('/employees/offboarding');
       }
       return true;
     });
@@ -377,6 +393,8 @@ export function AppSidebar({ user, company, branches, currentBranchId, ...props 
           company={company}
           branches={branches}
           currentBranchId={currentBranchId}
+          userRole={user.role}
+          userBranchId={user.branchId}
         />
       </SidebarHeader>
       <SidebarContent>

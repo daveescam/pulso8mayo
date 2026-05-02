@@ -4,7 +4,7 @@ import { ApiError } from "@/lib/api/error";
 import { requireTenant } from "@/lib/tenant-context";
 import { db } from "@/lib/db";
 import { shiftSessions, plannedShifts, users, branches, breakLogs } from "@/lib/db/schema";
-import { eq, and, gte, lte, sql, desc } from "drizzle-orm";
+import { eq, and, gte, lte, sql, desc, inArray } from "drizzle-orm";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, parseISO } from "date-fns";
 import { 
     calculateOvertime, 
@@ -102,9 +102,11 @@ export async function GET(req: NextRequest) {
         });
 
         const breakMap: Record<string, any> = {};
-        const allBreaks = await db.query.breakLogs.findMany({
-            where: sql`${breakLogs.sessionId} IN ${sessions.map(s => s.id)}`,
-        });
+        const allBreaks = sessions.length > 0 
+            ? await db.query.breakLogs.findMany({
+                where: inArray(breakLogs.sessionId, sessions.map(s => s.id)),
+            })
+            : [];
         
         allBreaks.forEach(brk => {
             const session = sessions.find(s => s.id === brk.sessionId);

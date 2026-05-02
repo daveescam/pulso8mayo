@@ -55,13 +55,14 @@ export default async function DashboardLayout({
         initialBranches={branches}
       >
         <SidebarProvider>
-          <AppSidebarClient
-            user={{
-              name: session.user.name,
-              email: session.user.email,
-              avatar: session.user.image || "",
-              role: session.user.role as 'ADMIN' | 'GERENTE' | 'EMPLEADO'
-            }}
+        <AppSidebarClient
+          user={{
+            name: session.user.name,
+            email: session.user.email,
+            avatar: session.user.image || "",
+            role: (session.user as any).role as 'SUPER_ADMIN' | 'ADMIN' | 'GERENTE' | 'SUPERVISOR' | 'EMPLEADO' | 'READONLY',
+            branchId: (session.user as any).branchId as string | undefined,
+          }}
             company={{
               name: company?.name || "My Company",
               plan: company?.plan || "FREE"

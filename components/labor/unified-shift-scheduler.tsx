@@ -1,10 +1,6 @@
 "use client"
 
-/**
- * @deprecated This component is deprecated. Use ShiftSchedulerContainer from @/components/labor/shifts instead.
- * Migration: Replace <UnifiedShiftScheduler /> with <ShiftSchedulerContainer />
- * This component will be removed in a future version.
- */
+// Componente principal para el Constructor de Horarios (Unified Shift Scheduler)
 
 import * as React from "react"
 import { format, addDays, startOfWeek, endOfWeek, isSameDay, parseISO, differenceInDays } from "date-fns"
@@ -19,6 +15,7 @@ import {
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@/components/ui/card"
+import { ScheduleCalendar } from "@/components/labor/schedule-calendar"
 import {
     Dialog,
     DialogContent,
@@ -62,7 +59,6 @@ import { Separator } from "@/components/ui/separator"
 import { BulkShiftAssignment, type ShiftAssignment } from "@/components/labor/shift-assignment-bulk"
 import { LaborComplianceView } from "@/components/labor/labor-compliance-view"
 
-// Types
 interface Shift {
     id: string
     userId: string
@@ -76,6 +72,9 @@ interface Shift {
     date: string
     notes?: string
     templateId?: string
+    hasBreak?: boolean
+    breakDuration?: number // in minutes
+    isOvertime?: boolean
 }
 
 interface ApiUser {
@@ -327,19 +326,52 @@ export function UnifiedShiftScheduler() {
     const detectConflicts = (shiftList: Shift[]) => {
         const newConflicts: {shiftId: string, message: string, type: "warning" | "error"}[] = []
         
-        // Check for overlapping shifts
+        // Check for overlapping shifts and calculate hours
         const userShiftesByDate: Record<string, Shift[]> = {}
+        const userWeeklyHours: Record<string, number> = {}
+
         shiftList.forEach(shift => {
             const key = `${shift.userId}-${format(parseISO(shift.startTime), "yyyy-MM-dd")}`
             if (!userShiftesByDate[key]) {
                 userShiftesByDate[key] = []
             }
             userShiftesByDate[key].push(shift)
+
+            // Weekly hours calc
+            const start = parseISO(shift.startTime)
+            const end = parseISO(shift.endTime)
+            let hoursDiff = (end.getTime() - start.getTime()) / (1000 * 60 * 60)
+            
+            // Fallback in case of bad data that wasn't fixed
+            if (hoursDiff < 0) {
+                hoursDiff += 24
+            }
+            
+            if (!userWeeklyHours[shift.userId]) userWeeklyHours[shift.userId] = 0
+            userWeeklyHours[shift.userId] += hoursDiff
+
+            // Break Tracking: Shifts over 8 hours should ideally have a 30 min break
+            if (hoursDiff >= 8 && (!shift.hasBreak || shift.breakDuration === 0)) {
+                 newConflicts.push({
+                    shiftId: shift.id,
+                    message: `Turno de ${hoursDiff.toFixed(1)} hrs requiere descanso programado.`,
+                    type: "warning"
+                })
+            }
+            
+            // LFT: Limits 12 hours max
+            if (hoursDiff > 12) {
+                newConflicts.push({
+                    shiftId: shift.id,
+                    message: `Turno de ${hoursDiff.toFixed(1)} horas excede límite de 12 horas.`,
+                    type: "warning"
+                })
+            }
         })
 
+        // Evaluate overlapping shifts
         Object.values(userShiftesByDate).forEach(dayShifts => {
             if (dayShifts.length > 1) {
-                // Check for overlaps
                 for (let i = 0; i < dayShifts.length; i++) {
                     for (let j = i + 1; j < dayShifts.length; j++) {
                         const s1 = dayShifts[i]
@@ -359,18 +391,19 @@ export function UnifiedShiftScheduler() {
             }
         })
 
-        // Check for shifts > 12 hours
-        shiftList.forEach(shift => {
-            const start = parseISO(shift.startTime)
-            const end = parseISO(shift.endTime)
-            const hoursDiff = (end.getTime() - start.getTime()) / (1000 * 60 * 60)
-            
-            if (hoursDiff > 12) {
-                newConflicts.push({
-                    shiftId: shift.id,
-                    message: `Turno de ${hoursDiff.toFixed(1)} horas excede límite de 12 horas`,
-                    type: "warning"
-                })
+        // Check overtime (e.g. > 48 hours per week based on settings)
+        Object.entries(userWeeklyHours).forEach(([userId, hours]) => {
+            if (hours > 48) {
+                // Find all shifts for this user to tag them or just push a general warning to their last shift
+                const userShifts = shiftList.filter(s => s.userId === userId)
+                if (userShifts.length > 0) {
+                    const lastShift = userShifts[userShifts.length - 1]
+                    newConflicts.push({
+                        shiftId: lastShift.id,
+                        message: `Empleado excede límite semanal de horas (48hrs). Total: ${hours.toFixed(1)}hrs`,
+                        type: "warning"
+                    })
+                }
             }
         })
 
@@ -392,11 +425,15 @@ export function UnifiedShiftScheduler() {
         // Construct ISO dates
         const start = new Date(selectedDay)
         const [sh, sm] = shiftStart.split(":").map(Number)
-        start.setHours(sh, sm)
+        start.setHours(sh, sm, 0, 0)
 
         const end = new Date(selectedDay)
         const [eh, em] = shiftEnd.split(":").map(Number)
-        end.setHours(eh, em)
+        end.setHours(eh, em, 0, 0)
+        
+        if (end < start) {
+            end.setDate(end.getDate() + 1)
+        }
 
         const newShift: Shift = {
             id: Math.random().toString(36).substr(2, 9),
@@ -409,7 +446,9 @@ export function UnifiedShiftScheduler() {
             endTime: end.toISOString(),
             status: "DRAFT",
             date: start.toISOString(),
-            notes: shiftNotes
+            notes: shiftNotes,
+            hasBreak: true,
+            breakDuration: 30
         }
 
         setShifts([...shifts, newShift])
@@ -434,17 +473,30 @@ export function UnifiedShiftScheduler() {
             const [sh, sm] = a.startTime.split(":").map(Number)
             const [eh, em] = a.endTime.split(":").map(Number)
             const baseDate = new Date(a.date)
+            
+            const startDate = new Date(baseDate)
+            startDate.setHours(sh, sm, 0, 0)
+            
+            const endDate = new Date(baseDate)
+            endDate.setHours(eh, em, 0, 0)
+            
+            if (endDate < startDate) {
+                endDate.setDate(endDate.getDate() + 1)
+            }
+            
             return {
                 id: a.id,
                 userId: a.employeeId,
                 userName: a.employeeName,
-                branchId: selectedBranch !== "all" ? selectedBranch : "default",
-                branchName: "Default",
-                role: "EMPLEADO",
-                startTime: new Date(baseDate.setHours(sh, sm)).toISOString(),
-                endTime: new Date(baseDate.setHours(eh, em)).toISOString(),
+                branchId: a.branchId || selectedBranch !== "all" ? selectedBranch : "default",
+                branchName: a.branchName || "Default",
+                role: a.role || "EMPLEADO",
+                startTime: startDate.toISOString(),
+                endTime: endDate.toISOString(),
                 status: a.status as "DRAFT" | "PUBLISHED",
-                date: a.date
+                date: a.date,
+                hasBreak: true,
+                breakDuration: 30
             }
         })
         setShifts(convertedShifts)
@@ -471,7 +523,9 @@ export function UnifiedShiftScheduler() {
                     id: Math.random().toString(36).substr(2, 9),
                     startTime: addDays(parseISO(shift.startTime), dayDiff).toISOString(),
                     endTime: addDays(parseISO(shift.endTime), dayDiff).toISOString(),
-                    status: "DRAFT" as const
+                    status: "DRAFT" as const,
+                    hasBreak: true,
+                    breakDuration: 30
                 }))
                 
                 setShifts([...shifts, ...newShifts])
@@ -493,11 +547,15 @@ export function UnifiedShiftScheduler() {
             if (user) {
                 const start = new Date(selectedDay)
                 const [sh, sm] = shiftConfig.startTime.split(":").map(Number)
-                start.setHours(sh, sm)
+                start.setHours(sh, sm, 0, 0)
 
                 const end = new Date(selectedDay)
                 const [eh, em] = shiftConfig.endTime.split(":").map(Number)
-                end.setHours(eh, em)
+                end.setHours(eh, em, 0, 0)
+                
+                if (end < start) {
+                    end.setDate(end.getDate() + 1)
+                }
 
                 newShifts.push({
                     id: Math.random().toString(36).substr(2, 9),
@@ -509,7 +567,9 @@ export function UnifiedShiftScheduler() {
                     startTime: start.toISOString(),
                     endTime: end.toISOString(),
                     status: "DRAFT",
-                    date: selectedDay.toISOString()
+                    date: selectedDay.toISOString(),
+                    hasBreak: true,
+                    breakDuration: 30
                 })
             }
         })
@@ -978,33 +1038,21 @@ export function UnifiedShiftScheduler() {
 
             {/* Calendar View */}
             {!bulkMode && viewMode === "calendar" && (
-                <Card>
-                    <CardContent className="p-6">
-                        <BulkShiftAssignment
-                            employees={filteredUsers.map(u => ({
-                                id: u.id,
-                                name: u.name,
-                                email: u.email || `${u.name.toLowerCase().replace(/\s+/g, '.')}@example.com`,
-                                role: u.role,
-                                image: u.image,
-                                branchId: u.branchId
-                            }))}
-                            selectedDate={currentDate}
-                            assignments={shifts.map(s => ({
-                                id: s.id,
-                                employeeId: s.userId,
-                                employeeName: s.userName,
-                                shiftType: "MIXTO" as const,
-                                date: s.startTime,
-                                startTime: format(parseISO(s.startTime), "HH:mm"),
-                                endTime: format(parseISO(s.endTime), "HH:mm"),
-                                status: s.status
-                            }))}
-                            vacations={vacations}
-                            onAssignmentsChange={handleBulkAssignmentsChange}
-                        />
-                    </CardContent>
-                </Card>
+                <ScheduleCalendar
+                    viewMode="week"
+                    shifts={shifts.map(s => ({
+                        id: s.id,
+                        userId: s.userId,
+                        userName: s.userName,
+                        branchId: s.branchId,
+                        shiftType: "MIXTO", // Can be inferred if needed
+                        startTime: format(parseISO(s.startTime), "HH:mm"),
+                        endTime: format(parseISO(s.endTime), "HH:mm"),
+                        status: s.status,
+                        date: s.startTime
+                    }))}
+                    vacations={vacations}
+                />
             )}
 
             {/* List View */}
@@ -1314,14 +1362,38 @@ export function UnifiedShiftScheduler() {
                         )}
                     </div>
 
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setTemplateDialogOpen(false)}>
-                            Cancelar
+                    <DialogFooter className="flex items-center justify-between">
+                        <Button 
+                            variant="outline" 
+                            onClick={() => {
+                                const newTemplate = {
+                                    id: `template-${Date.now()}`,
+                                    name: `Plantilla Semana ${format(weekStart, "dd/MM")}`,
+                                    shifts: shifts.map(s => ({
+                                        role: s.role,
+                                        startTime: format(parseISO(s.startTime), "HH:mm"),
+                                        endTime: format(parseISO(s.endTime), "HH:mm")
+                                    }))
+                                }
+                                const updatedTemplates = [...templates, newTemplate]
+                                setTemplates(updatedTemplates)
+                                localStorage.setItem("shift-templates", JSON.stringify(updatedTemplates))
+                                toast.success("Semana actual guardada como plantilla")
+                                setSelectedTemplate(newTemplate.id)
+                            }}
+                        >
+                            <Save className="h-4 w-4 mr-2" />
+                            Guardar actual
                         </Button>
-                        <Button onClick={handleApplyTemplate} disabled={!selectedTemplate}>
-                            <Tag className="h-4 w-4 mr-2" />
-                            Aplicar Plantilla
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button variant="outline" onClick={() => setTemplateDialogOpen(false)}>
+                                Cancelar
+                            </Button>
+                            <Button onClick={handleApplyTemplate} disabled={!selectedTemplate}>
+                                <Tag className="h-4 w-4 mr-2" />
+                                Aplicar
+                            </Button>
+                        </div>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

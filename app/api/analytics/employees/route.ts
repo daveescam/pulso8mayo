@@ -1,15 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { employeeProfiles, employeeContracts, employeeAuditLogs, employeeDocuments, employeeOnboarding, employeeOffboarding, companies, branches } from '@/lib/db/schema';
-import { eq, and, gte, lte, count, avg, sql, ilike, or } from 'drizzle-orm';
+import { eq, and, gte, lte, count, avg, sql, ilike, or, inArray } from 'drizzle-orm';
 import { startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subDays } from 'date-fns';
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const companyId = searchParams.get('companyId');
-    const branchId = searchParams.get('branchId');
-    const period = searchParams.get('period') || '30d'; // 7d, 30d, 90d, YTD
+  const branchId = searchParams.get('branchId');
+  const period = searchParams.get('period') || '30d'; // 7d, 30d, 90d, YTD
+
+  let branchFilter: any = undefined;
+  if (branchId && branchId !== 'all') {
+    const isValidUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(branchId);
+    if (isValidUuid) {
+      branchFilter = branchId;
+    }
+  }
 
     if (!companyId) {
       return NextResponse.json({ error: 'companyId is required' }, { status: 400 });
@@ -42,26 +50,46 @@ export async function GET(request: NextRequest) {
         endDate = now;
     }
 
-    // Workforce Overview
-    const totalHeadcount = await db
-      .select({ count: count() })
-      .from(employeeProfiles)
-      .where(
-        and(
-          eq(employeeProfiles.isActive, true),
-          eq(employeeProfiles.employeeStatus, 'ACTIVE')
-        )
-      );
+  // Workforce Overview
+  const totalHeadcountConditions: any[] = [
+    eq(employeeProfiles.isActive, true),
+    eq(employeeProfiles.employeeStatus, 'ACTIVE'),
+  ];
+  if (branchFilter) totalHeadcountConditions.push(eq(employeeContracts.branchId, branchFilter));
 
-    const newHires = await db
-      .select({ count: count() })
-      .from(employeeProfiles)
-      .where(
-        and(
-          gte(employeeProfiles.hireDate, startDate),
-          lte(employeeProfiles.hireDate, endDate)
-        )
-      );
+  const totalHeadcount = branchFilter
+    ? await db
+        .select({ count: count() })
+        .from(employeeProfiles)
+        .innerJoin(employeeContracts, and(
+          eq(employeeProfiles.userId, employeeContracts.userId),
+          eq(employeeContracts.status, 'ACTIVE')
+        ))
+        .where(and(...totalHeadcountConditions))
+    : await db
+        .select({ count: count() })
+        .from(employeeProfiles)
+        .where(and(...totalHeadcountConditions));
+
+  const newHiresConditions: any[] = [
+    gte(employeeProfiles.hireDate, startDate),
+    lte(employeeProfiles.hireDate, endDate),
+  ];
+  if (branchFilter) newHiresConditions.push(eq(employeeContracts.branchId, branchFilter));
+
+  const newHires = branchFilter
+    ? await db
+        .select({ count: count() })
+        .from(employeeProfiles)
+        .innerJoin(employeeContracts, and(
+          eq(employeeProfiles.userId, employeeContracts.userId),
+          eq(employeeContracts.status, 'ACTIVE')
+        ))
+        .where(and(...newHiresConditions))
+    : await db
+        .select({ count: count() })
+        .from(employeeProfiles)
+        .where(and(...newHiresConditions));
 
     const terminations = await db
       .select({ count: count() })
@@ -73,31 +101,75 @@ export async function GET(request: NextRequest) {
         )
       );
 
-    // Average tenure (in months)
-    const avgTenure = await db
-      .select({ avgMonths: avg(sql`EXTRACT(EPOCH FROM (NOW() - hire_date)) / 2592000`) })
-      .from(employeeProfiles)
-      .where(eq(employeeProfiles.isActive, true));
+  // Average tenure (in months)
+  const avgTenureConditions: any[] = [eq(employeeProfiles.isActive, true)];
+  if (branchFilter) avgTenureConditions.push(eq(employeeContracts.branchId, branchFilter));
 
-    // Demographics - Gender Distribution
-    const genderDistribution = await db
-      .select({
-        gender: employeeProfiles.gender,
-        count: count(),
-      })
-      .from(employeeProfiles)
-      .where(eq(employeeProfiles.isActive, true))
-      .groupBy(employeeProfiles.gender);
+  const avgTenure = branchFilter
+    ? await db
+        .select({ avgMonths: avg(sql`EXTRACT(EPOCH FROM (NOW() - ${employeeProfiles.hireDate})) / 2592000`) })
+        .from(employeeProfiles)
+        .innerJoin(employeeContracts, and(
+          eq(employeeProfiles.userId, employeeContracts.userId),
+          eq(employeeContracts.status, 'ACTIVE')
+        ))
+        .where(and(...avgTenureConditions))
+    : await db
+        .select({ avgMonths: avg(sql`EXTRACT(EPOCH FROM (NOW() - ${employeeProfiles.hireDate})) / 2592000`) })
+        .from(employeeProfiles)
+        .where(and(...avgTenureConditions));
 
-    // Department Distribution
-    const departmentDistribution = await db
-      .select({
-        department: employeeProfiles.department,
-        count: count(),
-      })
-      .from(employeeProfiles)
-      .where(eq(employeeProfiles.isActive, true))
-      .groupBy(employeeProfiles.department);
+  // Demographics - Gender Distribution
+  const genderConditions: any[] = [eq(employeeProfiles.isActive, true)];
+  if (branchFilter) genderConditions.push(eq(employeeContracts.branchId, branchFilter));
+
+  const genderDistribution = branchFilter
+    ? await db
+        .select({
+          gender: employeeProfiles.gender,
+          count: count(),
+        })
+        .from(employeeProfiles)
+        .innerJoin(employeeContracts, and(
+          eq(employeeProfiles.userId, employeeContracts.userId),
+          eq(employeeContracts.status, 'ACTIVE')
+        ))
+        .where(and(...genderConditions))
+        .groupBy(employeeProfiles.gender)
+    : await db
+        .select({
+          gender: employeeProfiles.gender,
+          count: count(),
+        })
+        .from(employeeProfiles)
+        .where(and(...genderConditions))
+        .groupBy(employeeProfiles.gender);
+
+  // Department Distribution
+  const deptConditions: any[] = [eq(employeeProfiles.isActive, true)];
+  if (branchFilter) deptConditions.push(eq(employeeContracts.branchId, branchFilter));
+
+  const departmentDistribution = branchFilter
+    ? await db
+        .select({
+          department: employeeProfiles.department,
+          count: count(),
+        })
+        .from(employeeProfiles)
+        .innerJoin(employeeContracts, and(
+          eq(employeeProfiles.userId, employeeContracts.userId),
+          eq(employeeContracts.status, 'ACTIVE')
+        ))
+        .where(and(...deptConditions))
+        .groupBy(employeeProfiles.department)
+    : await db
+        .select({
+          department: employeeProfiles.department,
+          count: count(),
+        })
+        .from(employeeProfiles)
+        .where(and(...deptConditions))
+        .groupBy(employeeProfiles.department);
 
     // Compensation Analytics - Average Salary by Department
     const avgSalaryByDept = await db

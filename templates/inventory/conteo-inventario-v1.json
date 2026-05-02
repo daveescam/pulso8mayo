@@ -14,7 +14,7 @@
   "pasos": [
     {
       "id": "category-select",
-      "type": "SelectField",
+      "type": "multiple_choice",
       "title": "¿Qué área vas a contar?",
       "description": "Selecciona la categoría de productos a contar",
       "required": true,
@@ -28,7 +28,7 @@
     },
     {
       "id": "confirm-count",
-      "type": "SelectField",
+      "type": "SELECT",
       "title": "¿Confirmas que el conteo está correcto?",
       "description": "Una vez confirmado, se generarán los ajustes automáticamente. Los pasos de conteo de productos se agregan dinámicamente al iniciar el workflow.",
       "required": true,
