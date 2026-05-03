@@ -1,6 +1,9 @@
 /**
+ * @deprecated Use NotificationDispatcher from @/lib/services/notification-dispatcher instead.
+ * This module will be removed in a future version.
+ *
  * WhatsApp Notification Dispatcher
- * 
+ *
  * Centralized service for sending WhatsApp notifications
  * Integrates with WorkflowService, IncidentEngine, and InventoryService
  */

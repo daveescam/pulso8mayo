@@ -350,12 +350,46 @@ export default function AnalyticsDashboard() {
                 </CardContent>
             </Card>
 
-            {/* Alerts */}
-            {alerts.length > 0 && (
-                <KpiAlerts alerts={alerts} onAcknowledge={() => fetchKpis()} />
-            )}
+      {/* Alerts */}
+      {alerts.length > 0 && (
+        <KpiAlerts alerts={alerts} onAcknowledge={() => fetchKpis()} />
+      )}
 
-            {/* KPI Cards */}
+      {/* Summary Stats */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Summary</CardTitle>
+          <CardDescription>Overall performance metrics</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="space-y-1">
+              <div className="text-sm text-muted-foreground">Total KPIs</div>
+              <div className="text-2xl font-bold">{kpis.length}</div>
+            </div>
+            <div className="space-y-1">
+              <div className="text-sm text-muted-foreground">Normal</div>
+              <div className="text-2xl font-bold text-green-600">
+                {kpis.filter((k) => k.status === "NORMAL").length}
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="text-sm text-muted-foreground">Warnings</div>
+              <div className="text-2xl font-bold text-yellow-600">
+                {kpis.filter((k) => k.status === "WARNING").length}
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="text-sm text-muted-foreground">Critical</div>
+              <div className="text-2xl font-bold text-red-600">
+                {kpis.filter((k) => k.status === "CRITICAL").length}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* KPI Cards */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 {filteredKpis.map((kpi) => (
                     <KpiCard
@@ -411,39 +445,6 @@ export default function AnalyticsDashboard() {
                 </TabsContent>
             </Tabs>
 
-            {/* Summary Stats */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Summary</CardTitle>
-                    <CardDescription>Overall performance metrics</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="space-y-1">
-                            <div className="text-sm text-muted-foreground">Total KPIs</div>
-                            <div className="text-2xl font-bold">{kpis.length}</div>
-                        </div>
-                        <div className="space-y-1">
-                            <div className="text-sm text-muted-foreground">Normal</div>
-                            <div className="text-2xl font-bold text-green-600">
-                                {kpis.filter((k) => k.status === "NORMAL").length}
-                            </div>
-                        </div>
-                        <div className="space-y-1">
-                            <div className="text-sm text-muted-foreground">Warnings</div>
-                            <div className="text-2xl font-bold text-yellow-600">
-                                {kpis.filter((k) => k.status === "WARNING").length}
-                            </div>
-                        </div>
-                        <div className="space-y-1">
-                            <div className="text-sm text-muted-foreground">Critical</div>
-                            <div className="text-2xl font-bold text-red-600">
-                                {kpis.filter((k) => k.status === "CRITICAL").length}
-                            </div>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
+    </div>
     );
 }

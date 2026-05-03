@@ -4,16 +4,17 @@ import * as React from "react";
 import { AIVerificationList, AIVerificationListItem, AIVerificationStatus } from "@/components/workflow/ai-verification-status";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Filter, Download } from "lucide-react";
+import { RefreshCw, Filter, Download, BrainCog } from "lucide-react";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { useSession } from "@/hooks/use-session";
 
 interface VerificationData {
     id: string;
@@ -33,93 +34,31 @@ interface VerificationData {
 }
 
 export default function AIVerificationsPage() {
-    const [verifications, setVerifications] = React.useState<VerificationData[]>([]);
-    const [loading, setLoading] = React.useState(true);
-    const [filter, setFilter] = React.useState<'all' | 'success' | 'failed' | 'escalated' | 'pending'>('all');
-    const [selectedVerification, setSelectedVerification] = React.useState<VerificationData | null>(null);
+  const { session } = useSession();
+  const [verifications, setVerifications] = React.useState<VerificationData[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [filter, setFilter] = React.useState<'all' | 'success' | 'failed' | 'escalated' | 'pending'>('all');
+  const [selectedVerification, setSelectedVerification] = React.useState<VerificationData | null>(null);
 
-    const loadVerifications = React.useCallback(async () => {
-        try {
-            setLoading(true);
-            const response = await fetch('/api/dashboard/ai-verifications');
-            const data = await response.json();
-            
-            const mockData: VerificationData[] = data.data || [
-                {
-                    id: 'vrf_1',
-                    workflowName: 'Recepción de Inventario - Temperatura',
-                    instanceId: 'inst_001',
-                    stepId: 'step_001',
-                    status: 'success',
-                    confidence: 0.95,
-                    reason: 'La temperatura es correcta (4°C). Producto en buen estado.',
-                    provider: 'openai',
-                    timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-                    photoUrl: '/mock-temperature.jpg',
-                    assignee: 'Juan Pérez',
-                    branch: 'Sucursal Centro'
-                },
-                {
-                    id: 'vrf_2',
-                    workflowName: 'Limpieza de Cocina - Verificación',
-                    instanceId: 'inst_002',
-                    stepId: 'step_002',
-                    status: 'failed',
-                    confidence: 0.72,
-                    reason: 'Se detectaron áreas sucias en la superficie. Se requiere limpieza adicional.',
-                    provider: 'moondream',
-                    timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-                    photoUrl: '/mock-kitchen.jpg',
-                    requiresManualReview: true,
-                    assignee: 'María García',
-                    branch: 'Sucursal Norte'
-                },
-                {
-                    id: 'vrf_3',
-                    workflowName: 'Control de Calidad - Producto Perecedero',
-                    instanceId: 'inst_003',
-                    stepId: 'step_003',
-                    status: 'escalated',
-                    confidence: 0.65,
-                    reason: 'No se pudo determinar claramente la fecha de expiración. Requiere revisión manual.',
-                    provider: 'openai',
-                    timestamp: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-                    photoUrl: '/mock-product.jpg',
-                    requiresManualReview: true,
-                    escalated: true,
-                    assignee: 'Carlos López',
-                    branch: 'Sucursal Sur'
-                },
-                {
-                    id: 'vrf_4',
-                    workflowName: 'Verificación de Almacenamiento',
-                    instanceId: 'inst_004',
-                    stepId: 'step_004',
-                    status: 'pending',
-                    assignee: 'Ana Martínez',
-                    branch: 'Sucursal Centro'
-                },
-                {
-                    id: 'vrf_5',
-                    workflowName: 'Control de Temperatura - Congelador',
-                    instanceId: 'inst_005',
-                    stepId: 'step_005',
-                    status: 'analyzing',
-                    provider: 'openai',
-                    timestamp: new Date(Date.now() - 1000 * 5).toISOString(),
-                    assignee: 'Roberto Sánchez',
-                    branch: 'Sucursal Oeste'
-                }
-            ];
-            
-            setVerifications(mockData);
-        } catch (error) {
-            console.error('Failed to load verifications:', error);
-            toast.error('Error al cargar verificaciones');
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+  const loadVerifications = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (session?.user?.branchId) {
+        params.set('branchId', session.user.branchId);
+      }
+      const response = await fetch(`/api/dashboard/ai-verifications?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch');
+      const data = await response.json();
+      setVerifications(data.data || []);
+    } catch (error) {
+      console.error('Failed to load verifications:', error);
+      toast.error('Error al cargar verificaciones');
+      setVerifications([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [session?.user?.branchId]);
 
     React.useEffect(() => {
         loadVerifications();
@@ -261,11 +200,21 @@ export default function AIVerificationsPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {loading ? (
-                                <div className="text-center py-8 text-muted-foreground">
-                                    Cargando verificaciones...
-                                </div>
-                            ) : (
+            {loading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+              </div>
+            ) : filteredVerifications.length === 0 ? (
+              <div className="text-center py-12">
+                <BrainCog className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium">No hay verificaciones</h3>
+                <p className="text-muted-foreground mb-4">
+                  {filter !== 'all'
+                    ? 'No se encontraron verificaciones con el filtro seleccionado'
+                    : 'Las verificaciones de IA aparecerán aquí cuando se ejecuten workflows con análisis de evidencia'}
+                </p>
+              </div>
+            ) : (
                                 <AIVerificationList
                                     verifications={verificationsForList}
                                     onVerificationClick={(id) => {

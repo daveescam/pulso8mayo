@@ -232,7 +232,7 @@ export default function EquipmentPage() {
                 </div>
                 <div className="flex gap-2">
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[160px]">
+                    <SelectTrigger className="w-40">
                       <Filter className="w-4 h-4 mr-2" />
                       <SelectValue placeholder="Estado" />
                     </SelectTrigger>
@@ -245,7 +245,7 @@ export default function EquipmentPage() {
               </SelectContent>
                   </Select>
                   <Select value={typeFilter} onValueChange={setTypeFilter}>
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-45">
                       <SelectValue placeholder="Tipo" />
                     </SelectTrigger>
             <SelectContent>
@@ -287,7 +287,7 @@ export default function EquipmentPage() {
                         <TableHead>Estado</TableHead>
                         <TableHead>Último Mant.</TableHead>
                         <TableHead>Próximo Mant.</TableHead>
-                        <TableHead className="w-[100px]"></TableHead>
+                        <TableHead className="w-25"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

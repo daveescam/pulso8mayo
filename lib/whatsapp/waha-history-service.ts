@@ -7,7 +7,7 @@
  * Documentación: https://waha.devlike.pro/docs/engines/noweb/store/
  */
 
-import { getWAHAClient } from './waha-client';
+import { getWhatsAppClient } from './client-factory';
 
 export interface Message {
   id: string;
@@ -51,13 +51,17 @@ export async function getMessageHistory(
   phone: string,
   options: ChatHistoryOptions = {}
 ): Promise<Message[]> {
-  const client = getWAHAClient();
+  const client = await getWhatsAppClient();
 
   try {
-    const messages = await client.getChatMessages(session, phone, {
+    const result = await client.getChatHistory({
+      sessionId: session,
+      chatId: phone,
       limit: options.limit || 50,
-      before: options.before,
+      cursor: options.before,
     });
+
+    const messages = result.messages;
 
     return messages.map((msg: any) => ({
       id: msg.id,
@@ -85,7 +89,7 @@ export async function getMessageHistory(
  * @returns Array de chats
  */
 export async function getAllChats(session: string): Promise<Chat[]> {
-  const client = getWAHAClient();
+  const client = await getWhatsAppClient();
 
   try {
     const chats = await client.getChats(session);

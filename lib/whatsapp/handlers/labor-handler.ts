@@ -7,7 +7,7 @@
 import { db } from '@/lib/db';
 import { shiftSessions, breakLogs, users } from '@/lib/db/schema';
 import { eq, and, sql, desc } from 'drizzle-orm';
-import { wasenderClient } from '../wasender-client';
+import { whatsappClient } from '../client-factory';
 
 export interface LaborCommandResult {
     success: boolean;

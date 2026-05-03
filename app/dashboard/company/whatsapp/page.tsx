@@ -1,34 +1,31 @@
-/**
- * WhatsApp Settings Page
- * 
- * Main page for managing WhatsApp integration
- */
-
 import { QRScanner } from '@/components/whatsapp/qr-scanner';
 import { SessionStatus } from '@/components/whatsapp/session-status';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MessageSquare, Zap, Bell, Shield } from 'lucide-react';
+import { auth } from '@/lib/auth';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 
-export default function WhatsAppPage() {
-    return (
-        <div className="container mx-auto py-8 space-y-8">
-            {/* Header */}
-            <div>
+export default async function WhatsAppPage() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) redirect('/sign-in');
+  const companyId = session.user.companyId;
+  return (
+    <div className="container mx-auto py-8 space-y-8">
+      <div>
                 <h1 className="text-3xl font-bold tracking-tight">Integración WhatsApp</h1>
                 <p className="text-muted-foreground mt-2">
                     Conecta WhatsApp para habilitar comandos de voz y notificaciones instantáneas
                 </p>
             </div>
 
-            {/* Session Status & QR Scanner */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <SessionStatus />
-                <QRScanner companyId="current" />
+                <QRScanner companyId={companyId} />
             </div>
 
-            {/* Features */}
-            <div>
-                <h2 className="text-2xl font-semibold mb-4">Funcionalidades</h2>
+      <div>
+        <h2 className="text-2xl font-semibold mb-4">Funcionalidades</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Card>
                         <CardHeader>
@@ -129,9 +126,8 @@ export default function WhatsAppPage() {
                 </div>
             </div>
 
-            {/* Setup Instructions */}
-            <Card>
-                <CardHeader>
+    <Card>
+      <CardHeader>
                     <CardTitle>Instrucciones de Configuración</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">

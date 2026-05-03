@@ -509,6 +509,13 @@ export class WAHAClient {
     return response.data;
   }
 
+  async getChatHistory(params: { sessionId: string; chatId: string; limit?: number; cursor?: string }): Promise<{ messages: any[]; hasMore: boolean; cursor?: string }> {
+    const messages = await this.getChatMessages(params.sessionId, params.chatId.replace('@c.us', ''), {
+      limit: params.limit,
+    });
+    return { messages, hasMore: false, cursor: params.cursor };
+  }
+
   /**
    * Obtener todos los chats (requiere store habilitado)
    * GET /api/{session}/chats

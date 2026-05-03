@@ -3,35 +3,19 @@
 import * as React from "react"
 import {
   BookOpen,
-  Bot,
-  Command,
-  Frame,
-  LifeBuoy,
-  Map,
-  PieChart,
-  Send,
-  Settings2,
   SquareTerminal,
   Building2,
   Users,
   Layout,
-  FileText,
-  AlertOctagon,
-  Clock,
   ShieldCheck,
-  LogOut,
-  ChevronRight,
-  ChevronUp,
   User2,
-  Calendar,
-  CheckSquare,
   Package,
   TrendingUp,
   Wrench,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
+
 import { NavUser } from "@/components/nav-user"
 import { NavCompany } from "@/components/nav-company"
 import {

@@ -1,7 +1,11 @@
 import { db } from '@/lib/db';
 import { users, notifications, notificationPreferences } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { wasenderClient, isWhatsAppConfigured } from '@/lib/whatsapp/wasender-client';
+import { whatsappClient } from '@/lib/whatsapp/client-factory';
+
+function isWhatsAppConfigured(): boolean {
+  return !!(process.env.WASENDER_API_KEY || process.env.WAHA_API_URL);
+}
 
 let resend: any = null;
 async function getResend() {
@@ -254,7 +258,7 @@ export class NotificationService {
             }
 
             const sessionId = process.env.WHATSAPP_SESSION_ID || `pulso_${userData.companyId || 'default'}`;
-            const result = await wasenderClient.sendMessage({
+	const result = await whatsappClient.sendMessage({
                 sessionId,
                 to: userData.phone,
                 message,

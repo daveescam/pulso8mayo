@@ -1,3 +1,7 @@
+/**
+ * @deprecated Use NotificationDispatcher from @/lib/services/notification-dispatcher instead.
+ * This module will be removed in a future version.
+ */
 import { db } from "@/lib/db";
 import { whatsappSessions, users, branches, workflowInstances, workflowTemplates } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";

@@ -41,6 +41,13 @@ export default function ReportsPage() {
     const [branchId, setBranchId] = useState<string>("all");
     const [generating, setGenerating] = useState<string | null>(null);
   const [availableBranches, setAvailableBranches] = useState<{id: string; name: string}[]>([]);
+  const [reportStats, setReportStats] = useState<{
+    totalWorkflows: number | null;
+    completionRate: number | null;
+  }>({ totalWorkflows: null, completionRate: null });
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [scheduledReports, setScheduledReports] = useState<any[]>([]);
+  const [scheduledLoading, setScheduledLoading] = useState(true);
 
   useEffect(() => {
     fetch('/api/branches')
@@ -50,6 +57,34 @@ export default function ReportsPage() {
         setAvailableBranches(branches.map((b: any) => ({ id: b.id, name: b.name })));
       })
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    setStatsLoading(true);
+    fetch(`/api/reports/stats?days=30${branchId !== 'all' ? `&branchId=${branchId}` : ''}`)
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data) {
+          const total = data.activeWorkflows?.length ?? null;
+          const rate = data.completionRate?.length
+            ? Math.round(data.completionRate.reduce((sum: number, d: any) => sum + d.rate, 0) / data.completionRate.length)
+            : null;
+          setReportStats({ totalWorkflows: total, completionRate: rate });
+        }
+      })
+      .catch(() => {})
+      .finally(() => setStatsLoading(false));
+  }, [branchId]);
+
+  useEffect(() => {
+    setScheduledLoading(true);
+    fetch('/api/reports/scheduled')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        setScheduledReports(Array.isArray(data) ? data : data?.reports ?? []);
+      })
+      .catch(() => setScheduledReports([]))
+      .finally(() => setScheduledLoading(false));
   }, []);
 
     const reports = [
@@ -191,45 +226,49 @@ export default function ReportsPage() {
                 </div>
             </div>
 
-            {/* Quick Stats */}
-            <div className="grid gap-4 md:grid-cols-4">
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <ClipboardList className="h-4 w-4" />
-                            Workflows en Período
-                        </CardDescription>
-                        <CardTitle className="text-3xl">156</CardTitle>
-                    </CardHeader>
-                </Card>
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <CheckCircle2 className="h-4 w-4" />
-                            Tasa de Completación
-                        </CardDescription>
-                        <CardTitle className="text-3xl text-green-600">94%</CardTitle>
-                    </CardHeader>
-                </Card>
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <Shield className="h-4 w-4" />
-                            Cumplimiento NOM
-                        </CardDescription>
-                        <CardTitle className="text-3xl text-blue-600">98%</CardTitle>
-                    </CardHeader>
-                </Card>
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <AlertTriangle className="h-4 w-4" />
-                            Incidentes
-                        </CardDescription>
-                        <CardTitle className="text-3xl text-orange-600">3</CardTitle>
-                    </CardHeader>
-                </Card>
-            </div>
+      {/* Quick Stats */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2">
+              <ClipboardList className="h-4 w-4" />
+              Workflows en Período
+            </CardDescription>
+            <CardTitle className="text-3xl">
+              {statsLoading ? '...' : reportStats.totalWorkflows ?? '--'}
+            </CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4" />
+              Tasa de Completación
+            </CardDescription>
+            <CardTitle className="text-3xl text-green-600">
+              {statsLoading ? '...' : reportStats.completionRate != null ? `${reportStats.completionRate}%` : '--%'}
+            </CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              Cumplimiento NOM
+            </CardDescription>
+            <CardTitle className="text-3xl text-blue-600">--%</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              Incidentes
+            </CardDescription>
+            <CardTitle className="text-3xl text-orange-600">--</CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
 
             {/* Filters */}
             <Card>
@@ -388,66 +427,60 @@ export default function ReportsPage() {
                 </TabsContent>
             </Tabs>
 
-            {/* Scheduled Reports */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Calendar className="h-5 w-5" />
-                        Reportes Programados
-                    </CardTitle>
-                    <CardDescription>
-                        Configura reportes automáticos que se envían periódicamente
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between p-4 border rounded-lg">
-                            <div className="flex items-center gap-4">
-                                <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                                    <ClipboardList className="h-5 w-5 text-blue-600" />
-                                </div>
-                                <div>
-                                    <p className="font-medium">Resumen Semanal de Workflows</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        Se envía todos los lunes a las 8:00 AM
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="text-green-600 border-green-600">
-                                    <CheckCircle2 className="h-3 w-3 mr-1" />
-                                    Activo
-                                </Badge>
-                                <Button variant="ghost" size="sm">Editar</Button>
-                            </div>
-                        </div>
-                        <div className="flex items-center justify-between p-4 border rounded-lg">
-                            <div className="flex items-center gap-4">
-                                <div className="h-10 w-10 rounded-lg bg-orange-100 flex items-center justify-center">
-                                    <Shield className="h-5 w-5 text-orange-600" />
-                                </div>
-                                <div>
-                                    <p className="font-medium">Reporte Mensual NOM-251</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        Se envía el primer día de cada mes
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="text-green-600 border-green-600">
-                                    <CheckCircle2 className="h-3 w-3 mr-1" />
-                                    Activo
-                                </Badge>
-                                <Button variant="ghost" size="sm">Editar</Button>
-                            </div>
-                        </div>
-                        <Button variant="outline" className="w-full">
-                                            <Calendar className="h-4 w-4 mr-2" />
-                                            Programar Nuevo Reporte
-                        </Button>
+      {/* Scheduled Reports */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Reportes Programados
+          </CardTitle>
+          <CardDescription>
+            Configura reportes automáticos que se envían periódicamente
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {scheduledLoading ? (
+              <div className="flex items-center justify-center py-8 text-muted-foreground">
+                Cargando reportes programados...
+              </div>
+            ) : scheduledReports.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                <Calendar className="h-10 w-10 mb-2 opacity-50" />
+                <p>No hay reportes programados</p>
+                <p className="text-sm">Programa un reporte para recibirlo automáticamente</p>
+              </div>
+            ) : (
+              scheduledReports.map((report: any, idx: number) => (
+                <div key={report.id || idx} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                      <ClipboardList className="h-5 w-5 text-blue-600" />
                     </div>
-                </CardContent>
-            </Card>
+                    <div>
+                      <p className="font-medium">{report.name || 'Reporte Programado'}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {report.schedule || 'Programado'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-green-600 border-green-600">
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      Activo
+                    </Badge>
+                    <Button variant="ghost" size="sm">Editar</Button>
+                  </div>
+                </div>
+              ))
+            )}
+            <Button variant="outline" className="w-full">
+              <Calendar className="h-4 w-4 mr-2" />
+              Programar Nuevo Reporte
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
         </div>
     );
 }

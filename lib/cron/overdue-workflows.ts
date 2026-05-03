@@ -8,7 +8,7 @@
 import { db } from '@/lib/db';
 import { workflowAssignments, workflowInstances, workflowTemplates } from '@/lib/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
-import { whatsappNotificationDispatcher } from '@/lib/whatsapp/notification-dispatcher';
+import { NotificationDispatcher } from '@/lib/services/notification-dispatcher';
 
 export async function processOverdueWorkflows() {
     try {
@@ -54,16 +54,20 @@ export async function processOverdueWorkflows() {
                     })
                     .where(eq(workflowAssignments.id, assignment.id));
 
-                // Send overdue alert
-                await whatsappNotificationDispatcher.sendWorkflowOverdue(
-                    assignment.assignedTo,
-                    {
-                        id: assignment.id,
-                        workflowName: template?.name || 'Workflow',
-                        dueDate: assignment.dueDate?.toISOString(),
-                        priority: assignment.priority,
-                    }
-                );
+        // Send overdue alert via unified NotificationDispatcher
+        await NotificationDispatcher.sendNotification({
+          userId: assignment.assignedTo,
+          eventType: 'workflow_overdue',
+          title: 'Tarea Vencida',
+          message: `La tarea "${template?.name || 'Workflow'} está vencida`,
+          type: 'error',
+          metadata: {
+            workflowName: template?.name || 'Workflow',
+            dueDate: assignment.dueDate?.toISOString(),
+            priority: assignment.priority,
+            overdueTime: assignment.dueDate ? `desde ${assignment.dueDate.toLocaleDateString('es-MX')}` : 'hace poco',
+          },
+        });
 
                 console.log(`[Cron] Marked assignment ${assignment.id} as overdue`);
             } catch (error) {

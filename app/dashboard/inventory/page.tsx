@@ -4,30 +4,57 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Search, Loader2, Package, PackagePlus, ArrowRight, AlertTriangle, Building2, ClipboardList } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useBranch } from "@/lib/branch-context";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const CATEGORIES = [
+  { value: "Materia Prima", label: "Materia Prima" },
+  { value: "Producto Terminado", label: "Producto Terminado" },
+  { value: "Insumo", label: "Insumo" },
+  { value: "Embalaje", label: "Embalaje" },
+  { value: "Otro", label: "Otro" },
+];
+
+const UNITS = [
+  { value: "KG", label: "KG" },
+  { value: "L", label: "L" },
+  { value: "PIEZA", label: "PIEZA" },
+  { value: "CAJA", label: "CAJA" },
+  { value: "BOLSA", label: "BOLSA" },
+  { value: "OTRO", label: "OTRO" },
+];
 
 export default function InventoryPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [formName, setFormName] = useState("");
+  const [formSku, setFormSku] = useState("");
+  const [formCategory, setFormCategory] = useState("");
+  const [formUnit, setFormUnit] = useState("KG");
+  const [formMinLevel, setFormMinLevel] = useState("");
   const { selectedBranchId, selectedBranch } = useBranch();
 
   useEffect(() => {
     fetchProducts();
-  }, [selectedBranchId]); // Refetch when branch changes
+  }, [selectedBranchId]);
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      // Add branchId to query if selected
-      const url = selectedBranchId 
+      const url = selectedBranchId
         ? `/api/inventory/products?branchId=${selectedBranchId}`
         : "/api/inventory/products";
-      
+
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -41,35 +68,67 @@ export default function InventoryPage() {
     }
   };
 
-  const handleCreateMock = async () => {
+  const resetForm = () => {
+    setFormName("");
+    setFormSku("");
+    setFormCategory("");
+    setFormUnit("KG");
+    setFormMinLevel("");
+  };
+
+  const handleCreateProduct = async () => {
+    if (!formName.trim()) {
+      toast.error("El nombre es requerido");
+      return;
+    }
     try {
+      setSubmitting(true);
+      const body: Record<string, any> = {
+        name: formName.trim(),
+        unit: formUnit,
+      };
+      if (formSku.trim()) body.sku = formSku.trim();
+      if (formCategory) body.category = formCategory;
+      if (formMinLevel && Number(formMinLevel) > 0) body.minLevel = Number(formMinLevel);
+
       const res = await fetch("/api/inventory/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: `New Product ${Math.floor(Math.random() * 1000)}`,
-          sku: `SKU-${Math.floor(Math.random() * 10000)}`,
-          category: "Raw Material",
-          minLevel: 10,
-          unit: "KG"
-        })
+        body: JSON.stringify(body),
       });
       if (res.ok) {
-        toast.success("Product created");
+        toast.success("Producto creado");
+        setDialogOpen(false);
+        resetForm();
         fetchProducts();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Error al crear producto");
       }
     } catch (error) {
-      toast.error("Failed to create");
+      toast.error("Error al crear producto");
+    } finally {
+      setSubmitting(false);
     }
   };
+
+  const filteredProducts = products.filter((product) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      product.name?.toLowerCase().includes(q) ||
+      product.sku?.toLowerCase().includes(q) ||
+      product.category?.toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold md:text-2xl">Inventory Management</h1>
+          <h1 className="text-lg font-semibold md:text-2xl">Gestión de Inventario</h1>
           <p className="text-muted-foreground text-sm">
-            Manage products, stock levels, and receiving
+            Gestiona productos, niveles de stock y recepciones
           </p>
           {selectedBranch && (
             <Badge variant="outline" className="mt-2 gap-1">
@@ -82,29 +141,28 @@ export default function InventoryPage() {
           <Link href="/dashboard/inventory/receiving">
             <Button variant="outline" className="gap-2">
               <PackagePlus className="h-4 w-4" />
-              Receiving
+              Recepción
             </Button>
           </Link>
-          <Button onClick={handleCreateMock}>
-            <Plus className="mr-2 h-4 w-4" /> Add Product
+          <Button onClick={() => setDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Agregar Producto
           </Button>
         </div>
       </div>
 
-      {/* Quick Actions */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Link href="/dashboard/inventory/receiving">
           <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Receive Inventory
+                Recepción de Inventario
               </CardTitle>
               <PackagePlus className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">New Receiving</div>
+              <div className="text-2xl font-bold">Nueva Recepción</div>
               <p className="text-xs text-muted-foreground">
-                Register incoming stock from suppliers
+                Registrar stock entrante de proveedores
               </p>
             </CardContent>
           </Card>
@@ -113,14 +171,14 @@ export default function InventoryPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Total Products
+              Total Productos
             </CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{products.length}</div>
             <p className="text-xs text-muted-foreground">
-              Registered items
+              Artículos registrados
             </p>
           </CardContent>
         </Card>
@@ -129,14 +187,14 @@ export default function InventoryPage() {
           <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Suppliers
+                Proveedores
               </CardTitle>
               <ArrowRight className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">Manage</div>
+              <div className="text-2xl font-bold">Gestionar</div>
               <p className="text-xs text-muted-foreground">
-                View and manage suppliers
+                Ver y gestionar proveedores
               </p>
             </CardContent>
           </Card>
@@ -146,14 +204,14 @@ export default function InventoryPage() {
           <Card className="cursor-pointer hover:bg-muted/50 transition-colors border-amber-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-amber-700">
-                Register Waste
+                Registrar Merma
               </CardTitle>
               <AlertTriangle className="h-4 w-4 text-amber-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-amber-900">Waste</div>
+              <div className="text-2xl font-bold text-amber-900">Merma</div>
               <p className="text-xs text-muted-foreground">
-                Register expired, damaged, or quality issues
+                Registrar caducados, dañados o problemas de calidad
               </p>
             </CardContent>
           </Card>
@@ -163,7 +221,7 @@ export default function InventoryPage() {
           <Card className="cursor-pointer hover:bg-muted/50 transition-colors border-blue-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-blue-700">
-                Stock Count
+                Conteo de Stock
               </CardTitle>
               <ClipboardList className="h-4 w-4 text-blue-600" />
             </CardHeader>
@@ -182,18 +240,20 @@ export default function InventoryPage() {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Search products..."
+            placeholder="Buscar productos..."
             className="pl-8 sm:w-[300px] md:w-[200px] lg:w-[300px]"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Products</CardTitle>
+          <CardTitle>Productos</CardTitle>
           <CardDescription>
-            List of all inventory items in the system
-            {selectedBranch && ` for ${selectedBranch.name}`}
+            Lista de todos los artículos del inventario
+            {selectedBranch && ` para ${selectedBranch.name}`}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -203,23 +263,23 @@ export default function InventoryPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
+                  <TableHead>Nombre</TableHead>
                   <TableHead>SKU</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Unit</TableHead>
-                  {selectedBranchId && <TableHead>Current Stock</TableHead>}
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>Categoría</TableHead>
+                  <TableHead>Unidad</TableHead>
+                  {selectedBranchId && <TableHead>Stock Actual</TableHead>}
+                  <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {products.length === 0 ? (
+                {filteredProducts.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={selectedBranchId ? 6 : 5} className="text-center py-8 text-muted-foreground">
-                      No products found. Add one to get started.
+                      No se encontraron productos. Agrega uno para comenzar.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  products.map((product) => (
+                  filteredProducts.map((product) => (
                     <TableRow key={product.id}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
@@ -243,7 +303,7 @@ export default function InventoryPage() {
                       <TableCell className="text-right">
                         <Link href={`/dashboard/inventory/${product.id}`}>
                           <Button variant="ghost" size="sm">
-                            View
+                            Ver
                           </Button>
                         </Link>
                       </TableCell>
@@ -255,6 +315,87 @@ export default function InventoryPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Agregar Producto</DialogTitle>
+            <DialogDescription>
+              Ingresa los datos del nuevo producto
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="product-name">Nombre *</Label>
+              <Input
+                id="product-name"
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                placeholder="Nombre del producto"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="product-sku">SKU</Label>
+              <Input
+                id="product-sku"
+                value={formSku}
+                onChange={(e) => setFormSku(e.target.value)}
+                placeholder="Código SKU (opcional)"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Categoría</Label>
+              <Select value={formCategory} onValueChange={setFormCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.map((cat) => (
+                    <SelectItem key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>Unidad</Label>
+              <Select value={formUnit} onValueChange={setFormUnit}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar unidad" />
+                </SelectTrigger>
+                <SelectContent>
+                  {UNITS.map((u) => (
+                    <SelectItem key={u.value} value={u.value}>
+                      {u.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="product-min-level">Nivel Mínimo</Label>
+              <Input
+                id="product-min-level"
+                type="number"
+                min="0"
+                value={formMinLevel}
+                onChange={(e) => setFormMinLevel(e.target.value)}
+                placeholder="Stock mínimo (opcional)"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>
+              Cancelar
+            </Button>
+            <Button onClick={handleCreateProduct} disabled={submitting}>
+              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Crear Producto
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

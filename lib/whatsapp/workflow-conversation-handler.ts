@@ -5,7 +5,7 @@ import { eq, and, gt, inArray } from 'drizzle-orm';
 import { workflowInstances, workflowInstanceSteps, workflowTemplates } from '@/lib/db/schema';
 import { ConversationStateManager, ConversationState } from './workflow-state-manager';
 import { EvidenceProcessor } from './evidence-processor';
-import { wasenderClient } from './wasender-client';
+import { whatsappClient } from './client-factory';
 import { messageRouter, IncomingMessage } from './message-router';
 
 interface WorkflowStep {

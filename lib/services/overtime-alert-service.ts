@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { shiftSessions, users, branches, shiftApprovals } from "@/lib/db/schema";
 import { eq, and, gte, lte, gt, inArray } from "drizzle-orm";
-import { sendWhatsAppMessage } from "@/lib/whatsapp/wasender-client";
+import { whatsappClient } from "@/lib/whatsapp/client-factory";
 
 export interface OvertimeAlert {
     userId: string;
@@ -154,7 +154,11 @@ export class OvertimeAlertService {
         for (const manager of managers) {
             if (manager.whatsappPhone) {
                 try {
-                    await sendWhatsAppMessage(manager.whatsappPhone, alert.message);
+		await whatsappClient.sendMessage({
+			sessionId: process.env.WHATSAPP_SESSION_ID || 'default',
+			to: manager.whatsappPhone,
+			message: alert.message
+		});
                     console.log(`Overtime alert sent to manager ${manager.id}`);
                 } catch (error) {
                     console.error(`Error sending overtime alert to manager ${manager.id}:`, error);

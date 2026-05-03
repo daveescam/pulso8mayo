@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { workflowInstances, users, whatsappSessions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { sign } from "jsonwebtoken";
-import { WasenderClient } from "@/lib/whatsapp/wasender-client";
+import { getWhatsAppClient } from "@/lib/whatsapp/client-factory";
 
 // Ensure we have a valid JWT secret
 const JWT_SECRET = process.env.JWT_SECRET || "default_dev_secret";
@@ -140,7 +140,7 @@ export async function sendWhatsAppNotification(userId: string, message: string) 
     }
 
     try {
-        const client = new WasenderClient();
+	const client = await getWhatsAppClient();
     await client.sendMessage({
       sessionId: session.sessionId,
       to: user.whatsappPhone,

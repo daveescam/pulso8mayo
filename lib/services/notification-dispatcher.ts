@@ -1,7 +1,6 @@
 import { db } from "@/lib/db";
 import { notifications, notificationPreferences, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { WasenderClient } from "@/lib/whatsapp/wasender-client";
 import {
   sendWorkflowAssignmentEmail,
   sendWorkflowReminderEmail,
@@ -257,45 +256,31 @@ export class NotificationDispatcher {
     /**
      * Send WhatsApp notification
      */
-    private static async sendWhatsAppNotification(
-        payload: NotificationPayload,
-        template: NotificationTemplate,
-        userData: UserData
-    ): Promise<void> {
-        try {
-            if (!template.whatsappTemplate) return;
+  private static async sendWhatsAppNotification(
+    payload: NotificationPayload,
+    template: NotificationTemplate,
+    userData: UserData
+  ): Promise<void> {
+    try {
+      if (!template.whatsappTemplate) return;
 
-            // Get user's phone number
-            if (!userData?.whatsappPhone && !userData?.phone) {
-                console.log(`No WhatsApp phone for user ${payload.userId}`);
-                return;
-            }
+      if (!userData?.whatsappPhone && !userData?.phone) {
+        console.warn('[NotificationDispatcher] No phone number for user, skipping WhatsApp channel');
+        return;
+      }
 
-            const phoneNumber = userData.whatsappPhone || userData.phone;
+      const message = this.replaceTemplateVariables(
+        template.whatsappTemplate,
+        { ...payload.metadata, userName: userData.name }
+      );
 
-            // Replace template variables
-            const message = this.replaceTemplateVariables(
-                template.whatsappTemplate,
-                { ...payload.metadata, userName: userData.name }
-            );
-
-            // Send via WasenderAPI
-            // TODO: Implement actual WasenderAPI call
-            console.log(`[WhatsApp] To: ${phoneNumber}, Message: ${message}`);
-
-            // Example:
-            // const client = new WasenderClient(process.env.WASENDER_API_KEY!);
-            // await client.sendMessage({
-            //     phone: phoneNumber,
-            //     message: message
-            // });
-
-        } catch (error) {
-            console.error("Error sending WhatsApp notification:", error);
-        }
+      await this.sendWhatsAppMessage(userData.id, message);
+    } catch (error) {
+      console.error('[NotificationDispatcher] Error sending WhatsApp notification:', error);
     }
+}
 
-  /**
+/**
    * Send email notification
    */
   private static async sendEmailNotification(
@@ -604,32 +589,36 @@ export class NotificationDispatcher {
     /**
      * Send WhatsApp message to user
      */
-    private static async sendWhatsAppMessage(userId: string, message: string): Promise<void> {
-        try {
-            const userData = await this.getUserData(userId);
-            if (!userData?.whatsappPhone && !userData?.phone) {
-                console.log(`No WhatsApp phone for user ${userId}`);
-                return;
-            }
+  private static async sendWhatsAppMessage(userId: string, message: string): Promise<void> {
+    try {
+      const { whatsappClient } = await import('@/lib/whatsapp/client-factory');
+      const { sessionManager } = await import('@/lib/whatsapp/session-manager');
 
-            const phoneNumber = userData.whatsappPhone || userData.phone;
+      const userData = await this.getUserData(userId);
+      if (!userData?.phone && !userData?.whatsappPhone) {
+        console.warn('[NotificationDispatcher] No phone number for user, skipping WhatsApp send', userId);
+        return;
+      }
 
-            // TODO: Implement actual WasenderAPI call
-            console.log(`[WhatsApp] To: ${phoneNumber}, Message: ${message.substring(0, 100)}...`);
+      const companyId = userData.companyId || process.env.DEFAULT_COMPANY_ID || 'default';
+      const session = await sessionManager.getActiveSession(companyId);
+      if (!session) {
+        console.warn('[NotificationDispatcher] No active WhatsApp session, skipping WhatsApp send for user', userId);
+        return;
+      }
 
-            // Example with WasenderAPI:
-            // const client = new WasenderClient(process.env.WASENDER_API_KEY!);
-            // await client.sendMessage({
-            //     phone: phoneNumber,
-            //     message: message
-            // });
-
-        } catch (error) {
-            console.error("Error sending WhatsApp message:", error);
-        }
+      const phone = userData.whatsappPhone || userData.phone!;
+      await whatsappClient.sendMessage({
+        sessionId: session.sessionId,
+        to: phone,
+        message,
+      });
+    } catch (error) {
+      console.error('[NotificationDispatcher] WhatsApp send failed for user', userId, error);
     }
+}
 
-    /**
+/**
      * Get available templates
      */
     static getTemplates(): Record<string, NotificationTemplate> {

@@ -46,6 +46,8 @@ export interface WhatsAppClient {
     sessionId: string,
     messages: Array<{ to: string; message: string }>
   ): Promise<Array<{ to: string; success: boolean; messageId?: string; error?: string }>>;
+  getChatHistory(params: { sessionId: string; chatId: string; limit?: number; cursor?: string }): Promise<{ messages: any[]; hasMore: boolean; cursor?: string }>;
+  getChats(sessionId: string): Promise<any[]>;
 }
 
 // Cache de clientes
@@ -202,5 +204,13 @@ export const whatsappClient = {
   sendBulkMessages: async (sessionId: string, messages: Array<{ to: string; message: string }>) => {
     const client = await getWhatsAppClient();
     return client.sendBulkMessages(sessionId, messages);
+  },
+  getChatHistory: async (params: { sessionId: string; chatId: string; limit?: number; cursor?: string }) => {
+    const client = await getWhatsAppClient();
+    return client.getChatHistory(params);
+  },
+  getChats: async (sessionId: string) => {
+    const client = await getWhatsAppClient();
+    return client.getChats(sessionId);
   },
 };

@@ -8,7 +8,11 @@ import { db } from '@/lib/db';
 import { eq, and } from 'drizzle-orm';
 import { workflowInstanceSteps } from '@/lib/db/schema';
 import { ConversationState } from './workflow-state-manager';
-import { wasenderClient, isWhatsAppConfigured } from './wasender-client';
+import { whatsappClient } from './client-factory';
+
+function isWhatsAppConfigured(): boolean {
+  return !!(process.env.WASENDER_API_KEY || process.env.WAHA_API_URL);
+}
 import { r2Client } from '@/lib/r2-client';
 
 export interface EvidenceProcessingResult {

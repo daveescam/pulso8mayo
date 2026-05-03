@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { breakLogs, breakComplianceRules, breakReminderLogs, shiftSessions } from "@/lib/db/schema";
 import { eq, and, gte, lte, isNull, desc } from "drizzle-orm";
-import { wasenderClient } from "@/lib/whatsapp/wasender-client";
+import { whatsappClient } from "@/lib/whatsapp/client-factory";
 
 export interface BreakComplianceConfig {
     minBreakDuration: number;
@@ -286,7 +286,7 @@ export class BreakManagementService {
             try {
                 // Get WhatsApp session for the company
                 const companySession = `pulso_${session.branchId}`;
-                await wasenderClient.sendMessage({
+		await whatsappClient.sendMessage({
                     sessionId: companySession,
                     to: phoneNumber,
                     message: this.getReminderMessage(reminderType)

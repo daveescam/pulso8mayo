@@ -1,7 +1,6 @@
 import { db } from "@/lib/db";
 import { inventoryItems, inventoryBatches, users, notificationPreferences, suppliers, inventoryAlerts } from "@/lib/db/schema";
 import { eq, and, sql, sum } from "drizzle-orm";
-import { WhatsAppNotificationService } from "./whatsapp-notification-service";
 import { NotificationDispatcher } from "./notification-dispatcher";
 
 export interface StockAlert {

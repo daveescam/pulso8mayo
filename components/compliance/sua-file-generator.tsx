@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +12,8 @@ import { toast } from "sonner";
 
 interface SUAFileGeneratorProps {
   onGenerate?: (data: SUAData) => void;
+  employeeIds?: string[];
+  newSalaries?: Record<string, number>;
 }
 
 interface SUAData {
@@ -22,47 +23,102 @@ interface SUAData {
   totalSalary: number;
 }
 
-export function SUAFileGenerator({ onGenerate }: SUAFileGeneratorProps) {
+export function SUAFileGenerator({ onGenerate, employeeIds, newSalaries }: SUAFileGeneratorProps) {
   const [period, setPeriod] = useState("");
+  const [selectedFormat, setSelectedFormat] = useState("excel");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedData, setGeneratedData] = useState<SUAData | null>(null);
 
   const handleGenerate = async () => {
     if (!period) {
-      toast.error("Please select a period");
+      toast.error("Selecciona un período");
       return;
     }
 
     setIsGenerating(true);
 
     try {
-      // Mock data generation - in real implementation, this would call an API
-      const mockData: SUAData = {
-        period,
-        companyId: "COMP001",
-        employeeCount: 147,
-        totalSalary: 2850000, // Mock total salary in MXN
-      };
+      const response = await fetch("/api/imss/sua-generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employeeIds,
+          newSalaries,
+          fechaMovimiento: period,
+        }),
+      });
 
-      setGeneratedData(mockData);
+      if (response.ok) {
+        const contentType = response.headers.get("content-type");
+        let data: SUAData;
 
-      if (onGenerate) {
-        onGenerate(mockData);
+        if (contentType?.includes("application/json")) {
+          const json = await response.json();
+          data = {
+            period,
+            companyId: json.companyId || "",
+            employeeCount: json.employeeCount || 0,
+            totalSalary: json.totalSalary || 0,
+          };
+        } else {
+          const blob = await response.blob();
+          const text = await blob.text();
+          const lineCount = text ? text.split("\r\n").filter(Boolean).length : 0;
+          data = {
+            period,
+            companyId: "",
+            employeeCount: lineCount,
+            totalSalary: 0,
+          };
+        }
+
+        setGeneratedData(data);
+
+        if (onGenerate) {
+          onGenerate(data);
+        }
+
+        toast.success("Archivo SUA generado exitosamente");
+      } else {
+        const err = await response.json().catch(() => ({}));
+        toast.error(err.error || "Error al generar archivo SUA");
       }
-
-      toast.success("SUA file generated successfully");
     } catch (error) {
-      toast.error("Failed to generate SUA file");
+      toast.error("Error al generar archivo SUA");
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!generatedData) return;
 
-    // Mock file download - in real implementation, this would download the actual file
-    toast.success("SUA file downloaded");
+    try {
+      const response = await fetch("/api/imss/sua-generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employeeIds,
+          newSalaries,
+          fechaMovimiento: generatedData.period,
+        }),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `SUA_${generatedData.period}.${selectedFormat === "excel" ? "xlsx" : selectedFormat}`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        toast.success("Archivo SUA descargado");
+      } else {
+        toast.error("Error al descargar archivo");
+      }
+    } catch (error) {
+      toast.error("Error al descargar archivo");
+    }
   };
 
   return (
@@ -70,46 +126,46 @@ export function SUAFileGenerator({ onGenerate }: SUAFileGeneratorProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Calculator className="h-5 w-5" />
-          SUA File Generator
+          Generador de Archivo SUA
         </CardTitle>
         <CardDescription>
-          Generate Salary Update Files for IMSS monthly reporting
+          Genera archivos de Actualización de Salarios para reporte mensual al IMSS
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            SUA files must be submitted to IMSS by the 17th of each month for the previous month's salaries.
+            Los archivos SUA deben enviarse al IMSS antes del 17 de cada mes para los salarios del mes anterior.
           </AlertDescription>
         </Alert>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="period">Reporting Period</Label>
+            <Label htmlFor="period">Período de Reporte</Label>
             <Select value={period} onValueChange={setPeriod}>
               <SelectTrigger>
-                <SelectValue placeholder="Select period" />
+                <SelectValue placeholder="Seleccionar período" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="2026-04">April 2026</SelectItem>
-                <SelectItem value="2026-03">March 2026</SelectItem>
-                <SelectItem value="2026-02">February 2026</SelectItem>
-                <SelectItem value="2026-01">January 2026</SelectItem>
+                <SelectItem value="2026-04">Abril 2026</SelectItem>
+                <SelectItem value="2026-03">Marzo 2026</SelectItem>
+                <SelectItem value="2026-02">Febrero 2026</SelectItem>
+                <SelectItem value="2026-01">Enero 2026</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="format">File Format</Label>
-            <Select defaultValue="excel">
+            <Label htmlFor="format">Formato de Archivo</Label>
+            <Select value={selectedFormat} onValueChange={setSelectedFormat}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="excel">Excel (.xlsx)</SelectItem>
                 <SelectItem value="csv">CSV (.csv)</SelectItem>
-                <SelectItem value="txt">Text (.txt)</SelectItem>
+                <SelectItem value="txt">Texto (.txt)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -120,37 +176,37 @@ export function SUAFileGenerator({ onGenerate }: SUAFileGeneratorProps) {
             <CardContent className="pt-6">
               <div className="flex items-center gap-2 mb-4">
                 <CheckCircle className="h-5 w-5 text-green-600" />
-                <span className="font-medium text-green-800">File Generated Successfully</span>
+                <span className="font-medium text-green-800">Archivo Generado Exitosamente</span>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 <div>
-                  <p className="text-sm font-medium">Period</p>
+                  <p className="text-sm font-medium">Período</p>
                   <p className="text-sm text-muted-foreground">{generatedData.period}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Employees</p>
+                  <p className="text-sm font-medium">Empleados</p>
                   <p className="text-sm text-muted-foreground">{generatedData.employeeCount}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Total Salary</p>
+                  <p className="text-sm font-medium">Salario Total</p>
                   <p className="text-sm text-muted-foreground">
                     ${generatedData.totalSalary.toLocaleString()} MXN
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Status</p>
-                  <Badge variant="default">Ready</Badge>
+                  <p className="text-sm font-medium">Estado</p>
+                  <Badge variant="default">Listo</Badge>
                 </div>
               </div>
 
               <div className="flex gap-2">
                 <Button onClick={handleDownload} size="sm">
                   <FileDown className="h-4 w-4 mr-2" />
-                  Download File
+                  Descargar Archivo
                 </Button>
                 <Button variant="outline" size="sm">
-                  Submit to IMSS
+                  Enviar al IMSS
                 </Button>
               </div>
             </CardContent>
@@ -162,18 +218,18 @@ export function SUAFileGenerator({ onGenerate }: SUAFileGeneratorProps) {
             onClick={handleGenerate}
             disabled={isGenerating || !period}
           >
-            {isGenerating ? "Generating..." : "Generate SUA File"}
+            {isGenerating ? "Generando..." : "Generar Archivo SUA"}
           </Button>
         </div>
 
         <div className="text-sm text-muted-foreground">
-          <p className="font-medium mb-2">What this includes:</p>
+          <p className="font-medium mb-2">Qué incluye:</p>
           <ul className="list-disc list-inside space-y-1">
-            <li>Employee identification (NSS, CURP, RFC)</li>
-            <li>Salary information (daily, weekly, monthly rates)</li>
-            <li>Work schedule details (hours, days)</li>
-            <li>Contribution calculations (employer/employee portions)</li>
-            <li>IMSS branch and company information</li>
+            <li>Identificación del empleado (NSS, CURP, RFC)</li>
+            <li>Información salarial (tasa diaria, semanal, mensual)</li>
+            <li>Detalles de horario laboral (horas, días)</li>
+            <li>Cálculos de contribución (porciones patrón/trabajador)</li>
+            <li>Información de sucursal y empresa IMSS</li>
           </ul>
         </div>
       </CardContent>

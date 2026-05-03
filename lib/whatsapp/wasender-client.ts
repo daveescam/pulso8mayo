@@ -513,6 +513,14 @@ export class WasenderClient {
       ...config,
     };
   }
+
+  async getChatHistory(params: { sessionId: string; chatId: string; limit?: number; cursor?: string }): Promise<{ messages: any[]; hasMore: boolean; cursor?: string }> {
+    throw new Error('Chat history is not supported by WasenderAPI. Switch to WAHA (USE_WAHA=true) for this feature.');
+  }
+
+  async getChats(sessionId: string): Promise<any[]> {
+    throw new Error('Chat listing is not supported by WasenderAPI. Switch to WAHA (USE_WAHA=true) for this feature.');
+  }
 }
 
 // Singleton instance - lazy initialization to avoid build-time errors

@@ -65,7 +65,12 @@ interface ApprovalStats {
     byType: Record<string, number>;
 }
 
-export function ApprovalManager() {
+interface ApprovalManagerProps {
+  companyId: string;
+  userRole: string;
+}
+
+export function ApprovalManager({ companyId, userRole }: ApprovalManagerProps) {
     const [approvals, setApprovals] = React.useState<Approval[]>([]);
     const [stats, setStats] = React.useState<ApprovalStats | null>(null);
     const [loading, setLoading] = React.useState(false);
@@ -74,11 +79,11 @@ export function ApprovalManager() {
     const [rejectionReason, setRejectionReason] = React.useState('');
     const [activeTab, setActiveTab] = React.useState<'pending' | 'all'>('pending');
 
-    const fetchApprovals = async () => {
-        setLoading(true);
-        try {
-            const params = activeTab === 'pending' ? '?status=PENDING' : '';
-            const response = await fetch(`/api/approvals${params}`);
+  const fetchApprovals = async () => {
+    setLoading(true);
+    try {
+      const params = activeTab === 'pending' ? '?status=PENDING' : '';
+      const response = await fetch(`/api/approvals${params}`);
             if (response.ok) {
                 const result = await response.json();
                 setApprovals(result.approvals || []);

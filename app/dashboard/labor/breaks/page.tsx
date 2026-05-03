@@ -2,8 +2,9 @@ import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { db } from '@/lib/db';
-import { eq, and, gte, lte, desc } from 'drizzle-orm';
-import { startOfDay, endOfDay } from 'date-fns';
+import { eq, and, gte, lte, desc, isNull } from 'drizzle-orm';
+import { startOfDay, endOfDay, differenceInMinutes } from 'date-fns';
+import { shiftSessions, breakLogs } from '@/lib/db/schema';
 import { BreakManagementDashboard } from '@/components/labor/break-management-dashboard';
 import { Coffee, Clock, AlertTriangle, CheckCircle, Users } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,18 +21,73 @@ export default async function LaborBreaksPage() {
         redirect('/sign-in');
     }
 
-    // Get today's breaks for all employees in the company
-    const today = new Date();
-    const dayStart = startOfDay(today);
-    const dayEnd = endOfDay(today);
+  const today = new Date();
+  const dayStart = startOfDay(today);
+  const dayEnd = endOfDay(today);
+  const companyId = session.user.companyId;
 
-    // Fetch break statistics (this will be enhanced in the component)
-    const stats = {
-        totalEmployees: 0,
-        onBreak: 0,
-        missedBreaks: 0,
-        compliantBreaks: 0,
-    };
+  const activeSessions = await db
+    .select({
+      id: shiftSessions.id,
+      startedAt: shiftSessions.startedAt,
+      totalWorkMinutes: shiftSessions.totalWorkMinutes,
+      totalBreakMinutes: shiftSessions.totalBreakMinutes,
+    })
+    .from(shiftSessions)
+    .where(
+      and(
+        eq(shiftSessions.status, 'ACTIVE'),
+        gte(shiftSessions.startedAt, dayStart),
+        lte(shiftSessions.startedAt, dayEnd),
+      ),
+    );
+
+  const sessionIds = activeSessions.map((s) => s.id);
+
+  let todayBreaks: { sessionId: string; startTime: Date; endTime: Date | null; durationMinutes: number | null }[] = [];
+  if (sessionIds.length > 0) {
+    todayBreaks = await db
+      .select({
+        sessionId: breakLogs.sessionId,
+        startTime: breakLogs.startTime,
+        endTime: breakLogs.endTime,
+        durationMinutes: breakLogs.durationMinutes,
+      })
+      .from(breakLogs)
+      .where(and(gte(breakLogs.startTime, dayStart), lte(breakLogs.startTime, dayEnd)));
+  }
+
+  let onBreak = 0;
+  let missedBreaks = 0;
+
+  for (const session of activeSessions) {
+    const sessionBreaks = todayBreaks.filter((b) => b.sessionId === session.id);
+    const activeBreak = sessionBreaks.find((b) => !b.endTime);
+    if (activeBreak) {
+      onBreak++;
+    }
+
+    const completedBreakMinutes = sessionBreaks
+      .filter((b) => b.endTime)
+      .reduce((sum, b) => sum + (b.durationMinutes || 0), 0);
+    const minutesWorked = session.totalWorkMinutes || differenceInMinutes(new Date(), session.startedAt);
+
+    if (minutesWorked > 300 && completedBreakMinutes === 0) {
+      missedBreaks++;
+    }
+  }
+
+  const totalEmployees = activeSessions.length;
+  const compliantBreaks = totalEmployees - missedBreaks;
+  const complianceRate = totalEmployees > 0 ? Math.round((compliantBreaks / totalEmployees) * 100) : 0;
+
+  const stats = {
+    totalEmployees,
+    onBreak,
+    missedBreaks,
+    compliantBreaks,
+    complianceRate,
+  };
 
     return (
         <div className="space-y-6">
@@ -61,7 +117,7 @@ export default async function LaborBreaksPage() {
                         <Users className="h-4 w-4 text-blue-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">--</div>
+                        <div className="text-2xl font-bold">{stats.totalEmployees}</div>
                         <p className="text-xs text-muted-foreground">
                             En turno ahora
                         </p>
@@ -74,7 +130,7 @@ export default async function LaborBreaksPage() {
                         <Coffee className="h-4 w-4 text-green-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-green-600">--</div>
+                        <div className="text-2xl font-bold text-green-600">{stats.onBreak}</div>
                         <p className="text-xs text-muted-foreground">
                             Pausa activa
                         </p>
@@ -87,7 +143,7 @@ export default async function LaborBreaksPage() {
                         <AlertTriangle className="h-4 w-4 text-red-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-red-600">--</div>
+                        <div className="text-2xl font-bold text-red-600">{stats.missedBreaks}</div>
                         <p className="text-xs text-muted-foreground">
                             &gt;5 horas sin descanso
                         </p>
@@ -100,7 +156,7 @@ export default async function LaborBreaksPage() {
                         <CheckCircle className="h-4 w-4 text-purple-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-purple-600">--%</div>
+                        <div className="text-2xl font-bold text-purple-600">{stats.complianceRate}%</div>
                         <p className="text-xs text-muted-foreground">
                             NOM-035 hoy
                         </p>

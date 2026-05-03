@@ -17,7 +17,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Loader2, UserPlus, Shield, Users, Copy, MessageCircle, Link2 } from "lucide-react";
+import { MoreHorizontal, Loader2, UserPlus, Shield, Users, Copy, MessageCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -58,8 +58,10 @@ export default function TeamPage() {
     const [users, setUsers] = useState<User[]>([]);
     const [branches, setBranches] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [editingUser, setEditingUser] = useState<User | null>(null);
-    const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [deactivatingUser, setDeactivatingUser] = useState<User | null>(null);
+  const [deactivating, setDeactivating] = useState(false);
 
     // Invite dialog state
     const [inviteOpen, setInviteOpen] = useState(false);
@@ -88,7 +90,7 @@ export default function TeamPage() {
                 }
             } catch (e) {
                 console.error(e);
-                toast.error("Error loading team data");
+                toast.error("Error al cargar datos del equipo");
             } finally {
                 setLoading(false);
             }
@@ -101,9 +103,32 @@ export default function TeamPage() {
         setIsSheetOpen(true);
     };
 
-    const handleUserUpdated = (updatedUser: User) => {
-        setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
-    };
+  const handleUserUpdated = (updatedUser: User) => {
+    setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
+  };
+
+  const handleDeactivate = async () => {
+    if (!deactivatingUser) return;
+    setDeactivating(true);
+    try {
+      const res = await fetch(`/api/users/${deactivatingUser.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: false }),
+      });
+      if (res.ok) {
+        setUsers(users.map(u => u.id === deactivatingUser.id ? { ...u, active: false } : u));
+        toast.success('Usuario desactivado');
+      } else {
+        toast.error('Error al desactivar usuario');
+      }
+    } catch {
+      toast.error('Error al desactivar usuario');
+    } finally {
+      setDeactivating(false);
+      setDeactivatingUser(null);
+    }
+  };
 
     const getBranchName = (id: string | null) => {
         if (!id) return "Global / Matriz";
@@ -141,12 +166,12 @@ export default function TeamPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Team & Permissions</h1>
-                    <p className="text-muted-foreground">Manage your team members and their access levels.</p>
+<h1 className="text-3xl font-bold tracking-tight">Equipo y Permisos</h1>
+        <p className="text-muted-foreground">Gestiona los miembros de tu equipo y sus niveles de acceso.</p>
                 </div>
                 <Button onClick={() => setInviteOpen(true)}>
                     <UserPlus className="mr-2 h-4 w-4" />
-                    Invite Member
+Invitar Miembro
                 </Button>
             </div>
 
@@ -154,19 +179,19 @@ export default function TeamPage() {
                 <TabsList>
                     <TabsTrigger value="members" className="flex items-center gap-2">
                         <Users className="h-4 w-4" />
-                        Members
+                        Miembros
                     </TabsTrigger>
                     <TabsTrigger value="roles" className="flex items-center gap-2">
                         <Shield className="h-4 w-4" />
-                        Roles & Permissions
+                        Roles y Permisos
                     </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="members" className="space-y-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Team Directory</CardTitle>
-                            <CardDescription>Manage users, roles, and branch assignments.</CardDescription>
+<CardTitle>Directorio de Equipo</CardTitle>
+          <CardDescription>Gestiona usuarios, roles y asignaciones de sucursal.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             {loading ? (
@@ -175,10 +200,10 @@ export default function TeamPage() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>User</TableHead>
-                                            <TableHead>Role</TableHead>
-                                            <TableHead>Location</TableHead>
-                                            <TableHead className="text-right">Actions</TableHead>
+<TableHead>Usuario</TableHead>
+            <TableHead>Rol</TableHead>
+            <TableHead>Ubicación</TableHead>
+            <TableHead className="text-right">Acciones</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -213,13 +238,13 @@ export default function TeamPage() {
                                                             </Button>
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end">
-                                                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                            <DropdownMenuItem onClick={() => handleEditUser(user)}>
-                                                                Edit Profile & Permissions
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem className="text-red-600">
-                                                                Deactivate User
-                                                            </DropdownMenuItem>
+<DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleEditUser(user)}>
+                  Editar Perfil y Permisos
+                </DropdownMenuItem>
+                <DropdownMenuItem className="text-red-600" onClick={() => setDeactivatingUser(user)}>
+                  Desactivar Usuario
+                </DropdownMenuItem>
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
                                                 </TableCell>
@@ -235,8 +260,8 @@ export default function TeamPage() {
                 <TabsContent value="roles" className="space-y-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Role Definitions</CardTitle>
-                            <CardDescription>Overview of permissions accessible by each role.</CardDescription>
+<CardTitle>Definiciones de Roles</CardTitle>
+          <CardDescription>Vista general de permisos accesibles por cada rol.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <RolePermissionMatrix />
@@ -308,8 +333,26 @@ export default function TeamPage() {
                             Compartir por WhatsApp
                         </Button>
                     </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </div>
+    </DialogContent>
+    </Dialog>
+
+    <Dialog open={!!deactivatingUser} onOpenChange={(open) => !open && setDeactivatingUser(null)}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Desactivar Usuario</DialogTitle>
+          <DialogDescription>
+            ¿Estás seguro de que deseas desactivar a {deactivatingUser?.name}? El usuario no podrá acceder al sistema.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setDeactivatingUser(null)} disabled={deactivating}>Cancelar</Button>
+          <Button variant="destructive" onClick={handleDeactivate} disabled={deactivating}>
+            {deactivating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Desactivar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </div>
     );
 }

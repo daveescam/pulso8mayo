@@ -10,7 +10,7 @@ import { eq, and } from 'drizzle-orm';
 import { commandParser } from './command-parser';
 import { laborHandler, GeolocationData } from './handlers/labor-handler';
 import { workflowConversationHandler } from './workflow-conversation-handler';
-import { wasenderClient } from './wasender-client';
+import { whatsappClient } from './client-factory';
 import { sessionManager } from './session-manager';
 
 export interface IncomingMessage {
@@ -179,7 +179,7 @@ Por favor contacta a tu gerente para que te agregue al sistema Pulso.`,
 
             // Send reply if handler returned a message
             if (result.message) {
-                await wasenderClient.sendMessage({
+		await whatsappClient.sendMessage({
                     sessionId: message.sessionId,
                     to: message.from,
                     message: result.message,
@@ -229,7 +229,7 @@ Por favor contacta a tu gerente para que te agregue al sistema Pulso.`,
         }
 
         // Ask user what they want to do with the location
-        await wasenderClient.sendMessage({
+	await whatsappClient.sendMessage({
             sessionId: message.sessionId,
             to: message.from,
             message: `📍 Ubicación recibida\n\n` +

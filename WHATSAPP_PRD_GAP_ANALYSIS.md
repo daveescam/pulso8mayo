@@ -15,7 +15,7 @@ This document provides a detailed gap analysis comparing the PRD Phase 6 require
 
 | Category | PRD Requirements | Implemented | Completion |
 |----------|------------------|-------------|------------|
-| **6.1 WhatsApp WasenderAPI** | 6 major items | 5.5 | 92% |
+| **6.1 WhatsApp Waha ** | 6 major items | 5.5 | 92% |
 | **6.2 SmartLink Workflow** | 10 subtasks | 8.5 | 85% |
 | **6.3 Notifications & Reminders** | 7 subtasks | 5 | 71% |
 | **Overall Phase 6** | 23 items | 19 | **~85%** |
