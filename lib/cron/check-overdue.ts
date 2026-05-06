@@ -1,5 +1,5 @@
 import { WorkflowAssignmentService } from '@/lib/services/workflow-assignment-service';
-import { NotificationService } from '@/lib/services/notification-service';
+import { NotificationDispatcher } from '@/lib/services/notification-dispatcher';
 
 /**
  * Check for overdue assignments
@@ -37,10 +37,21 @@ export async function checkOverdueAssignments() {
                 console.log(`[Cron] Marked assignment ${assignment.id} as overdue`);
 
                 // Send overdue notification
-                await NotificationService.notifyWorkflowOverdue({
-                    ...assignment,
-                    dueDate: assignment.dueDate?.toString(),
-                });
+        await NotificationDispatcher.sendNotification({
+          userId: assignment.assignedTo,
+          title: '⚠️ Tarea Vencida',
+          message: `Tarea VENCIDA: ${assignment.workflowTemplateId || 'Workflow'}`,
+          type: 'error',
+          eventType: 'workflow_overdue',
+          actionUrl: `/dashboard/workflows/${assignment.id}`,
+          actionLabel: 'Completar Urgente',
+          metadata: {
+            workflowName: assignment.workflowTemplateId || 'Workflow',
+            overdueTime: assignment.dueDate
+              ? `desde ${new Date(assignment.dueDate).toLocaleDateString('es-MX')}`
+              : 'hace poco',
+          },
+        });
                 console.log(`[Cron] Sent overdue notification for assignment ${assignment.id}`);
 
                 successCount++;

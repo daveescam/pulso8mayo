@@ -1,6 +1,6 @@
 import { WorkflowScheduleService } from '@/lib/services/workflow-schedule-service';
 import { WorkflowAssignmentService } from '@/lib/services/workflow-assignment-service';
-import { NotificationService } from '@/lib/services/notification-service';
+import { NotificationDispatcher } from '@/lib/services/notification-dispatcher';
 import { db } from '@/lib/db';
 import { workflowSchedules } from '@/lib/db/schema';
 import { eq, sql } from 'drizzle-orm';
@@ -50,10 +50,20 @@ export async function executeScheduledWorkflows() {
                 console.log(`[Cron] Created assignment: ${assignment.id} for user: ${assignment.assignedTo}`);
 
                 // Send notification
-                await NotificationService.notifyWorkflowAssignment({
-                    ...assignment,
-                    dueDate: assignment.dueDate?.toString(),
-                });
+        await NotificationDispatcher.sendNotification({
+          userId: assignment.assignedTo,
+          title: 'Nueva Tarea',
+          message: `Se te ha asignado: ${schedule.title || 'Workflow'}`,
+          type: 'info',
+          eventType: 'workflow_assignment',
+          actionUrl: `/dashboard/workflows/${instance.id}`,
+          actionLabel: 'Ver Tarea',
+          metadata: {
+            workflowName: schedule.title || 'Workflow',
+            dueDate: assignment.dueDate?.toString(),
+            priority: assignment.priority || 'MEDIUM',
+          },
+        });
                 console.log(`[Cron] Notification sent to user: ${assignment.assignedTo}`);
 
                 // Calculate next execution time

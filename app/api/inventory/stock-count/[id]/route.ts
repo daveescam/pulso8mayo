@@ -58,14 +58,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             return NextResponse.json(result);
         }
 
-        if (action === "updateStep" && stepId && value !== undefined) {
-            const stepData = stepMetadata ? JSON.stringify(stepMetadata) : undefined;
-            
-            await db.update(workflowInstanceSteps)
-                .set({
-                    value: stepData ? JSON.stringify({ ...JSON.parse(stepData), inputValue: value }) : value,
-                })
-                .where(sql`${workflowInstanceSteps.instanceId} = ${id} AND ${workflowInstanceSteps.stepId} = ${stepId}`);
+      if (action === "updateStep" && stepId && value !== undefined) {
+        const stepData = stepMetadata ? JSON.stringify(stepMetadata) : undefined;
+
+        await db.update(workflowInstanceSteps)
+          .set({
+            value: stepData ? JSON.stringify({ ...JSON.parse(stepData), inputValue: value }) : value,
+            completedAt: new Date(),
+            status: "COMPLETED",
+          })
+          .where(sql`${workflowInstanceSteps.instanceId} = ${id} AND ${workflowInstanceSteps.stepId} = ${stepId}`);
 
             return NextResponse.json({ success: true });
         }

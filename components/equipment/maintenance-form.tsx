@@ -26,21 +26,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-
-const maintenanceTypes = [
-  { value: "PREVENTIVE", label: "Preventivo" },
-  { value: "CORRECTIVE", label: "Correctivo" },
-  { value: "INSPECTION", label: "Inspección" },
-  { value: "CLEANING", label: "Limpieza" },
-  { value: "CALIBRATION", label: "Calibración" },
-  { value: "EMERGENCY", label: "Emergencia" },
-];
-
-const providerTypes = [
-  { value: "INTERNAL", label: "Interno" },
-  { value: "EXTERNAL", label: "Externo" },
-  { value: "CERTIFIED", label: "Certificado" },
-];
+import { maintenanceTypes, providerTypes } from "@/lib/equipment-constants";
 
 interface Equipment {
   id: string;

@@ -1,27 +1,26 @@
-import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { 
-  equipmentMaintenanceHistory, 
+import {
+  equipmentMaintenanceHistory,
   branchEquipments,
-  equipmentMaintenanceSchedules 
 } from "@/lib/db/schema";
-import { eq, and, gte, lte, or, isNull, asc } from "drizzle-orm";
+import { eq, and, gte, lte, or, asc } from "drizzle-orm";
 import { addDays } from "date-fns";
+import { requireTenant } from "@/lib/tenant-context";
+import { ApiHandler } from "@/lib/api/response";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    const tenant = await requireTenant();
+    if (!tenant.id || !tenant.branchId) {
+      return ApiHandler.error(new Error("Unauthorized"), 401);
+    }
+
     const { searchParams } = new URL(request.url);
-    const branchId = searchParams.get("branchId");
     const daysParam = searchParams.get("days");
     const days = daysParam ? parseInt(daysParam) : 60;
 
-    if (!branchId) {
-      return NextResponse.json(
-        { error: "Branch ID is required" },
-        { status: 400 }
-      );
-    }
-
+    const branchId = tenant.branchId;
     const today = new Date();
     const endDate = addDays(today, days);
 
@@ -65,12 +64,8 @@ export async function GET(request: Request) {
       })
     );
 
-    return NextResponse.json({ data: enriched });
+    return ApiHandler.success(enriched);
   } catch (error) {
-    console.error("Error fetching upcoming maintenance:", error);
-    return NextResponse.json(
-      { error: "Error fetching upcoming maintenance" },
-      { status: 500 }
-    );
+    return ApiHandler.error(error);
   }
 }

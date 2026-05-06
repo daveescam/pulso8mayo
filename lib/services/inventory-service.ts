@@ -523,8 +523,37 @@ static async shipTransfer(transferId: string, shippedBy: string) {
     referenceId?: string;
     metadata?: { systemQuantity?: number; physicalQuantity?: number };
   }) {
+    let batchId = data.batchId;
+
+    if (!batchId) {
+      const existingBatch = await db.select({ id: inventoryBatches.id })
+        .from(inventoryBatches)
+        .where(and(
+          eq(inventoryBatches.itemId, data.itemId),
+          eq(inventoryBatches.branchId, data.branchId),
+          eq(inventoryBatches.status, 'AVAILABLE')
+        ))
+        .limit(1);
+
+      if (existingBatch.length > 0) {
+        batchId = existingBatch[0].id;
+      } else {
+        const [newBatch] = await db.insert(inventoryBatches).values({
+          itemId: data.itemId,
+          branchId: data.branchId,
+          currentQuantity: 0,
+          initialQuantity: 0,
+          status: 'AVAILABLE',
+          lotNumber: `SC-${Date.now()}`,
+          receivedAt: new Date(),
+        }).returning();
+        batchId = newBatch.id;
+      }
+    }
+
     return await this.recordMovement({
       ...data,
+      batchId,
       type: 'ADJUSTMENT',
     });
   }

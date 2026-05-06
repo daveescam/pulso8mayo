@@ -740,7 +740,7 @@
           "dailyBase": "Salario Base Diario (MXN) *",
           "weekly": "Salario Semanal (MXN)",
           "monthly": "Salario Mensual (MXN)",
-          "suggested": "Sugerido: Semanal ${{weekly}}, Mensual ${{monthly}}",
+          "suggested": "Sugerido: Semanal ${weekly}, Mensual ${monthly}",
           "currency": "Moneda",
           "contractInfo": "Información del Contrato"
         },

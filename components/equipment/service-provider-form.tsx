@@ -27,30 +27,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, X } from "lucide-react";
-
-const providerTypes = [
-  { value: "INTERNAL", label: "Interno" },
-  { value: "EXTERNAL", label: "Externo" },
-  { value: "CERTIFIED", label: "Certificado" },
-];
-
-const serviceTypes = [
-  "Mantenimiento General",
-  "Refrigeración",
-  "Electricidad",
-  "Plomería",
-  "Carpintería",
-  "Pintura",
-  "Limpieza",
-  "Jardinería",
-  "Seguridad",
-  "IT/Sistemas",
-  "Fumigación",
-  "Sistemas Contra Incendios",
-  "Aire Acondicionado",
-  "Equipos de Cocina",
-  "Electrodomésticos",
-];
+import { providerTypes, serviceProviderServiceTypes } from "@/lib/equipment-constants";
 
 const formSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
@@ -364,7 +341,7 @@ export function ServiceProviderForm({ initialData, onSuccess }: ServiceProviderF
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {serviceTypes
+                      {serviceProviderServiceTypes
                         .filter((s) => !selectedServices.includes(s))
                         .map((service) => (
                           <SelectItem key={service} value={service}>

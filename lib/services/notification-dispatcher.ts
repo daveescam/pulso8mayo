@@ -18,6 +18,7 @@ export type NotificationEventType =
   | "workflow_overdue"
   | "incident"
   | "stock_alert"
+  | "stock_count_variance"
   | "shift_reminder"
   | "schedule_change"
   | "document_expiration"
@@ -584,10 +585,56 @@ export class NotificationDispatcher {
         } catch (error) {
             console.error("Error in sendInventoryAlert:", error);
         }
-    }
+  }
 
-    /**
-     * Send WhatsApp message to user
+  static async sendStockCountVarianceAlert(payload: {
+    userId: string;
+    data: {
+      branchId: string;
+      category: string;
+      alertCount: number;
+      totalProducts: number;
+      instanceId: string;
+    };
+  }): Promise<void> {
+    try {
+      const prefs = await this.getUserPreferences(payload.userId);
+      if (!prefs || !prefs.inventoryAlerts) return;
+
+      const userData = await this.getUserData(payload.userId);
+      if (!userData) return;
+
+      const message = `📊 *ALERTA DE CONTEO DE INVENTARIO*\n\n` +
+        `Categoría: ${payload.data.category}\n` +
+        `Productos con varianza >10%: ${payload.data.alertCount} de ${payload.data.totalProducts}\n\n` +
+        `Revisa los resultados para tomar las acciones necesarias.`;
+
+      const promises = [];
+
+      if (prefs.whatsappEnabled) {
+        promises.push(this.sendWhatsAppMessage(payload.userId, message));
+      }
+
+      if (prefs.inAppEnabled) {
+        promises.push(
+          db.insert(notifications).values({
+            userId: payload.userId,
+            type: 'warning',
+            title: `Varianza en Conteo: ${payload.data.category}`,
+            message: `${payload.data.alertCount} de ${payload.data.totalProducts} productos con varianza >10%`,
+            actionUrl: `/dashboard/inventory/stock-count/${payload.data.instanceId}/results`,
+          })
+        );
+      }
+
+      await Promise.allSettled(promises);
+    } catch (error) {
+      console.error("Error in sendStockCountVarianceAlert:", error);
+    }
+  }
+
+  /**
+   * Send WhatsApp message to user
      */
   private static async sendWhatsAppMessage(userId: string, message: string): Promise<void> {
     try {

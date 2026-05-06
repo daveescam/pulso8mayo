@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { equipmentMaintenanceHistory, branchEquipments } from "@/lib/db/schema";
 import { eq, and, desc, asc, gte, lte, or, isNull } from "drizzle-orm";
 import { addDays } from "date-fns";
-import { requireTenant } from "@/lib/tenant-context";
+import { requireTenant, requireAuth } from "@/lib/tenant-context";
 
 export async function GET(request: Request) {
   try {
@@ -49,20 +49,27 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { equipmentId, companyId, branchId, maintenanceType, scheduledDate, description, workPerformed, tasksCompleted, partsUsed, partsCost, laborCost, totalCost, providerType, providerName, providerContact, technicianName, technicianLicense, findings, recommendations, nextMaintenanceDate, beforePhotos, afterPhotos, documents, signatureUrl, workflowInstanceId, createdBy } = body;
+    const { user } = await requireAuth();
+    const tenant = await requireTenant();
 
-    if (!equipmentId || !companyId || !branchId || !maintenanceType || !scheduledDate || !description || !createdBy) {
+    if (!tenant.id || !tenant.branchId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { equipmentId, maintenanceType, scheduledDate, description, workPerformed, tasksCompleted, partsUsed, partsCost, laborCost, totalCost, providerType, providerName, providerContact, technicianName, technicianLicense, findings, recommendations, nextMaintenanceDate, beforePhotos, afterPhotos, documents, signatureUrl, workflowInstanceId } = body;
+
+    if (!equipmentId || !maintenanceType || !scheduledDate || !description) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Missing required fields: equipmentId, maintenanceType, scheduledDate, description" },
         { status: 400 }
       );
     }
 
     const newMaintenance = await db.insert(equipmentMaintenanceHistory).values({
       equipmentId,
-      companyId,
-      branchId,
+      companyId: tenant.id,
+      branchId: tenant.branchId,
       maintenanceType,
       status: "SCHEDULED",
       scheduledDate: new Date(scheduledDate),
@@ -86,7 +93,7 @@ export async function POST(request: Request) {
       documents: documents || [],
       signatureUrl,
       workflowInstanceId,
-      createdBy,
+      createdBy: user.id,
     }).returning();
 
     await db.update(branchEquipments)

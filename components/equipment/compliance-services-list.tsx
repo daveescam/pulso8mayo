@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTenant } from "@/hooks/use-tenant";
+import { complianceServiceTypes, maintenanceFrequencies } from "@/lib/equipment-constants";
 
 interface ComplianceService {
   id: string;
@@ -55,30 +56,13 @@ interface ComplianceService {
   isActive: boolean;
 }
 
-const serviceTypeLabels: Record<string, string> = {
-  FUMIGATION: "Fumigación",
-  FIRE_SYSTEM_CHECK: "Revisión de Sistema Contra Incendios",
-  ELECTRICAL_INSPECTION: "Inspección Eléctrica",
-  GAS_INSPECTION: "Inspección de Gas",
-  WATER_QUALITY: "Calidad de Agua",
-  AIR_QUALITY: "Calidad de Aire",
-  PEST_CONTROL: "Control de Plagas",
-  HYGIENE_AUDIT: "Auditoría de Higiene",
-  SAFETY_INSPECTION: "Inspección de Seguridad",
-  OTHER: "Otro Servicio",
-};
+const serviceTypeLabels: Record<string, string> = Object.fromEntries(
+  complianceServiceTypes.map(t => [t.value, t.label])
+);
 
-const frequencyLabels: Record<string, string> = {
-  DAILY: "Diario",
-  WEEKLY: "Semanal",
-  BIWEEKLY: "Quincenal",
-  MONTHLY: "Mensual",
-  BIMONTHLY: "Bimestral",
-  QUARTERLY: "Trimestral",
-  SEMIANNUAL: "Semestral",
-  ANNUAL: "Anual",
-  CUSTOM: "Personalizado",
-};
+const frequencyLabels: Record<string, string> = Object.fromEntries(
+  maintenanceFrequencies.map(f => [f.value, f.label])
+);
 
 export function ComplianceServicesList() {
   const { toast } = useToast();
@@ -105,11 +89,12 @@ export function ComplianceServicesList() {
   const fetchServices = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/branches/${branchId}/compliance-services`);
+      const response = await fetch(`/api/compliance-services`);
       if (!response.ok) throw new Error("Failed to fetch services");
-      
-      const data = await response.json();
-      setServices(data.data?.map((s: any) => s.service) || []);
+
+      const result = await response.json();
+      const data = result.data || [];
+      setServices(data.map((s: any) => s.service || s));
     } catch (error) {
       toast({
         title: "Error",
@@ -123,7 +108,7 @@ export function ComplianceServicesList() {
 
   const handleCreateService = async () => {
     try {
-      const response = await fetch(`/api/branches/${branchId}/compliance-services`, {
+      const response = await fetch(`/api/compliance-services`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -138,7 +123,7 @@ export function ComplianceServicesList() {
         title: "Éxito",
         description: "Servicio creado correctamente",
       });
-      
+
       setIsAddDialogOpen(false);
       setNewService({
         serviceType: "",

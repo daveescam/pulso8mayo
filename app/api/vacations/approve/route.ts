@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { vacationRequests, users, notificationPreferences, notifications } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
-import { NotificationService } from "@/lib/services/notification-service";
+import { NotificationDispatcher } from "@/lib/services/notification-dispatcher";
 
 async function createNotification(
     userId: string,
@@ -27,32 +27,28 @@ async function createNotification(
 }
 
 async function sendVacationNotification(
-    userId: string,
-    subject: string,
-    message: string,
-    vacationId: string
+  userId: string,
+  subject: string,
+  message: string,
+  vacationId: string
 ) {
-    try {
-        const prefs = await NotificationService.getUserNotificationPreferences(userId);
-        
-        await NotificationService.sendInAppNotification(userId, {
-            title: subject,
-            message,
-            type: "info",
-            actionUrl: `/dashboard/labor/vacations?id=${vacationId}`,
-            actionLabel: "Ver detalles",
-        });
-
-        if (prefs.whatsappEnabled) {
-            await NotificationService.sendWhatsAppNotification(userId, message);
-        }
-
-        if (prefs.emailEnabled) {
-            await NotificationService.sendEmailNotification(userId, subject, message);
-        }
-    } catch (error) {
-        console.error("Error sending notification:", error);
-    }
+  try {
+    await NotificationDispatcher.sendNotification({
+      userId,
+      title: subject,
+      message,
+      type: "info",
+      eventType: "shift_approval_decision",
+      actionUrl: `/dashboard/labor/vacations?id=${vacationId}`,
+      actionLabel: "Ver detalles",
+      metadata: {
+        decision: subject.includes("Aprobadas") ? "Aprobada" : "Rechazada",
+        approvalType: "Vacaciones",
+      },
+    });
+  } catch (error) {
+    console.error("Error sending notification:", error);
+  }
 }
 
 export async function POST(req: NextRequest) {

@@ -1,18 +1,19 @@
 // lib/services/stock-count-service.ts
 import { db } from "@/lib/db";
-import { inventoryItems, inventoryBatches, inventoryMovements, workflowTemplates, workflowInstances, workflowInstanceSteps } from "@/lib/db/schema";
+import { inventoryItems, inventoryBatches, inventoryMovements, workflowTemplates, workflowInstances, workflowInstanceSteps, users } from "@/lib/db/schema";
 import { eq, and, sql, desc, inArray, isNotNull } from "drizzle-orm";
 import { InventoryService } from "./inventory-service";
+import { NotificationDispatcher } from "./notification-dispatcher";
 import { templateLibrary } from "@/templates";
 
 export const STOCK_COUNT_TEMPLATE_NAME = "Conteo de Inventario";
 
 export const DEFAULT_CATEGORIES = [
-    { id: "cocina-mp", name: "Cocina - Materias Primas", value: "MATERIA_PRIMA" },
-    { id: "cocina-verduras", name: "Cocina - Verduras", value: "VERDURA" },
-    { id: "bebidas", name: "Bebidas", value: "BEBIDA" },
-    { id: "limpieza", name: "Limpieza", value: "LIMPIEZA" },
-    { id: "utensilios", name: "Utilería", value: "UTENSILIO" },
+  { id: "materia-prima", name: "Materia Prima", value: "Materia Prima" },
+  { id: "producto-terminado", name: "Producto Terminado", value: "Producto Terminado" },
+  { id: "insumo", name: "Insumo", value: "Insumo" },
+  { id: "embalaje", name: "Embalaje", value: "Embalaje" },
+  { id: "otro", name: "Otro", value: "Otro" },
 ];
 
 export class StockCountService {
@@ -286,20 +287,51 @@ export class StockCountService {
             }
         }
 
-        await db.update(workflowInstances)
-            .set({
-                status: "COMPLETED",
-                completedAt: new Date(),
-                score: 100,
-                data: {
-                    ...instanceData,
-                    results,
-                    completedAt: new Date().toISOString(),
-                },
-            })
-            .where(eq(workflowInstances.id, instanceId));
+    await db.update(workflowInstances)
+      .set({
+        status: "COMPLETED",
+        completedAt: new Date(),
+        score: 100,
+        data: {
+          ...instanceData,
+          results,
+          completedAt: new Date().toISOString(),
+        },
+      })
+      .where(eq(workflowInstances.id, instanceId));
 
-        return { instanceId, results };
+    const alertItems = results.filter(r => r.isAlert);
+    if (alertItems.length > 0) {
+      try {
+        const category = (instanceData as Record<string, unknown>)?.category as string || "";
+        const categoryLabel = this.getCategoryName(category);
+        const managers = await db.query.users.findMany({
+          where: and(
+            eq(users.companyId, instance.companyId || ""),
+            sql`${users.role} IN ('ADMIN', 'GERENTE', 'SUPERVISOR')`
+          )
+        });
+
+        await Promise.allSettled(
+          managers.map(manager =>
+            NotificationDispatcher.sendStockCountVarianceAlert({
+              userId: manager.id,
+              data: {
+                branchId: instance.branchId,
+                category: categoryLabel,
+                alertCount: alertItems.length,
+                totalProducts: results.length,
+                instanceId,
+              },
+            })
+          )
+        );
+      } catch (error) {
+        console.error("[StockCount] Error sending variance alerts:", error);
+      }
+    }
+
+    return { instanceId, results };
     }
 
   static async getStockCountHistory(companyId: string, branchId?: string) {

@@ -5,7 +5,7 @@ import { VerificationRule, VerificationType } from "@/lib/types/ai-verification"
 import { db } from "@/lib/db";
 import { workflowInstanceSteps } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { NotificationService } from "@/lib/services/notification-service";
+import { NotificationDispatcher } from "@/lib/services/notification-dispatcher";
 import { EscalationService, EscalationLevel } from "@/lib/services/escalation-service";
 
 /**
@@ -96,13 +96,15 @@ export async function POST(req: NextRequest) {
 
             // Send success notification
             if (instance.assigneeId) {
-                await NotificationService.sendInAppNotification(instance.assigneeId, {
-                    title: 'Verificación Exitosa',
-                    message: 'Tu evidencia fue aprobada por el sistema AI.',
-                    type: 'success',
-                    actionUrl: `/dashboard/workflows/${instance.id}`,
-                    actionLabel: 'Ver Detalles'
-                });
+        await NotificationDispatcher.sendNotification({
+          userId: instance.assigneeId,
+          title: 'Verificación Exitosa',
+          message: 'Tu evidencia fue aprobada por el sistema AI.',
+          type: 'success',
+          eventType: 'workflow_assignment',
+          actionUrl: `/dashboard/workflows/${instance.id}`,
+          actionLabel: 'Ver Detalles',
+        });
             }
 
             return NextResponse.json({
@@ -141,13 +143,15 @@ export async function POST(req: NextRequest) {
 
             // Send failure notification to assignee
             if (instance.assigneeId) {
-                await NotificationService.sendInAppNotification(instance.assigneeId, {
-                    title: 'Verificación Fallida',
-                    message: 'La evidencia no pasó la verificación AI. Un supervisor será notificado.',
-                    type: 'error',
-                    actionUrl: `/dashboard/workflows/${instance.id}`,
-                    actionLabel: 'Ver Detalles'
-                });
+        await NotificationDispatcher.sendNotification({
+          userId: instance.assigneeId,
+          title: 'Verificación Fallida',
+          message: 'La evidencia no pasó la verificación AI. Un supervisor será notificado.',
+          type: 'error',
+          eventType: 'incident',
+          actionUrl: `/dashboard/workflows/${instance.id}`,
+          actionLabel: 'Ver Detalles',
+        });
             }
         }
 

@@ -27,44 +27,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, X } from "lucide-react";
-
-const serviceTypes = [
-  { value: "FUMIGATION", label: "Fumigación" },
-  { value: "FIRE_SYSTEM_CHECK", label: "Sistema Contra Incendios" },
-  { value: "ELECTRICAL_INSPECTION", label: "Inspección Eléctrica" },
-  { value: "GAS_INSPECTION", label: "Inspección de Gas" },
-  { value: "WATER_QUALITY", label: "Calidad del Agua" },
-  { value: "AIR_QUALITY", label: "Calidad del Aire" },
-  { value: "PEST_CONTROL", label: "Control de Plagas" },
-  { value: "HYGIENE_AUDIT", label: "Auditoría de Higiene" },
-  { value: "SAFETY_INSPECTION", label: "Inspección de Seguridad" },
-  { value: "OTHER", label: "Otro" },
-];
-
-const frequencies = [
-  { value: "DAILY", label: "Diario" },
-  { value: "WEEKLY", label: "Semanal" },
-  { value: "BIWEEKLY", label: "Quincenal" },
-  { value: "MONTHLY", label: "Mensual" },
-  { value: "BIMONTHLY", label: "Bimestral" },
-  { value: "QUARTERLY", label: "Trimestral" },
-  { value: "SEMIANNUAL", label: "Semestral" },
-  { value: "ANNUAL", label: "Anual" },
-  { value: "CUSTOM", label: "Personalizado" },
-];
-
-const serviceAreas = [
-  "Cocina",
-  "Área de Comedor",
-  "Almacén",
-  "Baños",
-  "Oficinas",
-  "Exterior",
-  "Estacionamiento",
-  "Área de Carga",
-  "Sótano",
-  "Azotea",
-];
+import { complianceServiceTypes, maintenanceFrequencies, complianceServiceAreas } from "@/lib/equipment-constants";
 
 interface ServiceProvider {
   id: string;
@@ -229,7 +192,7 @@ export function ComplianceServiceForm({ initialData, onSuccess }: ComplianceServ
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {serviceTypes.map((type) => (
+                      {complianceServiceTypes.map((type) => (
                         <SelectItem key={type.value} value={type.value}>
                           {type.label}
                         </SelectItem>
@@ -314,7 +277,7 @@ export function ComplianceServiceForm({ initialData, onSuccess }: ComplianceServ
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {frequencies.map((freq) => (
+                      {maintenanceFrequencies.map((freq) => (
                         <SelectItem key={freq.value} value={freq.value}>
                           {freq.label}
                         </SelectItem>
@@ -455,7 +418,7 @@ export function ComplianceServiceForm({ initialData, onSuccess }: ComplianceServ
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {serviceAreas
+                    {complianceServiceAreas
                       .filter((a) => !selectedAreas.includes(a))
                       .map((area) => (
                         <SelectItem key={area} value={area}>

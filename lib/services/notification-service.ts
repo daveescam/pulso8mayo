@@ -1,3 +1,9 @@
+/**
+ * @deprecated For creating/sending notifications, use NotificationDispatcher from @/lib/services/notification-dispatcher instead.
+ * Read operations (getByUserId, markAsRead, etc.) will be migrated in a future version.
+ * This module will be removed once all write consumers are migrated.
+ */
+
 import { db } from '@/lib/db';
 import { users, notifications, notificationPreferences } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';

@@ -101,6 +101,14 @@ const routingRules: Record<NotificationEventType, RoutingRule> = {
     retryAttempts: 2,
     retryDelayMs: 3000,
     businessHoursOnly: false
+  },
+  stock_count_variance: {
+    eventType: "stock_count_variance",
+    priority: "high",
+    channels: ["whatsapp", "in-app"],
+    retryAttempts: 3,
+    retryDelayMs: 2000,
+    businessHoursOnly: true
   }
 };
 

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight, CheckCircle2, AlertCircle, Camera, Upload, FileText, Calendar, Hash, ListChecks, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, AlertCircle, Camera, Upload, FileText, Calendar, Hash, ListChecks, Loader2, Package } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -289,12 +289,31 @@ export function WorkflowExecutor({
 
       case 'NUMBER':
         return (
-          <Input
-            type="number"
-            placeholder="0"
-            value={stepValue || ''}
-            onChange={(e) => setStepData({ ...stepData, [step.id]: e.target.value })}
-          />
+          <div className="space-y-3">
+            {step.id.startsWith('count-') && currentStepInstance?.value && (() => {
+              try {
+                const parsed = typeof currentStepInstance.value === 'string' ? JSON.parse(currentStepInstance.value) : currentStepInstance.value;
+                const sysQty = (parsed as any)?.systemQuantity;
+                const unit = (parsed as any)?.unit || '';
+                if (sysQty !== undefined) {
+                  return (
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 border">
+                      <Package className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Stock en sistema:</span>
+                      <span className="text-sm font-semibold">{sysQty} {unit}</span>
+                    </div>
+                  );
+                }
+              } catch {}
+              return null;
+            })()}
+            <Input
+              type="number"
+              placeholder="0"
+              value={stepValue || ''}
+              onChange={(e) => setStepData({ ...stepData, [step.id]: e.target.value })}
+            />
+          </div>
         );
 
       case 'SELECT':

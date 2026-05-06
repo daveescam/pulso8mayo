@@ -1,7 +1,7 @@
 import { db } from '@/lib/db';
 import { workflowAssignments } from '@/lib/db/schema';
 import { and, gte, lte, or, eq } from 'drizzle-orm';
-import { NotificationService } from '@/lib/services/notification-service';
+import { NotificationDispatcher } from '@/lib/services/notification-dispatcher';
 
 /**
  * Send due soon reminders
@@ -50,11 +50,25 @@ export async function sendDueSoonReminders() {
             try {
                 console.log(`[Cron] Sending reminder for assignment: ${assignment.id}`);
 
-                const assignmentData = {
-                    ...assignment,
-                    dueDate: assignment.dueDate?.toISOString(),
-                };
-                await NotificationService.notifyWorkflowDueSoon(assignmentData);
+        const dueDate = assignment.dueDate ? new Date(assignment.dueDate) : null;
+        const hoursUntilDue = dueDate
+          ? Math.round((dueDate.getTime() - Date.now()) / (1000 * 60 * 60))
+          : 0;
+
+        await NotificationDispatcher.sendNotification({
+          userId: assignment.assignedTo,
+          title: 'Tarea Por Vencer',
+          message: `Tarea pendiente vence en ${hoursUntilDue} horas`,
+          type: 'warning',
+          eventType: 'workflow_due_soon',
+          actionUrl: `/dashboard/workflows/${assignment.id}`,
+          actionLabel: 'Completar Ahora',
+          metadata: {
+            workflowName: assignment.workflowTemplateId || 'Workflow',
+            hoursUntilDue,
+            dueDate: assignment.dueDate?.toISOString(),
+          },
+        });
                 console.log(`[Cron] Reminder sent for assignment ${assignment.id}`);
 
                 successCount++;

@@ -18,13 +18,13 @@
       "title": "¿Qué área vas a contar?",
       "description": "Selecciona la categoría de productos a contar",
       "required": true,
-      "options": [
-        "Cocina - Materias Primas",
-        "Cocina - Verduras",
-        "Bebidas",
-        "Limpieza",
-        "Utilería"
-      ]
+    "options": [
+      "Materia Prima",
+      "Producto Terminado",
+      "Insumo",
+      "Embalaje",
+      "Otro"
+    ]
     },
     {
       "id": "confirm-count",

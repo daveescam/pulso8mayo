@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTenant } from "@/hooks/use-tenant";
+import { getEquipmentTypeLabel } from "@/lib/equipment-constants";
 
 interface EquipmentStats {
   total: number;
@@ -39,34 +40,25 @@ export function EquipmentStats() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (branchId) {
-      fetchStats();
-    }
-  }, [branchId]);
+    fetchStats();
+  }, []);
 
   const fetchStats = async () => {
     try {
       setIsLoading(true);
-      // For now we'll use the equipment endpoint and calculate stats
-      // In production, this would have a dedicated stats endpoint
-      const response = await fetch(`/api/equipment?branchId=${branchId}`);
-      if (!response.ok) throw new Error("Failed to fetch equipment");
-      
-      const data = await response.json();
-      const equipment = data.data || [];
-      
-      const byType: Record<string, number> = {};
-      equipment.forEach((item: any) => {
-        byType[item.type] = (byType[item.type] || 0) + 1;
-      });
+      const response = await fetch("/api/equipment/stats");
+      if (!response.ok) throw new Error("Failed to fetch stats");
+
+      const result = await response.json();
+      const data = result.data;
 
       setStats({
-        total: equipment.length,
-        active: equipment.filter((e: any) => e.status === 'ACTIVE').length,
-        underMaintenance: equipment.filter((e: any) => e.status === 'UNDER_MAINTENANCE').length,
-        outOfOrder: equipment.filter((e: any) => e.status === 'OUT_OF_ORDER').length,
-        critical: equipment.filter((e: any) => e.isCritical).length,
-        byType,
+        total: data.total,
+        active: data.active,
+        underMaintenance: data.underMaintenance,
+        outOfOrder: data.outOfOrder,
+        critical: data.critical,
+        byType: data.byType,
       });
     } catch (error) {
       toast({
@@ -116,25 +108,6 @@ export function EquipmentStats() {
     .sort(([, a], [, b]) => b - a)
     .slice(0, 5);
 
-  const equipmentTypeLabels: Record<string, string> = {
-    REFRIGERATOR: "Refrigeradores",
-    FREEZER: "Congeladores",
-    OVEN: "Hornos",
-    STOVE: "Estufas",
-    GRILL: "Parrillas",
-    FRYER: "Freidoras",
-    DISHWASHER: "Lavavajillas",
-    COFFEE_MACHINE: "Cafeteras",
-    BLENDER: "Licuadoras",
-    MIXER: "Batidoras",
-    EXHAUST_HOOD: "Campanas",
-    AIR_CONDITIONER: "Aires Acond.",
-    FIRE_SUPPRESSION: "Sist. Contra Inc.",
-    SECURITY_CAMERA: "Cámaras",
-    POS_SYSTEM: "Sistemas POS",
-    OTHER: "Otros",
-  };
-
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -179,7 +152,7 @@ export function EquipmentStats() {
                   variant="secondary"
                   className="text-sm px-3 py-1"
                 >
-                  {equipmentTypeLabels[type] || type}: {count}
+                  {getEquipmentTypeLabel(type)}: {count}
                 </Badge>
               ))}
             </div>

@@ -1,8 +1,7 @@
 import { db } from "@/lib/db";
-import { magicLinks, workflowInstances } from "@/lib/db/schema";
+import { magicLinks, workflowInstances, workflowAssignments } from "@/lib/db/schema";
 import { eq, and, gt } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || nanoid(32);
 
@@ -15,6 +14,26 @@ export interface SmartLinkContext {
   sessionId: string;
   requiredRole?: string;
   assignedTo?: string;
+  role?: string;
+  assignmentId?: string;
+}
+
+export interface ValidatedSmartLink {
+  link: typeof magicLinks.$inferSelect;
+  instance: typeof workflowInstances.$inferSelect;
+  decoded: {
+    instanceId: string;
+    templateId: string;
+    sessionId: string;
+    requiredRole?: string;
+    assignedTo?: string;
+    role?: string;
+    assignmentId?: string;
+    stepId?: string;
+    type: string;
+    iat: number;
+    exp: number;
+  };
 }
 
 export interface ValidatedSmartLink {
@@ -46,13 +65,15 @@ export class SmartLinkService {
     instanceId: string,
     templateId: string,
     sessionId: string,
-    expiresInMinutes: number = 60 * 24, // Default 24 hours
+    expiresInMinutes: number = 60 * 24,
     requiredRole?: string,
-    assignedTo?: string
+    assignedTo?: string,
+    role?: string,
+    assignmentId?: string,
+    stepId?: string
   ): Promise<SmartLinkContext> {
     const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
 
-    // Create JWT token with encrypted payload containing instance and session info
     const tokenPayload: any = {
       instanceId,
       templateId,
@@ -62,17 +83,24 @@ export class SmartLinkService {
       exp: Math.floor(expiresAt.getTime() / 1000)
     };
 
-    // Add optional fields if provided
     if (requiredRole) {
       tokenPayload.requiredRole = requiredRole;
     }
     if (assignedTo) {
       tokenPayload.assignedTo = assignedTo;
     }
+    if (role) {
+      tokenPayload.role = role;
+    }
+    if (assignmentId) {
+      tokenPayload.assignmentId = assignmentId;
+    }
+    if (stepId) {
+      tokenPayload.stepId = stepId;
+    }
 
     const token = jwt.sign(tokenPayload, JWT_SECRET, { algorithm: 'HS256' });
 
-    // Store the token in database for tracking
     await db.insert(magicLinks).values({
       token,
       instanceId,
@@ -91,6 +119,8 @@ export class SmartLinkService {
       sessionId,
       requiredRole,
       assignedTo,
+      role,
+      assignmentId,
     };
   }
 

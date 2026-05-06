@@ -1,69 +1,72 @@
-import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { branchComplianceServices } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { NextRequest } from "next/server";
+import { equipmentService } from "@/lib/services/equipment-service";
+import { ApiHandler } from "@/lib/api/response";
 import { requireTenant, requireAuth } from "@/lib/tenant-context";
+import { z } from "zod";
 
-export async function GET(request: Request) {
+const createComplianceServiceSchema = z.object({
+  serviceType: z.string().min(1, "El tipo de servicio es requerido"),
+  serviceName: z.string().min(1, "El nombre del servicio es requerido"),
+  regulationReference: z.string().optional(),
+  isMandatory: z.boolean().optional(),
+  frequency: z.string().min(1, "La frecuencia es requerida"),
+  customDays: z.number().optional(),
+  providerId: z.string().optional(),
+  providerName: z.string().optional(),
+  providerContact: z.string().optional(),
+  nextServiceDate: z.string().optional(),
+  serviceAreas: z.array(z.string()).optional(),
+  specialInstructions: z.string().optional(),
+  workflowTemplateId: z.string().optional(),
+});
+
+export async function GET() {
   try {
     const tenant = await requireTenant();
     if (!tenant.id || !tenant.branchId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return ApiHandler.error(new Error("Unauthorized"), 401);
     }
 
-    const services = await db.query.branchComplianceServices.findMany({
-      where: (services, { eq }) => eq(services.branchId, tenant.branchId!),
-      orderBy: (services, { asc }) => [asc(services.serviceName)],
-    });
+    const services = await equipmentService.getComplianceServicesByBranch(tenant.branchId);
 
-    return NextResponse.json(services);
+    return ApiHandler.success(services);
   } catch (error) {
-    console.error("Error fetching compliance services:", error);
-    return NextResponse.json({ error: "Error fetching services" }, { status: 500 });
+    return ApiHandler.error(error);
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const { user } = await requireAuth();
     const tenant = await requireTenant();
 
     if (!tenant.id || !tenant.branchId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return ApiHandler.error(new Error("Unauthorized"), 401);
     }
 
     const body = await request.json();
-    const { serviceType, serviceName, regulationReference, isMandatory, frequency, customDays, providerId, providerName, providerContact, nextServiceDate, serviceAreas, specialInstructions, workflowTemplateId } = body;
+    const validatedData = createComplianceServiceSchema.parse(body);
 
-    if (!serviceType || !serviceName || !frequency) {
-      return NextResponse.json(
-        { error: "Missing required fields: serviceType, serviceName, frequency" },
-        { status: 400 }
-      );
-    }
-
-    const newService = await db.insert(branchComplianceServices).values({
+    const service = await equipmentService.createComplianceService({
       companyId: tenant.id,
       branchId: tenant.branchId,
-      serviceType,
-      serviceName,
-      regulationReference,
-      isMandatory: isMandatory ?? true,
-      frequency,
-      customDays,
-      providerId,
-      providerName,
-      providerContact,
-      nextServiceDate: nextServiceDate ? new Date(nextServiceDate) : null,
-      serviceAreas: serviceAreas || [],
-      specialInstructions,
-      workflowTemplateId,
-      createdBy: user.id,
-    }).returning();
+      serviceType: validatedData.serviceType,
+      serviceName: validatedData.serviceName,
+      regulationReference: validatedData.regulationReference,
+      isMandatory: validatedData.isMandatory ?? true,
+      frequency: validatedData.frequency,
+      customDays: validatedData.customDays,
+      providerId: validatedData.providerId,
+      providerName: validatedData.providerName,
+      providerContact: validatedData.providerContact,
+      nextServiceDate: validatedData.nextServiceDate ? new Date(validatedData.nextServiceDate) : undefined,
+      serviceAreas: validatedData.serviceAreas || [],
+      specialInstructions: validatedData.specialInstructions,
+      workflowTemplateId: validatedData.workflowTemplateId,
+    }, user.id);
 
-    return NextResponse.json(newService[0], { status: 201 });
+    return ApiHandler.success(service, 201);
   } catch (error) {
-    console.error("Error creating compliance service:", error);
-    return NextResponse.json({ error: "Error creating service" }, { status: 500 });
+    return ApiHandler.error(error);
   }
 }
