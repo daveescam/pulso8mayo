@@ -1,346 +1,204 @@
 {
-    "id": "tpl-control-higiene-personal-v2",
-    "nombre": "🧼 Control de Higiene Personal",
-    "descripcion": "Verificación completa de higiene personal con IA, branching y escalación automática",
-    "tipo": "CONTROL_CALIDAD",
-    "categoria": "CONTROL_CALIDAD",
-    "version": 2,
-    "activo": true,
-    "requiereIA": true,
-    "duracionEstimada": "5-10 min",
-    "cumplimientoNormativo": [
-        "NOM-251-SSA1-2009",
-        "NOM-093-SSA1-1994"
-    ],
-    "tags": [
-        "higiene",
-        "personal",
-        "seguridad",
-        "ia-verificacion"
-    ],
-    "aiConfig": {
-        "provider": "moondream",
-        "fallbackProvider": "openai",
-        "maxRetries": 2
+  "id": "tpl-control-higiene-personal-v2",
+  "nombre": "🧼 Control de Higiene Personal",
+  "descripcion": "Verificación diaria de higiene personal del personal Manipulador de alimentos conforme a NOM-251 Sección 4.2",
+  "categoria": "CONTROL_CALIDAD",
+  "version": 2,
+  "requiereIA": true,
+  "duracionEstimada": "5-10 min",
+  "activo": true,
+  "complianceConfig": {
+    "complianceType": "NOM-251",
+    "regulationSection": "4.2",
+    "requiredFrequency": "daily-per-shift",
+    "auditable": true,
+    "evidenceRequired": true,
+    "criticalForCompliance": true
+  },
+  "cumplimientoNormativo": [
+    {
+      "norma": "NOM-251",
+      "seccion": "4.2",
+      "descripcion": "Higiene personal del personal manipulador de alimentos"
+    }
+  ],
+  "tags": ["higiene", "personal", "NOM-251", "control-calidad", "manipuladores"],
+  "aiConfig": {
+    "provider": "moondream",
+    "fallbackProvider": "openai",
+    "maxRetries": 2
+  },
+  "escalationChain": [
+    {
+      "rol": "Gerente",
+      "tiempoMinutos": 0
     },
-    "complianceConfig": {
-        "complianceType": "NOM-251",
-        "regulationSection": "5.11 (Higiene del personal)",
-        "requiredFrequency": "daily",
-        "auditable": true,
-        "evidenceRequired": true,
-        "criticalForCompliance": true
+    {
+      "rol": "RH",
+      "tiempoMinutos": 30
+    }
+  ],
+  "completionActions": [
+    {
+      "type": "SEND_NOTIFICATION",
+      "target": "Gerente",
+      "channel": "whatsapp",
+      "message": "Control de higiene personal completado"
     },
-    "pasos": [
+    {
+      "type": "UPDATE_EMPLOYEE_STATUS",
+      "message": "Actualizar estado de aptitud del empleado"
+    },
+    {
+      "type": "GENERATE_PDF_REPORT",
+      "message": "Generar reporte PDF de control de higiene personal"
+    }
+  ],
+  "pasos": [
+    {
+      "id": "paso-1",
+      "titulo": "Verificación de Manos Limpias",
+      "type": "PhotoField",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar que las manos están lavadas, sin joyas, uñas cortas y limpias",
+        "threshold": 0.85,
+        "expectedConditions": [
+          "Manos visiblemente limpias y lavadas",
+          "Sin joyas o accesorios en manos ni muñecas",
+          "Uñas cortas, limpias y sin esmalte"
+        ]
+      },
+      "remediationProtocol": {
+        "type": "GUIDED_SELF_FIX",
+        "maxAttempts": 2,
+        "steps": [
+          {
+            "orden": 1,
+            "instruccion": "Diríjase al lavamanos. Lávese las manos con jabón antibacterial durante al menos 20 segundos, frotando entre los dedos y bajo las uñas."
+          },
+          {
+            "orden": 2,
+            "instruccion": "Secarse las manos con toallas de papel desechable. Retire cualquier joya o accesorio. Verifique que sus uñas estén cortas."
+          },
+          {
+            "orden": 3,
+            "instruccion": "Tome una nueva fotografía de sus manos para re-verificación."
+          }
+        ]
+      }
+    },
+    {
+      "id": "paso-2",
+      "titulo": "Verificación de Uniforme Completo",
+      "type": "PhotoField",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar que el uniforme está completo, limpio, y el cabello está recogido o cubierto",
+        "threshold": 0.8,
+        "expectedConditions": [
+          "Uniforme completo y limpio",
+          "Cabello recogido o cubierto con cofia/red",
+          "Calzado adecuado y limpio"
+        ]
+      }
+    },
+    {
+      "id": "paso-3",
+      "titulo": "¿Uso de Guantes?",
+      "type": "YesNo",
+      "obligatorio": true,
+      "branches": [
         {
-            "id": "higiene-title",
-            "type": "Heading",
-            "title": "🧼 Control de Higiene Personal",
-            "required": false
-        },
-        {
-            "id": "higiene-foto-manos",
-            "type": "PhotoField",
-            "title": "📷 Foto de Manos Limpias",
-            "description": "Muestra tus manos limpias con uñas cortas y sin joyas",
-            "required": true,
-            "aiVerification": {
-                "enabled": true,
-                "prompt": "Analiza las manos en esta imagen. Verifica: 1) Manos limpias, 2) Uñas cortas y sin esmalte, 3) Sin anillos ni pulseras, 4) Sin heridas visibles. Responde 'APROBADO' si cumple todo, o describe problemas.",
-                "threshold": 0.85,
-                "expectedConditions": [
-                    "manos limpias",
-                    "uñas cortas",
-                    "sin joyas"
-                ]
-            },
-            "logicRules": [
-                {
-                    "id": "rule_manos_no_aprobadas",
-                    "condition": "ai_result.passed == false",
-                    "severity": "CRITICAL",
-                    "message": "🚨 Higiene de manos no cumple estándares: {ai_result.analysis}",
-                    "remediationProtocol": {
-                        "enabled": true,
-                        "type": "GUIDED_SELF_FIX",
-                        "maxAttempts": 2,
-                        "timeoutMinutes": 10,
-                        "steps": [
-                            {
-                                "instruction": "Lava tus manos con jabón antibacterial por 20 segundos",
-                                "waitSeconds": 30
-                            },
-                            {
-                                "instruction": "Si tienes joyas, quítatelas",
-                                "waitSeconds": 10
-                            },
-                            {
-                                "instruction": "Si tus uñas están largas, córtalas",
-                                "waitSeconds": 60
-                            },
-                            {
-                                "instruction": "Toma nueva foto de tus manos",
-                                "verification": {
-                                    "type": "ai_photo_verification",
-                                    "targetCondition": "ai_result.passed == true"
-                                }
-                            }
-                        ]
-                    },
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerCondition": "remediation_failed",
-                            "notifyRoles": [
-                                "GERENTE"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "🚨 {employee_name} no cumple higiene de manos después de correcciones. Problemas: {ai_result.detectedIssues}"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "higiene-usa-guantes",
-            "type": "YesNo",
-            "title": "🧤 ¿Usas guantes desechables?",
-            "required": true,
-            "branches": [
-                {
-                    "condition": "value == 'no'",
-                    "targetStepId": "higiene-razon-sin-guantes"
-                }
-            ]
-        },
-        {
-            "id": "higiene-razon-sin-guantes",
-            "type": "Select",
-            "title": "¿Por qué no usas guantes?",
-            "required": true,
-            "options": [
-                {
-                    "value": "no_disponibles",
-                    "label": "No hay guantes disponibles"
-                },
-                {
-                    "value": "no_necesarios",
-                    "label": "Mi tarea no los requiere"
-                },
-                {
-                    "value": "alergia",
-                    "label": "Tengo alergia al látex"
-                }
-            ],
-            "logicRules": [
-                {
-                    "id": "rule_sin_guantes_critico",
-                    "condition": "value == 'no_disponibles'",
-                    "severity": "CRITICAL",
-                    "message": "🚨 CRÍTICO: No hay guantes disponibles",
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerAfterMinutes": 0,
-                            "notifyRoles": [
-                                "GERENTE"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "🚨 URGENTE: Sin guantes en sucursal {branch_name}"
-                        },
-                        {
-                            "level": 2,
-                            "triggerAfterMinutes": 30,
-                            "notifyRoles": [
-                                "OWNER"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "🚨 Sucursal operando sin guantes por 30+ minutos"
-                        }
-                    ],
-                    "actions": [
-                        {
-                            "type": "CREATE_PURCHASE_ORDER",
-                            "item": "Guantes desechables",
-                            "priority": "URGENT",
-                            "quantity": 100
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "higiene-foto-uniforme",
-            "type": "PhotoField",
-            "title": "📷 Foto de Uniforme Completo",
-            "description": "Selfie mostrando uniforme limpio y completo",
-            "required": true,
-            "aiVerification": {
-                "enabled": true,
-                "prompt": "Analiza el uniforme de esta persona. Verifica: 1) Uniforme completo (camisa/playera de trabajo), 2) Delantal limpio, 3) Gorro o cofia, 4) Uniforme sin manchas visibles. Responde 'APROBADO' o describe problemas.",
-                "threshold": 0.75,
-                "expectedConditions": [
-                    "uniforme completo",
-                    "limpio",
-                    "gorro"
-                ]
-            },
-            "logicRules": [
-                {
-                    "id": "rule_uniforme_incompleto",
-                    "condition": "ai_result.passed == false",
-                    "severity": "HIGH",
-                    "message": "⚠️ Uniforme incompleto o sucio: {ai_result.analysis}",
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerAfterMinutes": 0,
-                            "notifyRoles": [
-                                "GERENTE"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "⚠️ {employee_name} con uniforme incompleto: {ai_result.detectedIssues}"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "higiene-cabello-recogido",
-            "type": "YesNo",
-            "title": "¿Tienes el cabello completamente recogido?",
-            "required": true,
-            "branches": [
-                {
-                    "condition": "value == 'no'",
-                    "targetStepId": "higiene-advertencia-cabello"
-                }
-            ]
-        },
-        {
-            "id": "higiene-advertencia-cabello",
-            "type": "TextField",
-            "title": "⚠️ ADVERTENCIA",
-            "description": "El cabello debe estar completamente recogido y cubierto. Recógelo ahora antes de continuar.",
-            "required": false,
-            "readOnly": true
-        },
-        {
-            "id": "higiene-heridas-cortadas",
-            "type": "YesNo",
-            "title": "¿Tienes alguna herida o cortada en las manos?",
-            "required": true,
-            "branches": [
-                {
-                    "condition": "value == 'yes'",
-                    "targetStepId": "higiene-protocolo-heridas"
-                }
-            ]
-        },
-        {
-            "id": "higiene-protocolo-heridas",
-            "type": "TextField",
-            "title": "🩹 Describe la herida y confirma que está cubierta",
-            "required": true,
-            "placeholder": "Ej: Cortada pequeña en dedo índice, cubierta con curita y guante",
-            "logicRules": [
-                {
-                    "id": "rule_herida_reportada",
-                    "condition": "value.length > 0",
-                    "severity": "WARNING",
-                    "message": "⚠️ Empleado con herida reportada",
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerAfterMinutes": 0,
-                            "notifyRoles": [
-                                "GERENTE"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "⚠️ {employee_name} reporta herida: {value}"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "higiene-sintomas",
-            "type": "Checkbox",
-            "title": "¿Presentas alguno de estos síntomas?",
-            "required": true,
-            "options": [
-                {
-                    "value": "tos",
-                    "label": "Tos"
-                },
-                {
-                    "value": "fiebre",
-                    "label": "Fiebre"
-                },
-                {
-                    "value": "diarrea",
-                    "label": "Diarrea"
-                },
-                {
-                    "value": "vomito",
-                    "label": "Vómito"
-                },
-                {
-                    "value": "ninguno",
-                    "label": "Ninguno"
-                }
-            ],
-            "logicRules": [
-                {
-                    "id": "rule_sintomas_criticos",
-                    "condition": "value.includes('fiebre') || value.includes('diarrea') || value.includes('vomito')",
-                    "severity": "CRITICAL",
-                    "message": "🚨 CRÍTICO: Empleado con síntomas de enfermedad",
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerAfterMinutes": 0,
-                            "notifyRoles": [
-                                "GERENTE"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "🚨 ALERTA SALUD: {employee_name} reporta síntomas: {value}. NO DEBE TRABAJAR CON ALIMENTOS."
-                        }
-                    ],
-                    "actions": [
-                        {
-                            "type": "BLOCK_WORKFLOW_COMPLETION",
-                            "message": "No puedes completar este workflow. Contacta a tu gerente inmediatamente."
-                        },
-                        {
-                            "type": "SEND_HOME_PROTOCOL",
-                            "requireMedicalClearance": true
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "higiene-firma",
-            "type": "SignatureField",
-            "title": "✍️ Firma de Compromiso",
-            "description": "Confirmo que cumplo con todos los estándares de higiene",
-            "required": true
+          "condition": "no",
+          "targetStepId": "paso-protocolo-guantes"
         }
-    ],
-    "completionActions": [
+      ]
+    },
+    {
+      "id": "paso-4",
+      "titulo": "Screening de Salud",
+      "type": "Select",
+      "obligatorio": true,
+      "options": ["Sin síntomas", "Fiebre", "Diarrea", "Vómito", "Heridas abiertas", "Dolor de garganta"],
+      "logicRules": [
         {
-            "type": "SEND_NOTIFICATION",
-            "target": [
-                "GERENTE"
-            ],
-            "channel": "whatsapp",
-            "message": "✅ Control de higiene completado por {employee_name}"
-        },
-        {
-            "type": "UPDATE_EMPLOYEE_STATUS",
-            "status": "HYGIENE_VERIFIED",
-            "validFor": 480
+          "id": "lr-sintoma-detectado",
+          "condition": "value != 'Sin síntomas'",
+          "severity": "CRITICAL",
+          "message": "Se detectaron síntomas de enfermedad. El empleado debe ser enviado a casa inmediatamente.",
+          "actions": ["BLOCK", "SEND_HOME"],
+          "escalationChain": [
+            {
+              "rol": "Gerente",
+              "tiempoMinutos": 0
+            }
+          ]
         }
-    ]
+      ],
+      "branches": [
+        {
+          "condition": "Heridas abiertas",
+          "targetStepId": "paso-proteccion-heridas"
+        }
+      ]
+    },
+    {
+      "id": "paso-proteccion-heridas",
+      "titulo": "Protocolo de Protección de Heridas",
+      "type": "instruction",
+      "descripcion": "Cubra la herida con vendaje impermeable y guantes. La herida debe estar completamente sellada para poder manipular alimentos. Si la herida no puede ser cubierta adecuadamente, el empleado no debe manipular alimentos."
+    },
+    {
+      "id": "paso-6",
+      "titulo": "¿Protección cubierta aplicada?",
+      "type": "YesNo",
+      "obligatorio": false,
+      "condicional": true,
+      "condicionMostrar": "paso-4 == 'Heridas abiertas'"
+    },
+    {
+      "id": "paso-protocolo-guantes",
+      "titulo": "Protocolo de Corrección de Guantes",
+      "type": "instruction",
+      "descripcion": "Coloque guantes desechables nuevos. Asegúrese de que cubran completamente las manos y muñecas. Cambie guantes cada vez que cambie de actividad o si se rompen."
+    },
+    {
+      "id": "paso-8",
+      "titulo": "¿Guantes puestos correctamente?",
+      "type": "YesNo",
+      "obligatorio": false,
+      "condicional": true,
+      "condicionMostrar": "paso-3 == 'no'"
+    },
+    {
+      "id": "paso-9",
+      "titulo": "Confirmación de Aptitud",
+      "type": "instruction",
+      "descripcion": "Verifique que todas las verificaciones de higiene personal han sido completadas satisfactoriamente antes de confirmar la aptitud del empleado."
+    },
+    {
+      "id": "paso-10",
+      "titulo": "¿Empleado apto para trabajar?",
+      "type": "YesNo",
+      "obligatorio": true,
+      "logicRules": [
+        {
+          "id": "lr-no-aptio",
+          "condition": "value == 'no'",
+          "severity": "CRITICAL",
+          "message": "Empleado no apto para trabajar. Notificación inmediata al gerente.",
+          "actions": ["BLOCK"],
+          "escalationChain": [
+            {
+              "rol": "Gerente",
+              "tiempoMinutos": 0
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }

@@ -1,221 +1,216 @@
 {
   "id": "tpl-seguridad-local-v1",
-  "nombre": "🔒 Seguridad del Local - Turno Nocturno",
-  "descripcion": "Protocolo de verificación de seguridad e instalaciones al finalizar el turno nocturno",
-  "tipo": "SEGURIDAD",
+  "nombre": "🔒 Seguridad del Local",
+  "descripcion": "Inspección de seguridad del establecimiento con verificación AI de cámaras, extintores y rutas de evacuación",
   "categoria": "SEGURIDAD",
   "version": 1,
   "activo": true,
-  "requiereIA": false,
-  "duracionEstimada": "15-20 min",
+  "requiereIA": true,
+  "duracionEstimada": "10-15 min",
   "cumplimientoNormativo": [
-    "NOM-251-SSA1-2009"
-  ],
-  "tags": [
-    "seguridad",
-    "instalaciones",
-    "nocturno",
-    "verificaciones",
-    "prevención"
-  ],
-  "alertConfig": {
-    "criticalThreshold": {
-      "priority": "ALTA",
-      "notifyImmediately": true,
-      "notifyRoles": [
-        "GERENTE",
-        "SUPERVISOR"
-      ],
-      "channels": [
-        "whatsapp",
-        "email",
-        "dashboard"
-      ]
+    {
+      "norma": "NOM-002-STPS",
+      "seccion": "5",
+      "descripcion": "Condiciones de seguridad en los centros de trabajo"
     }
-  },
+  ],
   "complianceConfig": {
-    "complianceType": "NOM-251",
-    "regulationSection": "5.1 (Instalaciones)",
-    "requiredFrequency": "daily",
+    "complianceType": "NOM-002-STPS",
+    "regulationSection": "5",
+    "requiredFrequency": "monthly",
     "auditable": true,
     "evidenceRequired": true,
     "criticalForCompliance": true
   },
+  "tags": ["seguridad", "inspeccion", "NOM-002-STPS", "cctv", "extintores", "evacuacion", "mensual"],
+  "aiConfig": {
+    "provider": "moondream",
+    "fallbackProvider": "openai",
+    "maxRetries": 2
+  },
+  "escalationChain": [
+    {
+      "role": "Gerente",
+      "channel": "whatsapp",
+      "timeout": "0min"
+    },
+    {
+      "role": "Owner",
+      "channel": "call_priority",
+      "timeout": "0min",
+      "condition": "critical_security_failure"
+    }
+  ],
+  "completionActions": [
+    {
+      "type": "SEND_NOTIFICATION",
+      "target": "GERENTE",
+      "channel": "whatsapp",
+      "message": "Inspección de seguridad del local completada"
+    },
+    {
+      "type": "GENERATE_PDF_REPORT"
+    },
+    {
+      "type": "CREATE_MAINTENANCE_TICKET",
+      "condition": "issues_detected",
+      "priority": "urgent",
+      "message": "Se detectaron problemas de seguridad que requieren atención de mantenimiento"
+    }
+  ],
   "pasos": [
     {
-      "id": "seg-local-title",
-      "fieldType": "Title",
-      "label": "🔒 Seguridad del Local - Turno Nocturno",
-      "required": false,
-      "static": true
-    },
-    {
-      "id": "seg-local-intro",
-      "fieldType": "Paragraph",
-      "label": "Realice las verificaciones de seguridad e instalaciones antes de finalizar el turno nocturno.",
-      "required": false,
-      "static": true
-    },
-    {
-      "id": "seg-local-timestamp",
-      "fieldType": "DateTime",
-      "label": "Fecha y Hora de Verificación",
-      "required": true,
-      "extraAttributes": {
-        "defaultValue": "now",
-        "readonly": true
+      "id": "paso-1",
+      "type": "PhotoField",
+      "titulo": "Verificación de Puertas",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar que las puertas estén aseguradas, cerraduras funcionando correctamente y sin daños visibles en marcos o chapas",
+        "threshold": 0.75,
+        "expectedConditions": [
+          "Puertas aseguradas correctamente",
+          "Cerraduras funcionando sin daño",
+          "Sin daños visibles en marcos o chapas"
+        ]
       }
     },
     {
-      "id": "seg-local-responsable",
-      "fieldType": "Text",
-      "label": "Responsable de Seguridad",
-      "required": true,
-      "extraAttributes": {
-        "placeholder": "Nombre del encargado"
-      }
+      "id": "paso-2",
+      "type": "YesNo",
+      "titulo": "Ventanas Seguras",
+      "obligatorio": true
     },
     {
-      "id": "seg-local-separator-1",
-      "fieldType": "Separator",
-      "required": false,
-      "static": true
+      "id": "paso-3",
+      "type": "YesNo",
+      "titulo": "Sistema de Alarma Funcionando",
+      "obligatorio": true
     },
     {
-      "id": "seg-local-section-instalaciones",
-      "fieldType": "SubTitle",
-      "label": "1. 🏢 Instalaciones y Accesos",
-      "required": false,
-      "static": true
-    },
-    {
-      "id": "seg-local-check-puertas",
-      "fieldType": "Checkbox",
-      "label": "Todas las puertas de acceso están cerradas y aseguradas",
-      "required": true
-    },
-    {
-      "id": "seg-local-check-ventanas",
-      "fieldType": "Checkbox",
-      "label": "Todas las ventanas están cerradas y aseguradas",
-      "required": true
-    },
-    {
-      "id": "seg-local-check-cerraduras",
-      "fieldType": "Checkbox",
-      "label": "Cerraduras en buen estado y funcionando correctamente",
-      "required": true
-    },
-    {
-      "id": "seg-local-check-iluminacion",
-      "fieldType": "Checkbox",
-      "label": "Iluminación exterior adecuada en áreas críticas",
-      "required": true
-    },
-    {
-      "id": "seg-local-separator-2",
-      "fieldType": "Separator",
-      "required": false,
-      "static": true
-    },
-    {
-      "id": "seg-local-section-sistemas",
-      "fieldType": "SubTitle",
-      "label": "2. ⚡ Sistemas y Equipos",
-      "required": false,
-      "static": true
-    },
-    {
-      "id": "seg-local-check-alarmas",
-      "fieldType": "Checkbox",
-      "label": "Sistema de alarma activado y funcionando",
-      "required": true
-    },
-    {
-      "id": "seg-local-check-camaras",
-      "fieldType": "Checkbox",
-      "label": "Sistema de vigilancia grabando adecuadamente",
-      "required": true
-    },
-    {
-      "id": "seg-local-check-electricidad",
-      "fieldType": "Select",
-      "label": "Sistema Eléctrico",
-      "required": true,
-      "options": [
+      "id": "paso-4",
+      "type": "PhotoField",
+      "titulo": "Cámaras CCTV",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar posición correcta de la cámara, lente limpio sin obstrucciones, y luz indicadora encendida que confirma funcionamiento",
+        "threshold": 0.7,
+        "expectedConditions": [
+          "Cámara en posición correcta",
+          "Lente limpio y sin obstrucciones",
+          "Luz indicadora encendida"
+        ]
+      },
+      "logicRules": [
         {
-          "value": "normal",
-          "label": "Todo el sistema apagado excepto luces de emergencia"
-        },
-        {
-          "value": "parcial",
-          "label": "Equipos esenciales encendidos (refrigeradores, etc.)"
-        },
-        {
-          "value": "riesgo",
-          "label": "Detectado riesgo eléctrico"
+          "id": "lr-cctv-fuera-servicio",
+          "condition": "cameraNotWorking",
+          "severity": "HIGH",
+          "message": "Cámara CCTV no funcionando. Se requiere atención inmediata de mantenimiento.",
+          "escalationChain": [
+            {
+              "role": "Gerente",
+              "channel": "whatsapp",
+              "timeout": "0min"
+            }
+          ],
+          "actions": ["NOTIFY", "CREATE_MAINTENANCE_TICKET"]
         }
       ]
     },
     {
-      "id": "seg-local-check-gas",
-      "fieldType": "Select",
-      "label": "Sistema de Gas",
-      "required": true,
-      "options": [
+      "id": "paso-5",
+      "type": "YesNo",
+      "titulo": "Iluminación Exterior Funcionando",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-6",
+      "type": "PhotoField",
+      "titulo": "Señalización de Emergencia",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar que las señales de salida estén iluminadas y visibles, y que la señalización de emergencia esté en buen estado y correctamente colocada",
+        "threshold": 0.8,
+        "expectedConditions": [
+          "Señales de salida iluminadas",
+          "Señalización de emergencia visible",
+          "Señales en buen estado y correctamente colocadas"
+        ]
+      }
+    },
+    {
+      "id": "paso-7",
+      "type": "PhotoField",
+      "titulo": "Extintores - Fecha de Vigencia (OCR)",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Realizar OCR de la fecha de vigencia en la etiqueta del extintor. Verificar que el extintor no esté vencido y que el sello de seguridad esté intacto.",
+        "threshold": 0.7,
+        "expectedConditions": [
+          "Fecha de vigencia legible vía OCR",
+          "Extintor dentro de vigencia",
+          "Sello de seguridad intacto"
+        ]
+      },
+      "logicRules": [
         {
-          "value": "cerrado",
-          "label": "Llaves de gas completamente cerradas"
-        },
-        {
-          "value": "parcial",
-          "label": "Control de gas verificado"
-        },
-        {
-          "value": "abierta",
-          "label": "RIESGO: Llaves de gas abiertas"
+          "id": "lr-extintor-vencido",
+          "condition": "extinguisherExpired",
+          "severity": "CRITICAL",
+          "message": "Extintor vencido detectado. Reemplazo urgente requerido según NOM-002-STPS.",
+          "escalationChain": [
+            {
+              "role": "Gerente",
+              "channel": "whatsapp",
+              "timeout": "0min"
+            },
+            {
+              "role": "Owner",
+              "channel": "call_priority",
+              "timeout": "0min"
+            }
+          ],
+          "actions": ["BLOCK", "ESCALATE", "CREATE_MAINTENANCE_TICKET"]
         }
       ]
     },
     {
-      "id": "seg-local-separator-3",
-      "fieldType": "Separator",
-      "required": false,
-      "static": true
+      "id": "paso-8",
+      "type": "YesNo",
+      "titulo": "Botiquín de Primeros Auxilios Completo",
+      "obligatorio": true
     },
     {
-      "id": "seg-local-section-evidencias",
-      "fieldType": "SubTitle",
-      "label": "3. 📷 Evidencias de Seguridad",
-      "required": false,
-      "static": true
+      "id": "paso-9",
+      "type": "YesNo",
+      "titulo": "Rutas de Evacuación Despejadas",
+      "obligatorio": true,
+      "logicRules": [
+        {
+          "id": "lr-rutas-bloqueadas",
+          "condition": "value == 'no'",
+          "severity": "HIGH",
+          "message": "Rutas de evacuación bloqueadas. Se requiere remedio inmediato para garantizar la seguridad del personal y clientes.",
+          "escalationChain": [
+            {
+              "role": "Gerente",
+              "channel": "whatsapp",
+              "timeout": "0min"
+            }
+          ],
+          "actions": ["BLOCK", "ESCALATE", "REQUIRE_REMEDIATION"]
+        }
+      ]
     },
     {
-      "id": "seg-local-foto-entrada",
-      "fieldType": "Photo",
-      "label": "📷 Foto de Entrada Principal",
-      "required": true
-    },
-    {
-      "id": "seg-local-foto-areas",
-      "fieldType": "Photo",
-      "label": "📷 Foto General del Área Principal",
-      "required": true
-    },
-    {
-      "id": "seg-local-observaciones",
-      "fieldType": "Textarea",
-      "label": "Observaciones de Seguridad",
-      "required": false,
-      "extraAttributes": {
-        "placeholder": "Registre cualquier observación o incidente relacionado con la seguridad..."
-      }
-    },
-    {
-      "id": "seg-local-firma",
-      "fieldType": "Signature",
-      "label": "Firma de Confirmación de Seguridad",
-      "required": true
+      "id": "paso-10",
+      "type": "YesNo",
+      "titulo": "¿Inspección de seguridad completada?",
+      "obligatorio": true
     }
   ]
 }

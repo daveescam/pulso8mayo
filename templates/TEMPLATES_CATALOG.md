@@ -1,130 +1,220 @@
-# 📚 Templates Mejorados - Catálogo Completo
+# 📚 Pulso Template Library v2 Enhanced - Catálogo Completo
 
-## ✅ Templates Completados (v2 Enhanced)
+## 📊 Resumen de 19 Templates
 
-### 1. 🌅 Apertura de Restaurante
+| # | Template | Categoría | Pasos | AI | OCR | Branches | Escalation | Remediation | BLOCK |
+|---|----------|-----------|-------|----|-----|----------|------------|-------------|-------|
+| 1 | Apertura Restaurante | Operaciones Diarias | 12 | 4 fotos | 1 | 3 | 3 niveles | No | 1 |
+| 2 | Cierre Restaurante | Operaciones Diarias | 14 | 2 fotos | 1 | 2 | 3 niveles | Sí | 2 |
+| 3 | Limpieza y Sanitización | Operaciones Diarias | 15 | 6 fotos | 0 | 2 | 2 niveles | Sí | 3 |
+| 4 | Mantenimiento Equipos V2 | Operaciones Diarias | 12 | 6 fotos | 0 | 1 | 2 niveles | Sí | 1 |
+| 5 | Recepción de Mercancía | Control de Calidad | 12 | 3 fotos | 2 | 5 | 3 niveles | No | 2 |
+| 6 | Control Higiene Personal | Control de Calidad | 10 | 2 fotos | 0 | 3 | 2 niveles | Sí | 1 |
+| 7 | Control de Temperaturas | Control de Calidad | 10 | 1 foto | 4 | 1 | 3 niveles | Sí | 1 |
+| 8 | Inspección de Alimentos | Control de Calidad | 10 | 1 foto | 1 | 2 | 2 niveles | Sí | 0 |
+| 9 | Checklist Mantenimiento | Mantenimiento | 12 | 2 fotos | 0 | 1 | 1 nivel | No | 0 |
+| 10 | Mant. Refrigeradores | Mantenimiento | 10 | 3 fotos | 0 | 2 | 2 niveles | Sí | 0 |
+| 11 | Seguridad del Local | Seguridad | 10 | 3 fotos | 1 | 1 | 2 niveles | No | 0 |
+| 12 | Control de Accesos | Seguridad | 8 | 1 foto | 1 | 2 | 0 niveles | No | 0 |
+| 13 | Sistema Contra Incendios | Compliance | 10 | 3 fotos | 2 | 1 | 3 niveles | Sí | 1 |
+| 14 | Fumigación | Compliance | 8 | 2 fotos | 1 | 2 | 2 niveles | Sí | 1 |
+| 15 | NOM-035 Encuesta | Compliance | 15 | 0 | 0 | 1 | 0 niveles | No | 0 |
+| 16 | Asistencia Diaria | Compliance | 6 | 1 foto | 0 | 0 | 1 nivel | No | 0 |
+| 17 | Onboarding Empleado | Recursos Humanos | 12 | 1 foto | 3 | 2 | 1 nivel | No | 0 |
+| 18 | Reporte de Incidentes | Atención al Cliente | 10 | 1 foto | 0 | 1 | 3 niveles | No | 1 |
+| 19 | Conteo de Inventario | Inventario | 10 | 1 foto | 0 | 1 | 1 nivel | No | 0 |
+
+---
+
+## 1. Operaciones Diarias (4)
+
+### 1.1 🌅 Apertura de Restaurante
 **Archivo**: `operaciones_diarias/apertura-restaurante-v2-enhanced.json`
 
-**Características**:
-- ✅ AI Verification: Exterior, comedor, cocina, personal
-- ✅ Branching: Luces, uniformes, limpieza exterior
-- ✅ Escalation: 3 niveles (Gerente → Técnico → Owner)
+- ✅ AI Verification: Exterior, comedor, cocina, personal (4 fotos)
+- ✅ Branching: Luces → reporte mantenimiento, uniforme → corrección
+- ✅ Escalation: Gerente (0 min) → Técnico (30 min) → Owner (120 min)
 - ✅ GPS Validation: Confirmar ubicación en sucursal
-- ✅ Automated Actions: Notificaciones, PDF report, status update
+- ✅ Compliance: NOM-251, daily, auditable
+- ✅ Completion: Notificación, PDF report, branch status OPEN
 
-**Casos de Uso**:
-- Verificación de temperatura ambiente
-- Control de personal uniformado
-- Inspección de instalaciones
-- Fondo de caja inicial
-
----
-
-### 2. 🌙 Cierre de Restaurante
+### 1.2 🌙 Cierre de Restaurante
 **Archivo**: `operaciones_diarias/cierre-restaurante-v2-enhanced.json`
 
-**Características**:
-- ✅ AI Verification: Cocina limpia, exterior cerrado
-- ✅ Cash Control: Diferencias automáticas, alertas por montos altos
+- ✅ AI Verification: Cocina limpia, exterior cerrado (2 fotos)
+- ✅ Cash Control: Diferencias automáticas, alertas >$500 → CRITICAL + BLOCK
 - ✅ Security Protocol: Puertas, ventanas, alarma (BLOCK si incompleto)
-- ✅ Equipment Shutdown: Verificación de equipos críticos
-- ✅ Automated Actions: Sync contabilidad, PDF report
+- ✅ Equipment Shutdown: Verificación AI de equipos apagados (BLOCK si encendidos)
+- ✅ Compliance: NOM-251, daily, auditable
+- ✅ Completion: Sync contabilidad, PDF report, branch status CLOSED
 
-**Casos de Uso**:
-- Corte de caja con detección de diferencias
-- Protocolo de seguridad completo
-- Verificación de equipos apagados
-- Control de temperatura al cierre
+**Alertas Críticas**: Diferencia > $500 → Llamada a Owner | Equipos encendidos → BLOCK
 
-**Alertas Críticas**:
-- Diferencia > $500 → Llamada a Owner
-- Equipos críticos encendidos → BLOCK completion
-- Temperatura alta → Escalación inmediata
-
----
-
-### 3. 🧹 Limpieza y Sanitización
+### 1.3 🧹 Limpieza y Sanitización
 **Archivo**: `operaciones_diarias/limpieza-sanitizacion-v2-enhanced.json`
 
-**Características**:
-- ✅ AI Verification: Mesas, estufas, refrigeradores, pisos, baños, comedor
-- ✅ Chemical Monitoring: Concentración de cloro (ppm)
-- ✅ Remediation Protocols: Auto-corrección guiada para áreas sucias
-- ✅ Critical Areas Checklist: Tablas, cuchillos, manijas (BLOCK si incompleto)
-- ✅ Time Tracking: Alerta si tiempo sospechosamente corto
+- ✅ AI Verification: 6 fotos (mesas, estufas, refrigeradores, pisos, baños, comedor)
+- ✅ Chemical Monitoring: Concentración de cloro (ppm, 50-200)
+- ✅ Remediation Protocols: GUIDED_SELF_FIX para áreas sucias
+- ✅ Critical BLOCKing: Tablas de cortar, manijas, baños → BLOCK si AI falla
+- ✅ Compliance: NOM-251 Sec 5.2, daily/weekly
 
-**Casos de Uso**:
-- Limpieza diaria, profunda, o sanitización
-- Verificación de productos químicos
-- Certificación de áreas críticas
-- Control de calidad con IA
+### 1.4 🔧 Mantenimiento de Equipos V2
+**Archivo**: `operaciones_diarias/mantenimiento-equipos-v2-enhanced.json`
 
-**Áreas Verificadas por IA**:
-- Mesas de trabajo (threshold 0.8)
-- Estufas y hornos (threshold 0.75)
-- Refrigeradores (threshold 0.75)
-- Pisos (threshold 0.7)
-- Baños (threshold 0.75 - CRITICAL)
-- Comedor (threshold 0.75)
+- ✅ AI Verification: 6 fotos (estufa, freidoras, etc.)
+- ✅ Logic Rules: Si equipo no funciona → CREATE_MAINTENANCE_TICKET URGENT + BLOCK
+- ✅ Remediation: Si equipo sucio → protocolo limpieza guiado
+- ✅ Compliance: NOM-251 (indirecto), daily/weekly
 
 ---
 
-### 4. 📦 Recepción de Mercancía
+## 2. Control de Calidad (4)
+
+### 2.1 📦 Recepción de Mercancía
 **Archivo**: `control_calidad/recepcion-mercancia-v2-enhanced.json`
 
-**Características**:
-- ✅ AI Verification: Vehículo, productos, remisión (OCR)
-- ✅ Temperature Control: Auto-rechazo si > 4°C
-- ✅ Quality Checks: Carnes, verduras, fechas de caducidad
-- ✅ Supplier Rating: Actualización automática basada en calidad
-- ✅ Automated Actions: Claims, inventory update, purchasing alerts
+- ✅ AI Verification: Vehículo, carnes, verduras (3 fotos) + OCR remisión
+- ✅ Temperature Control: Auto-rechazo si > 4°C → CRITICAL + BLOCK + claim
+- ✅ Quality Checks: Carnes, verduras, fechas caducidad (OCR)
+- ✅ Branching: Aceptar/Rechazar/Aceptar con descuento (5 branches)
+- ✅ Compliance: NOM-251 Sec 5.1.2, per-delivery, evidenceRequired
 
-**Casos de Uso**:
-- Inspección de vehículo de entrega
-- Control de temperatura de productos fríos
-- Verificación de cantidades vs orden
-- Decisión de aceptar/rechazar
-
-**Decisiones Automáticas**:
-- Temp > 4°C → BLOCK + Crear claim
-- Productos vencidos → Escalación + Claim
-- Rechazo total → Llamada + Notify purchasing
-
----
-
-### 5. 🧼 Control de Higiene Personal
+### 2.2 🧼 Control de Higiene Personal
 **Archivo**: `control_calidad/control-higiene-personal-v2-enhanced.json`
 
-**Características**:
-- ✅ AI Verification: Manos, uniforme
-- ✅ Health Screening: Síntomas (fiebre, diarrea, vómito)
-- ✅ Remediation Protocol: Corrección de higiene de manos
-- ✅ Critical Blocking: BLOCK si síntomas críticos
-- ✅ Automated Actions: Update employee status, send home protocol
+- ✅ AI Verification: Manos, uniforme (2 fotos)
+- ✅ Health Screening: Fiebre, diarrea, vómito, heridas → BLOCK + send home
+- ✅ Remediation: Corrección guiada de higiene de manos + re-verificación AI
+- ✅ Compliance: NOM-251 Sec 4.2, daily per shift, criticalForCompliance
 
-**Casos de Uso**:
-- Verificación de manos limpias
-- Control de uniforme completo
-- Detección de heridas
-- Screening de salud
+### 2.3 🌡️ Control de Temperaturas
+**Archivo**: `control_calidad/control-temperaturas-v1.json`
 
-**Bloqueos Críticos**:
-- Síntomas de enfermedad → BLOCK + Send home
-- Higiene de manos fallida después de remediation → Escalación
+- ✅ 4 campos de temperatura (2 refrigeradores, 2 congeladores)
+- ✅ OCR de termómetros + AI buffet
+- ✅ Logic: Refrig > 4°C → CRITICAL | Congelador > -18°C → HIGH | Cocido < 60°C → WARNING
+- ✅ Remediation: Verificar puerta → 15 min → re-verificar
+- ✅ Compliance: NOM-251 Sec 5.3, cada 4 horas, criticalForCompliance
+
+### 2.4 🔍 Inspección de Alimentos
+**Archivo**: `control_calidad/inspeccion-alimentos-v1.json`
+
+- ✅ AI Verification: Evaluación visual de producto (color, textura, aspecto)
+- ✅ OCR: Etiqueta con fecha de caducidad, lote
+- ✅ Branching: No apto → registro merma | Dudoso → evaluación supervisor
+- ✅ Compliance: NOM-251, per-inspection, auditable
 
 ---
 
-## 📊 Comparativa de Features
+## 3. Mantenimiento (2)
 
-| Feature | Apertura | Cierre | Limpieza | Recepción | Higiene |
-|---------|----------|--------|----------|-----------|---------|
-| AI Verification | 4 fotos | 2 fotos | 6 fotos | 3 fotos | 2 fotos |
-| Branching | 3 branches | 2 branches | 2 branches | 5 branches | 3 branches |
-| Escalation Levels | 3 | 3 | 2 | 3 | 2 |
-| Remediation | No | Sí (cocina) | Sí (múltiple) | No | Sí (manos) |
-| GPS Validation | ✅ | ✅ | ❌ | ❌ | ❌ |
-| BLOCK Conditions | 1 | 2 | 1 | 2 | 1 |
-| Auto Actions | 3 | 4 | 4 | 5 | 2 |
+### 3.1 🔧 Checklist Mantenimiento General
+**Archivo**: `mantenimiento/checklist-mantenimiento-v1.json`
+
+- ✅ AI Verification: HVAC, pisos/paredes, evidencia (2 fotos)
+- ✅ Logic Rules: Prioridad Urgente → ticket HIGH | Alta → ticket NORMAL
+- ✅ Completion: Crear tickets, notificar gerente
+- ✅ Frecuencia: weekly/monthly
+
+### 3.2 ❄️ Mantenimiento Equipos Refrigeradores
+**Archivo**: `mantenimiento/mantenimiento-equipos-v1.json`
+
+- ✅ AI Before/After: Condensador, sellos, interior (3 fotos)
+- ✅ Branching: Sellos dañados → orden reemplazo | Ruidos → técnico
+- ✅ Compliance: NOM-251 (indirecto), monthly
+
+---
+
+## 4. Seguridad (2)
+
+### 4.1 🔒 Seguridad del Local
+**Archivo**: `seguridad/seguridad-local-v1.json`
+
+- ✅ AI Verification: Puertas, cámaras CCTV, señalización, extintores OCR (3 fotos)
+- ✅ Logic: Extintor vencido → CRITICAL + ticket reemplazo | Cámara no funciona → HIGH
+- ✅ Compliance: NOM-002-STPS, monthly
+
+### 4.2 🚪 Control de Accesos
+**Archivo**: `seguridad/control-accesos-v1.json`
+
+- ✅ OCR de identificación (INE, pasaporte, etc.)
+- ✅ Branching: Proveedor → verificación autorización | Visitante → acompañante
+- ✅ Registro: Entrada/salida con timestamps
+
+---
+
+## 5. Compliance (4)
+
+### 5.1 🧯 Inspección Sistema Contra Incendios
+**Archivo**: `compliance/inspeccion-sistema-contra-incendios-v1.json`
+
+- ✅ AI + OCR: Extintores (fecha vigencia), señalización, rutas evacuación (3 fotos)
+- ✅ Logic: Extintor vencido → CRITICAL + ticket urgente | Ruta bloqueada → HIGH
+- ✅ Escalation: Gerente → Owner (24h) → Autoridad (si persiste)
+- ✅ Compliance: NOM-002-STPS, monthly/quarterly, criticalForCompliance
+
+### 5.2 🐛 Fumigación
+**Archivo**: `compliance/fumigacion-v1.json`
+
+- ✅ OCR de certificado de fumigación (empresa, licencia, vigencia)
+- ✅ AI: Verificación que no hay alimentos expuestos post-aplicación
+- ✅ Logic: Certificado vencido → CRITICAL + BLOCK | Alimentos expuestos → remediation
+- ✅ Compliance: NOM-251 Sec 6.1, monthly/quarterly, evidenceRequired
+
+### 5.3 📋 NOM-035 Encuesta de Clima Laboral
+**Archivo**: `compliance/nom-035-survey-v1.json`
+
+- ✅ 12 preguntas tipo Likert (1-5) sobre entorno organizacional
+- ✅ Anónima: ID anónimo de empleado, sin AI verification
+- ✅ Logic: Puntuación general < 2.5 → WARNING + plan acción | Violencia "siempre" → CRITICAL
+- ✅ Completion: Calcular puntuación, reporte anónimo, notificar RH si crítico
+- ✅ Compliance: NOM-035-STPS-2018, annual/biannual
+
+### 5.4 ⏰ Asistencia Diaria
+**Archivo**: `compliance/daily-attendance-v1.json`
+
+- ✅ GPS Validation: Confirmar ubicación en sucursal
+- ✅ AI: Selfie con verificación facial básica
+- ✅ Logic: > 15 min tarde → WARNING | > 30 min → HIGH + gerente | Sin break en 6h → WARNING
+- ✅ Compliance: LABOR_LAW, daily, auditable
+
+---
+
+## 6. Recursos Humanos (1)
+
+### 6.1 👤 Onboarding de Empleado
+**Archivo**: `recursos_humanos/onboarding-empleado-v2-enhanced.json`
+
+- ✅ AI/OCR: Verificación de documentos (INE, RFC, NSS, etc.)
+- ✅ Checklist: 8 documentos requeridos
+- ✅ SignatureField: Firma de contrato digital
+- ✅ Completion: Crear expediente laboral, activar acceso sistema
+- ✅ Compliance: LABOR_LAW, per-event, auditable
+
+---
+
+## 7. Atención al Cliente (1)
+
+### 7.1 ⚠️ Reporte de Incidentes
+**Archivo**: `atencion_cliente/reporte-incidentes-v2-enhanced.json`
+
+- ✅ AI: Foto del área con análisis de seguridad
+- ✅ Logic: Intoxicación/alergia → CRITICAL + OWNER + COFEPRIS | Accidente → HIGH + STPS
+- ✅ Escalation: Gerente (inmediato) → Owner (30 min) → Autoridad
+- ✅ Compliance: NOM-251, per-event, criticalForCompliance
+
+---
+
+## 8. Inventario (1)
+
+### 8.1 📊 Conteo de Inventario
+**Archivo**: `inventory/conteo-inventario-v1.json`
+
+- ✅ AI: Foto de estantería con detección y estimación de stock
+- ✅ Logic: Diferencia > 20% → WARNING + gerente | Producto vencido → CRITICAL
+- ✅ Completion: Actualizar inventario, reporte discrepancias
+- ✅ Compliance: NOM-251 (indirecto), weekly/monthly
 
 ---
 
@@ -173,21 +263,34 @@
 
 ---
 
-## 🚀 Próximos Pasos
+## 📊 Comparativa de Features Extendida
 
-### Templates Adicionales Sugeridos
-1. **Control de Plagas** - Inspección mensual
-2. **Mantenimiento Preventivo** - Equipos críticos
-3. **Capacitación de Personal** - Onboarding
-4. **Auditoría de Seguridad** - Mensual
-5. **Control de Desperdicios** - Diario
+| Feature | Apertura | Cierre | Limpieza | Mtto V2 | Recepción | Higiene | Temp | Alimentos |
+|---------|----------|--------|----------|---------|-----------|---------|------|-----------|
+| AI Photos | 4 | 2 | 6 | 6 | 3 | 2 | 1 | 1 |
+| OCR | 0 | 0 | 0 | 0 | 2 | 0 | 4 | 1 |
+| Branches | 3 | 2 | 2 | 1 | 5 | 3 | 1 | 2 |
+| Escalation Lvs | 3 | 3 | 2 | 2 | 3 | 2 | 3 | 2 |
+| Remediation | No | Sí | Sí | Sí | No | Sí | Sí | Sí |
+| BLOCK Conds | 1 | 2 | 3 | 1 | 2 | 1 | 1 | 0 |
 
-### Mejoras al Sistema
-1. Implementar backend para todos los features
-2. UI para customización de templates
-3. Dashboard de analytics por template
-4. Sistema de versioning automático
-5. Template marketplace
+| Feature | Mtto Gen | Mtto Refrig | Seguridad | Accesos | Incendios | Fumigación | NOM-035 | Asistencia |
+|---------|----------|-------------|-----------|---------|-----------|------------|---------|------------|
+| AI Photos | 2 | 3 | 3 | 1 | 3 | 2 | 0 | 1 |
+| OCR | 0 | 0 | 1 | 1 | 2 | 1 | 0 | 0 |
+| Branches | 1 | 2 | 1 | 2 | 1 | 2 | 1 | 0 |
+| Escalation Lvs | 1 | 2 | 2 | 0 | 3 | 2 | 0 | 1 |
+| Remediation | No | Sí | No | No | Sí | Sí | No | No |
+| BLOCK Conds | 0 | 0 | 0 | 0 | 1 | 1 | 0 | 0 |
+
+| Feature | Onboarding | Incidentes | Inventario |
+|---------|------------|------------|------------|
+| AI Photos | 1 | 1 | 1 |
+| OCR | 3 | 0 | 0 |
+| Branches | 2 | 1 | 1 |
+| Escalation Lvs | 1 | 3 | 1 |
+| Remediation | No | No | No |
+| BLOCK Conds | 0 | 1 | 0 |
 
 ---
 

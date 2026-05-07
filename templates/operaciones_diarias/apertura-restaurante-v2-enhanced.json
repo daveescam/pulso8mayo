@@ -1,450 +1,217 @@
 {
-    "id": "tpl-apertura-restaurante-v2",
-    "nombre": "🌅 Apertura de Restaurante - Completo",
-    "descripcion": "Protocolo completo de apertura con verificación IA, branching condicional, y escalación automática",
-    "tipo": "OPERACION_DIARIA",
-    "categoria": "OPERACIONES_DIARIAS",
-    "version": 2,
-    "activo": true,
-    "requiereIA": true,
-    "duracionEstimada": "15-20 min",
-    "cumplimientoNormativo": [
-        "NOM-251-SSA1-2009",
-        "HACCP",
-        "NOM-035-STPS-2018"
-    ],
-    "tags": [
-        "apertura",
-        "limpieza",
-        "seguridad",
-        "ia-verificacion",
-        "branching"
-    ],
-    "aiConfig": {
-        "provider": "moondream",
-        "fallbackProvider": "openai",
-        "maxRetries": 2
+  "id": "tpl-apertura-restaurante-v2",
+  "nombre": "🌅 Apertura de Restaurante",
+  "descripcion": "Workflow completo de apertura del restaurante con verificación AI, control de temperatura y validación GPS",
+  "categoria": "OPERACIONES_DIARIAS",
+  "version": 2,
+  "activo": true,
+  "requiereIA": true,
+  "duracionEstimada": "10-15 min",
+  "cumplimientoNormativo": [
+    {
+      "norma": "NOM-251",
+      "seccion": "5.2",
+      "descripcion": "Control de temperatura y condiciones sanitarias en apertura"
+    }
+  ],
+  "complianceConfig": {
+    "complianceType": "NOM-251",
+    "regulationSection": "5.2",
+    "requiredFrequency": "daily",
+    "auditable": true,
+    "evidenceRequired": true,
+    "criticalForCompliance": true
+  },
+  "tags": ["apertura", "diario", "NOM-251", "temperatura", "GPS", "AI"],
+  "aiConfig": {
+    "provider": "moondream",
+    "fallbackProvider": "openai",
+    "maxRetries": 2
+  },
+  "escalationChain": [
+    {
+      "level": 1,
+      "role": "Gerente",
+      "channel": "whatsapp",
+      "timeout": "0min"
     },
-    "complianceConfig": {
-        "complianceType": "NOM-251",
-        "regulationSection": "5.1 (Instalaciones y áreas)",
-        "requiredFrequency": "daily",
-        "auditable": true,
-        "evidenceRequired": true,
-        "criticalForCompliance": true
+    {
+      "level": 2,
+      "role": "Técnico",
+      "channel": "whatsapp",
+      "timeout": "30min"
     },
-    "pasos": [
+    {
+      "level": 3,
+      "role": "Owner",
+      "channel": "call_priority",
+      "timeout": "120min"
+    }
+  ],
+  "completionActions": [
+    {
+      "type": "SEND_NOTIFICATION",
+      "target": "GERENTE",
+      "channel": "whatsapp",
+      "message": "Apertura del restaurante completada exitosamente"
+    },
+    {
+      "type": "UPDATE_BRANCH_STATUS",
+      "status": "OPEN"
+    },
+    {
+      "type": "GENERATE_PDF_REPORT"
+    }
+  ],
+  "pasos": [
+    {
+      "id": "paso-1",
+      "type": "GPSLocationField",
+      "titulo": "Validación de Ubicación",
+      "obligatorio": true,
+      "validation": {
+        "radiusMeters": 100
+      }
+    },
+    {
+      "id": "paso-2",
+      "type": "PhotoField",
+      "titulo": "Inspección Exterior",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar limpieza del exterior, letrero en buen estado, puertas en condiciones adecuadas",
+        "threshold": 0.75,
+        "expectedConditions": ["exterior_limpio", "letrero_visible", "puertas_buen_estado"]
+      }
+    },
+    {
+      "id": "paso-3",
+      "type": "YesNo",
+      "titulo": "Luces y Energía Eléctrica",
+      "obligatorio": true,
+      "branches": [
         {
-            "id": "apertura-title",
-            "type": "Heading",
-            "title": "🌅 Apertura de Restaurante",
-            "required": false
-        },
+          "condition": "no",
+          "targetStepId": "paso-reporte-mantenimiento"
+        }
+      ]
+    },
+    {
+      "id": "paso-4",
+      "type": "NumberField",
+      "titulo": "Temperatura Ambiente (°C)",
+      "obligatorio": true,
+      "validation": {
+        "min": 15,
+        "max": 30
+      }
+    },
+    {
+      "id": "paso-5",
+      "type": "PhotoField",
+      "titulo": "Inspección del Comedor",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar que las mesas estén limpias, sillas ordenadas y piso limpio en el comedor",
+        "threshold": 0.8,
+        "expectedConditions": ["mesas_limpias", "sillas_ordenadas", "piso_limpio"]
+      }
+    },
+    {
+      "id": "paso-6",
+      "type": "PhotoField",
+      "titulo": "Inspección de Cocina",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar superficies limpias, equipos en su lugar y sin contaminantes visibles en la cocina",
+        "threshold": 0.8,
+        "expectedConditions": ["superficies_limpias", "equipos_en_lugar", "sin_contaminantes"]
+      }
+    },
+    {
+      "id": "paso-7",
+      "type": "PhotoField",
+      "titulo": "Verificación de Personal y Uniforme",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar que el uniforme esté completo, limpio y con gafete de identificación visible",
+        "threshold": 0.75,
+        "expectedConditions": ["uniforme_completo", "uniforme_limpio", "gafete_visible"]
+      },
+      "branches": [
         {
-            "id": "apertura-intro",
-            "type": "TextField",
-            "title": "Instrucciones",
-            "description": "Complete todos los pasos del protocolo de apertura. Las fotos serán verificadas automáticamente por IA.",
-            "required": false,
-            "readOnly": true
-        },
+          "condition": "ai_verification_failed",
+          "targetStepId": "paso-correccion-uniforme"
+        }
+      ]
+    },
+    {
+      "id": "paso-8",
+      "type": "NumberField",
+      "titulo": "Fondo de Caja Inicial ($)",
+      "obligatorio": true,
+      "validation": {
+        "min": 0
+      }
+    },
+    {
+      "id": "paso-9",
+      "type": "ChecklistField",
+      "titulo": "Checklist de Equipos Críticos",
+      "obligatorio": true,
+      "options": ["Estufas", "Hornos", "Freidoras", "Microondas", "Cafetera", "Lavavajillas"]
+    },
+    {
+      "id": "paso-10",
+      "type": "NumberField",
+      "titulo": "Temperatura Refrigerador Principal (°C)",
+      "obligatorio": true,
+      "validation": {
+        "min": -5,
+        "max": 5
+      },
+      "logicRules": [
         {
-            "id": "apertura-hora-llegada",
-            "type": "TimerField",
-            "title": "⏰ Hora de Llegada",
-            "required": true,
-            "validation": {
-                "minTime": "05:00",
-                "maxTime": "08:00",
-                "message": "La apertura debe realizarse entre 5:00 AM y 8:00 AM"
+          "id": "rule-temp-refrigerador",
+          "condition": "value > 4",
+          "severity": "CRITICAL",
+          "message": "Temperatura del refrigerador fuera de rango seguro (>4°C). Riesgo de contaminación alimentaria.",
+          "escalationChain": [
+            {
+              "role": "Gerente",
+              "channel": "whatsapp",
+              "timeout": "0min"
             },
-            "logicRules": [
-                {
-                    "id": "rule_llegada_tarde",
-                    "condition": "value > '07:00'",
-                    "severity": "WARNING",
-                    "message": "⚠️ Llegada tardía registrada",
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerAfterMinutes": 0,
-                            "notifyRoles": [
-                                "GERENTE"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "⚠️ {employee_name} llegó tarde a las {value}"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "apertura-inspeccion-exterior",
-            "type": "YesNo",
-            "title": "¿El exterior está limpio y sin basura?",
-            "required": true,
-            "branches": [
-                {
-                    "condition": "value == 'no'",
-                    "targetStepId": "apertura-limpiar-exterior"
-                }
-            ]
-        },
-        {
-            "id": "apertura-limpiar-exterior",
-            "type": "TextField",
-            "title": "🧹 Describe qué se encontró y qué acción tomaste",
-            "required": true,
-            "placeholder": "Ej: Basura en entrada, se limpió inmediatamente"
-        },
-        {
-            "id": "apertura-foto-exterior",
-            "type": "PhotoField",
-            "title": "📷 Foto del Exterior Limpio",
-            "required": true,
-            "aiVerification": {
-                "enabled": true,
-                "prompt": "Analiza esta imagen del exterior de un restaurante. Verifica que: 1) No haya basura visible, 2) El área esté limpia, 3) No haya obstrucciones. Responde con 'APROBADO' si cumple todos los criterios, o describe los problemas encontrados.",
-                "threshold": 0.8,
-                "expectedConditions": [
-                    "limpio",
-                    "ordenado",
-                    "sin basura"
-                ]
+            {
+              "role": "Técnico",
+              "channel": "whatsapp",
+              "timeout": "30min"
             },
-            "logicRules": [
-                {
-                    "id": "rule_exterior_sucio",
-                    "condition": "ai_result.passed == false",
-                    "severity": "CRITICAL",
-                    "message": "🚨 IA detectó problemas en exterior: {ai_result.analysis}",
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerAfterMinutes": 0,
-                            "notifyRoles": [
-                                "GERENTE"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "🚨 Exterior no cumple estándares. IA detectó: {ai_result.detectedIssues}"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "apertura-temperatura-ambiente",
-            "type": "TemperatureField",
-            "title": "🌡️ Temperatura Ambiente del Local",
-            "required": true,
-            "validation": {
-                "min": 15,
-                "max": 30,
-                "unit": "°C"
-            },
-            "logicRules": [
-                {
-                    "id": "rule_temp_alta",
-                    "condition": "value > 26",
-                    "severity": "WARNING",
-                    "message": "⚠️ Temperatura ambiente alta ({value}°C). Encender clima.",
-                    "actions": [
-                        {
-                            "type": "AUTO_REMINDER",
-                            "delay": 30,
-                            "message": "Verificar que el aire acondicionado esté funcionando"
-                        }
-                    ]
-                },
-                {
-                    "id": "rule_temp_baja",
-                    "condition": "value < 18",
-                    "severity": "WARNING",
-                    "message": "⚠️ Temperatura ambiente baja ({value}°C). Verificar calefacción."
-                }
-            ]
-        },
-        {
-            "id": "apertura-luces-funcionan",
-            "type": "YesNo",
-            "title": "💡 ¿Todas las luces funcionan correctamente?",
-            "required": true,
-            "branches": [
-                {
-                    "condition": "value == 'no'",
-                    "targetStepId": "apertura-reporte-luces"
-                }
-            ]
-        },
-        {
-            "id": "apertura-reporte-luces",
-            "type": "TextField",
-            "title": "🔧 ¿Qué luces no funcionan?",
-            "required": true,
-            "placeholder": "Ej: 2 focos del comedor, 1 del baño",
-            "logicRules": [
-                {
-                    "id": "rule_luces_criticas",
-                    "condition": "value.includes('cocina') || value.includes('baño')",
-                    "severity": "HIGH",
-                    "message": "⚠️ Luces críticas fuera de servicio",
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerAfterMinutes": 0,
-                            "notifyRoles": [
-                                "GERENTE"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "⚠️ Luces críticas reportadas: {value}"
-                        },
-                        {
-                            "level": 2,
-                            "triggerAfterMinutes": 60,
-                            "notifyRoles": [
-                                "TECHNICAL_SERVICE"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "🔧 Servicio técnico requerido para luces: {value}"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "apertura-foto-comedor",
-            "type": "PhotoField",
-            "title": "📷 Foto del Comedor Preparado",
-            "required": true,
-            "aiVerification": {
-                "enabled": true,
-                "prompt": "Analiza esta imagen del comedor de un restaurante. Verifica que: 1) Las mesas estén limpias y ordenadas, 2) Las sillas estén bien acomodadas, 3) No haya objetos fuera de lugar, 4) El piso esté limpio. Responde 'APROBADO' si cumple, o describe problemas.",
-                "threshold": 0.75,
-                "expectedConditions": [
-                    "mesas limpias",
-                    "sillas ordenadas",
-                    "piso limpio"
-                ]
-            },
-            "logicRules": [
-                {
-                    "id": "rule_comedor_no_listo",
-                    "condition": "ai_result.passed == false",
-                    "severity": "HIGH",
-                    "message": "⚠️ Comedor no cumple estándares: {ai_result.analysis}",
-                    "remediationProtocol": {
-                        "enabled": true,
-                        "type": "GUIDED_SELF_FIX",
-                        "maxAttempts": 2,
-                        "timeoutMinutes": 15,
-                        "steps": [
-                            {
-                                "instruction": "Limpiar y ordenar el comedor según los problemas detectados",
-                                "waitSeconds": 600
-                            },
-                            {
-                                "instruction": "Tomar nueva foto del comedor",
-                                "verification": {
-                                    "type": "ai_photo_verification",
-                                    "targetCondition": "ai_result.passed == true"
-                                }
-                            }
-                        ]
-                    },
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerCondition": "remediation_failed",
-                            "notifyRoles": [
-                                "GERENTE"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "🚨 Comedor no aprobó verificación IA después de correcciones"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "apertura-foto-cocina",
-            "type": "PhotoField",
-            "title": "📷 Foto de la Cocina Lista",
-            "required": true,
-            "aiVerification": {
-                "enabled": true,
-                "prompt": "Analiza esta imagen de una cocina de restaurante. Verifica: 1) Superficies limpias y desinfectadas, 2) Utensilios ordenados, 3) No hay residuos de comida, 4) Equipos limpios. Responde 'APROBADO' o describe problemas.",
-                "threshold": 0.8,
-                "expectedConditions": [
-                    "limpio",
-                    "ordenado",
-                    "desinfectado"
-                ]
-            },
-            "logicRules": [
-                {
-                    "id": "rule_cocina_no_sanitizada",
-                    "condition": "ai_result.passed == false",
-                    "severity": "CRITICAL",
-                    "message": "🚨 CRÍTICO: Cocina no cumple estándares de higiene",
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerAfterMinutes": 0,
-                            "notifyRoles": [
-                                "GERENTE",
-                                "CHEF"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "🚨 ALERTA HIGIENE: Cocina no aprobó verificación IA. Problemas: {ai_result.detectedIssues}"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "apertura-personal-uniformado",
-            "type": "YesNo",
-            "title": "👔 ¿Todo el personal está correctamente uniformado?",
-            "required": true,
-            "branches": [
-                {
-                    "condition": "value == 'no'",
-                    "targetStepId": "apertura-personal-no-uniformado"
-                }
-            ]
-        },
-        {
-            "id": "apertura-personal-no-uniformado",
-            "type": "TextField",
-            "title": "¿Quién no está uniformado correctamente?",
-            "required": true,
-            "placeholder": "Nombre del empleado y qué falta",
-            "logicRules": [
-                {
-                    "id": "rule_uniforme_faltante",
-                    "condition": "value.length > 0",
-                    "severity": "WARNING",
-                    "message": "⚠️ Personal sin uniforme completo",
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerAfterMinutes": 0,
-                            "notifyRoles": [
-                                "GERENTE"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "⚠️ Reporte de uniforme: {value}"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "apertura-foto-personal",
-            "type": "PhotoField",
-            "title": "📷 Foto del Personal Uniformado",
-            "required": true,
-            "aiVerification": {
-                "enabled": true,
-                "prompt": "Analiza esta imagen del personal de restaurante. Verifica que: 1) Todos usen uniforme completo, 2) Usen gorro o cofia, 3) Usen delantal limpio, 4) Apariencia profesional. Cuenta cuántas personas hay y si cumplen.",
-                "threshold": 0.7
+            {
+              "role": "Owner",
+              "channel": "call_priority",
+              "timeout": "120min"
             }
-        },
-        {
-            "id": "apertura-caja-inicial",
-            "type": "NumberField",
-            "title": "💰 Fondo de Caja Inicial ($)",
-            "required": true,
-            "validation": {
-                "min": 0,
-                "max": 10000
-            },
-            "logicRules": [
-                {
-                    "id": "rule_caja_baja",
-                    "condition": "value < 500",
-                    "severity": "WARNING",
-                    "message": "⚠️ Fondo de caja bajo (${value})",
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerAfterMinutes": 0,
-                            "notifyRoles": [
-                                "GERENTE"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "⚠️ Fondo de caja inicial bajo: ${value}"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "apertura-gps-confirmacion",
-            "type": "GPSLocationField",
-            "title": "📍 Confirmar Ubicación en Sucursal",
-            "required": true,
-            "validation": {
-                "radiusMeters": 100,
-                "message": "Debes estar en la sucursal para completar la apertura"
-            },
-            "logicRules": [
-                {
-                    "id": "rule_ubicacion_incorrecta",
-                    "condition": "gps_validation.withinRadius == false",
-                    "severity": "CRITICAL",
-                    "message": "🚨 Ubicación fuera del rango permitido",
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerAfterMinutes": 0,
-                            "notifyRoles": [
-                                "GERENTE",
-                                "OWNER"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "🚨 ALERTA: {employee_name} intentó completar apertura fuera de la sucursal"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "apertura-firma",
-            "type": "SignatureField",
-            "title": "✍️ Firma de Responsable",
-            "required": true,
-            "description": "Confirmo que todos los pasos fueron completados correctamente"
-        },
-        {
-            "id": "apertura-observaciones",
-            "type": "TextField",
-            "title": "📝 Observaciones Adicionales (Opcional)",
-            "required": false,
-            "placeholder": "Cualquier incidente o nota importante..."
+          ],
+          "actions": ["BLOCK", "ESCALATE"]
         }
-    ],
-    "completionActions": [
-        {
-            "type": "SEND_NOTIFICATION",
-            "target": [
-                "GERENTE"
-            ],
-            "channel": "whatsapp",
-            "message": "✅ Apertura completada por {employee_name} a las {completion_time}"
-        },
-        {
-            "type": "UPDATE_BRANCH_STATUS",
-            "status": "OPEN",
-            "timestamp": "completion_time"
-        },
-        {
-            "type": "GENERATE_PDF_REPORT",
-            "template": "apertura_report",
-            "includePhotos": true,
-            "sendTo": [
-                "GERENTE"
-            ]
-        }
-    ]
+      ]
+    },
+    {
+      "id": "paso-11",
+      "type": "instruction",
+      "titulo": "Confirmación de Apertura",
+      "descripcion": "Revise toda la información capturada. Si todo está en orden, confirme la apertura del restaurante."
+    },
+    {
+      "id": "paso-12",
+      "type": "YesNo",
+      "titulo": "¿Confirmar apertura del restaurante?",
+      "obligatorio": true
+    }
+  ]
 }

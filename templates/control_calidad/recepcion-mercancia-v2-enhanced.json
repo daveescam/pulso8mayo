@@ -1,569 +1,229 @@
 {
-    "id": "tpl-recepcion-mercancia-v2",
-    "nombre": "📦 Recepción de Mercancía - Control de Calidad",
-    "descripcion": "Protocolo completo de recepción con verificación IA, control de temperatura, y trazabilidad",
-    "tipo": "CONTROL_CALIDAD",
-    "categoria": "CONTROL_CALIDAD",
-    "version": 2,
-    "activo": true,
-    "requiereIA": true,
-    "duracionEstimada": "15-25 min",
-    "cumplimientoNormativo": [
-        "NOM-251-SSA1-2009",
-        "NOM-120-SSA1-1994",
-        "HACCP",
-        "Trazabilidad Alimentaria"
-    ],
-    "tags": [
-        "recepcion",
-        "calidad",
-        "trazabilidad",
-        "ia-verificacion",
-        "haccp"
-    ],
-    "aiConfig": {
-        "provider": "moondream",
-        "fallbackProvider": "openai",
-        "maxRetries": 2
+  "id": "tpl-recepcion-mercancia-v2",
+  "nombre": "📦 Recepción de Mercancía",
+  "descripcion": "Workflow de recepción con inspección AI, control de temperatura, verificación OCR y decisión aceptar/rechazar",
+  "categoria": "CONTROL_CALIDAD",
+  "version": 2,
+  "requiereIA": true,
+  "duracionEstimada": "10-15 min",
+  "activo": true,
+  "complianceConfig": {
+    "complianceType": "NOM-251",
+    "regulationSection": "5.1.2",
+    "requiredFrequency": "per-delivery",
+    "auditable": true,
+    "evidenceRequired": true,
+    "criticalForCompliance": true
+  },
+  "cumplimientoNormativo": [
+    {
+      "norma": "NOM-251",
+      "seccion": "5.1.2",
+      "descripcion": "Control de recepción de materias primas"
+    }
+  ],
+  "tags": ["recepcion", "mercancia", "inspeccion", "NOM-251", "control-calidad"],
+  "aiConfig": {
+    "provider": "moondream",
+    "fallbackProvider": "openai",
+    "maxRetries": 2
+  },
+  "escalationChain": [
+    {
+      "rol": "Gerente",
+      "tiempoMinutos": 0
     },
-    "complianceConfig": {
-        "complianceType": "NOM-251",
-        "regulationSection": "5.8 (Recepción de alimentos)",
-        "requiredFrequency": "daily",
-        "auditable": true,
-        "evidenceRequired": true,
-        "criticalForCompliance": true
+    {
+      "rol": "Purchasing",
+      "tiempoMinutos": 30
     },
-    "pasos": [
+    {
+      "rol": "Owner",
+      "tiempoMinutos": 120
+    }
+  ],
+  "completionActions": [
+    {
+      "type": "SEND_NOTIFICATION",
+      "target": "Gerente",
+      "channel": "whatsapp",
+      "message": "Recepción de mercancía completada"
+    },
+    {
+      "type": "UPDATE_INVENTORY",
+      "message": "Actualizar inventario con mercancía recibida"
+    },
+    {
+      "type": "CREATE_CLAIM",
+      "condition": "rejected",
+      "message": "Crear reclamo por mercancía rechazada"
+    }
+  ],
+  "pasos": [
+    {
+      "id": "paso-1",
+      "titulo": "Nombre del Proveedor",
+      "type": "TextField",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-2",
+      "titulo": "Inspección del Vehículo",
+      "type": "PhotoField",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar limpieza del vehículo de transporte, presencia de unidad de control de temperatura funcionando, y ausencia de riesgos de contaminación visibles",
+        "threshold": 0.75,
+        "expectedConditions": [
+          "Vehículo limpio y sin contaminantes visibles",
+          "Unidad de refrigeración funcionando",
+          "Sin signos de contaminación cruzada"
+        ]
+      }
+    },
+    {
+      "id": "paso-3",
+      "titulo": "Temperatura del Producto (°C)",
+      "type": "NumberField",
+      "obligatorio": true,
+      "validation": {
+        "min": -25,
+        "max": 30
+      },
+      "logicRules": [
         {
-            "id": "recepcion-title",
-            "type": "Heading",
-            "title": "📦 Recepción de Mercancía",
-            "required": false
-        },
-        {
-            "id": "recepcion-proveedor",
-            "type": "Select",
-            "title": "Proveedor",
-            "required": true,
-            "options": [
-                {
-                    "value": "sysco",
-                    "label": "Sysco"
-                },
-                {
-                    "value": "us_foods",
-                    "label": "US Foods"
-                },
-                {
-                    "value": "local_produce",
-                    "label": "Productor Local"
-                },
-                {
-                    "value": "otro",
-                    "label": "Otro"
-                }
-            ]
-        },
-        {
-            "id": "recepcion-numero-orden",
-            "type": "TextField",
-            "title": "📋 Número de Orden de Compra",
-            "required": true,
-            "placeholder": "Ej: PO-2024-001234"
-        },
-        {
-            "id": "recepcion-foto-remision",
-            "type": "PhotoField",
-            "title": "📷 Foto de la Remisión/Factura",
-            "required": true,
-            "aiVerification": {
-                "enabled": true,
-                "prompt": "Analiza este documento de remisión. Extrae: 1) Número de factura, 2) Fecha, 3) Nombre del proveedor si es visible. Verifica que sea legible.",
-                "threshold": 0.7
+          "id": "lr-temp-alta",
+          "condition": "value > 4",
+          "severity": "CRITICAL",
+          "message": "Temperatura del producto fuera de rango seguro. Se requiere rechazo automático.",
+          "actions": ["BLOCK", "AUTO_REJECT", "CREATE_MAINTENANCE_TICKET"],
+          "escalationChain": [
+            {
+              "rol": "Gerente",
+              "tiempoMinutos": 0
+            },
+            {
+              "rol": "Owner",
+              "tiempoMinutos": 30
             }
-        },
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paso-4",
+      "titulo": "Inspección Visual de Carnes",
+      "type": "PhotoField",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar color apropiado de carnes, ausencia de signos de mal olor, e integridad del empaque",
+        "threshold": 0.8,
+        "expectedConditions": [
+          "Color fresco y apropiado del tipo de carne",
+          "Sin signos visibles de descomposición u olor anormal",
+          "Empaque intacto y sin daños"
+        ]
+      }
+    },
+    {
+      "id": "paso-5",
+      "titulo": "Inspección Visual de Verduras",
+      "type": "PhotoField",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar frescura de verduras, ausencia de marchitamiento y ausencia de moho visible",
+        "threshold": 0.75,
+        "expectedConditions": [
+          "Verduras frescas y turgentes",
+          "Sin marchitamiento visible",
+          "Sin presencia de moho"
+        ]
+      }
+    },
+    {
+      "id": "paso-6",
+      "titulo": "Verificación de Fechas de Caducidad (OCR)",
+      "type": "PhotoField",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Realizar OCR de fechas de caducidad en etiquetas y empaques de productos. Verificar que ningún producto esté caducado.",
+        "threshold": 0.7,
+        "expectedConditions": [
+          "Fechas de caducidad legibles vía OCR",
+          "Ningún producto con fecha vencida"
+        ]
+      },
+      "logicRules": [
         {
-            "id": "recepcion-hora-llegada",
-            "type": "TimerField",
-            "title": "⏰ Hora de Llegada del Proveedor",
-            "required": true
-        },
-        {
-            "id": "recepcion-vehiculo-limpio",
-            "type": "YesNo",
-            "title": "🚚 ¿El vehículo de entrega está limpio?",
-            "required": true,
-            "branches": [
-                {
-                    "condition": "value == 'no'",
-                    "targetStepId": "recepcion-vehiculo-sucio"
-                }
-            ]
-        },
-        {
-            "id": "recepcion-vehiculo-sucio",
-            "type": "TextField",
-            "title": "⚠️ Describe el estado del vehículo",
-            "required": true,
-            "placeholder": "Ej: Vehículo con suciedad visible, mal olor",
-            "logicRules": [
-                {
-                    "id": "rule_vehiculo_sucio",
-                    "condition": "value.length > 0",
-                    "severity": "HIGH",
-                    "message": "⚠️ Vehículo de entrega en mal estado",
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerAfterMinutes": 0,
-                            "notifyRoles": [
-                                "GERENTE"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "⚠️ Proveedor {recepcion-proveedor} con vehículo sucio: {value}"
-                        }
-                    ],
-                    "actions": [
-                        {
-                            "type": "LOG_SUPPLIER_INCIDENT",
-                            "supplier": "recepcion-proveedor",
-                            "issue": "vehicle_cleanliness"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "recepcion-foto-vehiculo",
-            "type": "PhotoField",
-            "title": "📷 Foto del Interior del Vehículo",
-            "required": true,
-            "aiVerification": {
-                "enabled": true,
-                "prompt": "Analiza el interior de este vehículo de entrega. Verifica: 1) Limpieza general, 2) Productos bien organizados, 3) Sin contaminación cruzada visible, 4) Temperatura adecuada si es refrigerado. Responde 'APROBADO' o describe problemas.",
-                "threshold": 0.75,
-                "expectedConditions": [
-                    "limpio",
-                    "organizado"
-                ]
-            },
-            "logicRules": [
-                {
-                    "id": "rule_vehiculo_no_aprobado",
-                    "condition": "ai_result.passed == false",
-                    "severity": "CRITICAL",
-                    "message": "🚨 Vehículo no cumple estándares: {ai_result.analysis}",
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerAfterMinutes": 0,
-                            "notifyRoles": [
-                                "GERENTE"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "🚨 RECHAZAR ENTREGA: Vehículo no cumple estándares. IA detectó: {ai_result.detectedIssues}"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "recepcion-temp-productos-frios",
-            "type": "TemperatureField",
-            "title": "🌡️ Temperatura de Productos Refrigerados (°C)",
-            "description": "Medir con termómetro de sonda",
-            "required": true,
-            "validation": {
-                "min": -5,
-                "max": 15,
-                "unit": "°C"
-            },
-            "logicRules": [
-                {
-                    "id": "rule_temp_alta_recepcion",
-                    "condition": "value > 4",
-                    "severity": "CRITICAL",
-                    "message": "🚨 Productos llegaron a {value}°C. RECHAZAR",
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerAfterMinutes": 0,
-                            "notifyRoles": [
-                                "GERENTE",
-                                "CHEF"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "🚨 RECHAZAR ENTREGA: Productos fríos a {value}°C de {recepcion-proveedor}"
-                        }
-                    ],
-                    "actions": [
-                        {
-                            "type": "BLOCK_WORKFLOW_COMPLETION",
-                            "message": "Productos fuera de temperatura. DEBES RECHAZAR esta entrega."
-                        },
-                        {
-                            "type": "CREATE_SUPPLIER_CLAIM",
-                            "supplier": "recepcion-proveedor",
-                            "reason": "temperature_violation",
-                            "evidence": [
-                                "recepcion-foto-vehiculo"
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "id": "rule_temp_limite",
-                    "condition": "value > 2 && value <= 4",
-                    "severity": "WARNING",
-                    "message": "⚠️ Temperatura en límite ({value}°C). Usar pronto.",
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerAfterMinutes": 0,
-                            "notifyRoles": [
-                                "CHEF"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "⚠️ Productos de {recepcion-proveedor} a {value}°C. Usar prioritariamente."
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "recepcion-foto-termometro",
-            "type": "PhotoField",
-            "title": "📷 Foto del Termómetro en Producto",
-            "description": "Insertar sonda en producto y fotografiar lectura",
-            "required": true,
-            "aiVerification": {
-                "enabled": true,
-                "type": "OCR",
-                "prompt": "Lee la temperatura mostrada en este termómetro. Responde SOLO con el número (ejemplo: 2.5). Si no es legible, responde 'ILEGIBLE'.",
-                "threshold": 0.85,
-                "autoFillField": "recepcion-temp-productos-frios"
+          "id": "lr-producto-caducado",
+          "condition": "expiredProductsDetected",
+          "severity": "HIGH",
+          "message": "Se detectaron productos con fecha de caducidad vencida. Escalación inmediata.",
+          "actions": ["ESCALATE"],
+          "escalationChain": [
+            {
+              "rol": "Gerente",
+              "tiempoMinutos": 0
             }
-        },
-        {
-            "id": "recepcion-foto-productos",
-            "type": "PhotoField",
-            "title": "📷 Foto General de Productos Recibidos",
-            "required": true,
-            "aiVerification": {
-                "enabled": true,
-                "prompt": "Analiza estos productos alimenticios. Verifica: 1) Empaque en buen estado, 2) Sin daños visibles, 3) Productos frescos, 4) Sin signos de descomposición. Responde 'APROBADO' o describe problemas.",
-                "threshold": 0.75,
-                "expectedConditions": [
-                    "buen estado",
-                    "fresco",
-                    "sin daños"
-                ]
-            },
-            "logicRules": [
-                {
-                    "id": "rule_productos_danados",
-                    "condition": "ai_result.passed == false",
-                    "severity": "HIGH",
-                    "message": "⚠️ Productos con problemas detectados: {ai_result.analysis}",
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerAfterMinutes": 0,
-                            "notifyRoles": [
-                                "GERENTE"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "⚠️ Productos dañados de {recepcion-proveedor}: {ai_result.detectedIssues}"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "recepcion-verificar-fechas",
-            "type": "YesNo",
-            "title": "📅 ¿Todas las fechas de caducidad son aceptables?",
-            "description": "Verificar que tengan al menos 7 días de vida útil",
-            "required": true,
-            "branches": [
-                {
-                    "condition": "value == 'no'",
-                    "targetStepId": "recepcion-productos-vencidos"
-                }
-            ]
-        },
-        {
-            "id": "recepcion-productos-vencidos",
-            "type": "TextField",
-            "title": "🚨 Describe productos con fecha próxima o vencida",
-            "required": true,
-            "placeholder": "Ej: Leche vence en 2 días, queso vencido",
-            "logicRules": [
-                {
-                    "id": "rule_productos_vencidos",
-                    "condition": "value.includes('vencido') || value.includes('vence')",
-                    "severity": "CRITICAL",
-                    "message": "🚨 Productos vencidos o por vencer: {value}",
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerAfterMinutes": 0,
-                            "notifyRoles": [
-                                "GERENTE"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "🚨 RECHAZAR: Productos vencidos de {recepcion-proveedor}"
-                        }
-                    ],
-                    "actions": [
-                        {
-                            "type": "CREATE_SUPPLIER_CLAIM",
-                            "supplier": "recepcion-proveedor",
-                            "reason": "expired_products",
-                            "description": "value"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "recepcion-cantidad-correcta",
-            "type": "YesNo",
-            "title": "📊 ¿Las cantidades coinciden con la orden?",
-            "required": true,
-            "branches": [
-                {
-                    "condition": "value == 'no'",
-                    "targetStepId": "recepcion-diferencia-cantidad"
-                }
-            ]
-        },
-        {
-            "id": "recepcion-diferencia-cantidad",
-            "type": "TextField",
-            "title": "📝 Describe las diferencias encontradas",
-            "required": true,
-            "placeholder": "Ej: Faltaron 5 kg de pollo, sobraron 2 cajas de tomate",
-            "logicRules": [
-                {
-                    "id": "rule_diferencia_cantidad",
-                    "condition": "value.length > 0",
-                    "severity": "WARNING",
-                    "message": "⚠️ Diferencias en cantidades: {value}",
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerAfterMinutes": 0,
-                            "notifyRoles": [
-                                "GERENTE"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "⚠️ Diferencias en orden de {recepcion-proveedor}: {value}"
-                        }
-                    ],
-                    "actions": [
-                        {
-                            "type": "UPDATE_INVENTORY_DISCREPANCY",
-                            "description": "value"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "recepcion-calidad-carne",
-            "type": "Select",
-            "title": "🥩 Calidad de Carnes (si aplica)",
-            "required": false,
-            "options": [
-                {
-                    "value": "excelente",
-                    "label": "Excelente - Color y olor normales"
-                },
-                {
-                    "value": "aceptable",
-                    "label": "Aceptable - Pequeñas variaciones"
-                },
-                {
-                    "value": "rechazar",
-                    "label": "Rechazar - Color/olor anormal"
-                },
-                {
-                    "value": "no_aplica",
-                    "label": "No aplica"
-                }
-            ],
-            "logicRules": [
-                {
-                    "id": "rule_carne_rechazar",
-                    "condition": "value == 'rechazar'",
-                    "severity": "CRITICAL",
-                    "message": "🚨 Carne en mal estado - RECHAZAR",
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerAfterMinutes": 0,
-                            "notifyRoles": [
-                                "GERENTE",
-                                "CHEF"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "🚨 RECHAZAR carne de {recepcion-proveedor} - Calidad inaceptable"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "recepcion-calidad-verduras",
-            "type": "Select",
-            "title": "🥬 Calidad de Verduras (si aplica)",
-            "required": false,
-            "options": [
-                {
-                    "value": "frescas",
-                    "label": "Frescas y firmes"
-                },
-                {
-                    "value": "aceptables",
-                    "label": "Aceptables - Usar pronto"
-                },
-                {
-                    "value": "marchitas",
-                    "label": "Marchitas o dañadas"
-                },
-                {
-                    "value": "no_aplica",
-                    "label": "No aplica"
-                }
-            ],
-            "logicRules": [
-                {
-                    "id": "rule_verduras_malas",
-                    "condition": "value == 'marchitas'",
-                    "severity": "HIGH",
-                    "message": "⚠️ Verduras en mal estado",
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerAfterMinutes": 0,
-                            "notifyRoles": [
-                                "GERENTE"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "⚠️ Verduras de baja calidad de {recepcion-proveedor}"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "recepcion-decision-final",
-            "type": "Select",
-            "title": "✅ Decisión Final",
-            "required": true,
-            "options": [
-                {
-                    "value": "aceptar_completo",
-                    "label": "✅ Aceptar Completo"
-                },
-                {
-                    "value": "aceptar_parcial",
-                    "label": "⚠️ Aceptar Parcial (con observaciones)"
-                },
-                {
-                    "value": "rechazar",
-                    "label": "🚨 Rechazar Entrega"
-                }
-            ],
-            "logicRules": [
-                {
-                    "id": "rule_rechazo_total",
-                    "condition": "value == 'rechazar'",
-                    "severity": "CRITICAL",
-                    "message": "🚨 Entrega RECHAZADA",
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerAfterMinutes": 0,
-                            "notifyRoles": [
-                                "GERENTE",
-                                "OWNER"
-                            ],
-                            "channel": "call_priority",
-                            "message": "🚨 ENTREGA RECHAZADA de {recepcion-proveedor}. Orden: {recepcion-numero-orden}"
-                        }
-                    ],
-                    "actions": [
-                        {
-                            "type": "CREATE_SUPPLIER_CLAIM",
-                            "supplier": "recepcion-proveedor",
-                            "reason": "full_rejection",
-                            "orderNumber": "recepcion-numero-orden"
-                        },
-                        {
-                            "type": "NOTIFY_PURCHASING",
-                            "urgency": "HIGH"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "recepcion-observaciones",
-            "type": "TextField",
-            "title": "📝 Observaciones Adicionales",
-            "required": false,
-            "placeholder": "Cualquier nota importante sobre la entrega..."
-        },
-        {
-            "id": "recepcion-firma-recibido",
-            "type": "SignatureField",
-            "title": "✍️ Firma de Recepción",
-            "description": "Confirmo que la mercancía fue inspeccionada",
-            "required": true
+          ]
         }
-    ],
-    "completionActions": [
+      ]
+    },
+    {
+      "id": "paso-7",
+      "titulo": "Cantidad Recibida vs Orden",
+      "type": "NumberField",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-8",
+      "titulo": "Decisión",
+      "type": "Select",
+      "obligatorio": true,
+      "options": ["Aceptar", "Rechazar", "Aceptar con Descuento"],
+      "branches": [
         {
-            "type": "SEND_NOTIFICATION",
-            "target": [
-                "GERENTE"
-            ],
-            "channel": "whatsapp",
-            "message": "✅ Recepción completada: {recepcion-proveedor}. Decisión: {recepcion-decision-final}"
-        },
-        {
-            "type": "UPDATE_INVENTORY",
-            "basedOn": "recepcion-decision-final",
-            "orderNumber": "recepcion-numero-orden"
-        },
-        {
-            "type": "GENERATE_PDF_REPORT",
-            "template": "recepcion_report",
-            "includePhotos": true,
-            "sendTo": [
-                "GERENTE",
-                "PURCHASING"
-            ]
-        },
-        {
-            "type": "UPDATE_SUPPLIER_RATING",
-            "supplier": "recepcion-proveedor",
-            "basedOn": [
-                "recepcion-decision-final",
-                "recepcion-temp-productos-frios",
-                "ai_results"
-            ]
-        },
-        {
-            "type": "TRIGGER_QUALITY_ALERT",
-            "condition": "recepcion-decision-final == 'rechazar'",
-            "notify": [
-                "OWNER",
-                "PURCHASING"
-            ]
+          "condition": "Rechazar",
+          "targetStepId": "paso-rechazo-total"
         }
-    ]
+      ]
+    },
+    {
+      "id": "paso-9",
+      "titulo": "Fotos de Remisión (OCR)",
+      "type": "PhotoField",
+      "obligatorio": false,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Realizar OCR del número de factura/remisión y montos. Verificar coincidencia con datos esperados.",
+        "threshold": 0.7,
+        "expectedConditions": [
+          "Número de factura legible",
+          "Montos legibles y verificables"
+        ]
+      }
+    },
+    {
+      "id": "paso-10",
+      "titulo": "Discrepancias Registradas",
+      "type": "TextField",
+      "obligatorio": false
+    },
+    {
+      "id": "paso-11",
+      "titulo": "Confirmación de Recepción",
+      "type": "instruction",
+      "descripcion": "Revise toda la información capturada y confirme que la recepción está completa y correcta antes de finalizar."
+    },
+    {
+      "id": "paso-12",
+      "titulo": "¿Recepción completada?",
+      "type": "YesNo",
+      "obligatorio": true
+    }
+  ]
 }

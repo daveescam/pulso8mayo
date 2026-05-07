@@ -55,13 +55,20 @@ export function ExecutiveSummary() {
     if (startDate) params.set("startDate", startDate);
     if (endDate) params.set("endDate", endDate);
 
-    fetch(`/api/analytics/executive-summary?${params}`)
+      fetch(`/api/analytics/executive-summary?${params}`)
       .then((res) => res.json())
       .then((result) => {
-        setData(result);
+        if (result && result.alertSummary) {
+          setData(result);
+        } else {
+          setData(null);
+        }
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        setData(null);
+        setLoading(false);
+      });
   }, [searchParams]);
 
   if (loading) {
@@ -89,7 +96,7 @@ export function ExecutiveSummary() {
     );
   }
 
-  if (!data) return null;
+  if (!data || !data.alertSummary) return null;
 
   const totalAlerts =
     data.alertSummary.criticalIncidents +

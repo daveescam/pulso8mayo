@@ -1,291 +1,245 @@
 {
-  "id": "tpl-mantenimiento-equipos-v1",
-  "nombre": "🔧 Mantenimiento de Equipos - Refrigeradores",
-  "descripcion": "Verificación y mantenimiento preventivo de equipos de refrigeración",
-  "tipo": "MANTENIMIENTO",
+  "id": "tpl-mantenimiento-equipos-refrigeradores-v1",
+  "nombre": "❄️ Mantenimiento de Equipos de Refrigeración",
+  "descripcion": "Mantenimiento preventivo de refrigeradores con verificación AI before/after",
   "categoria": "MANTENIMIENTO",
   "version": 1,
   "activo": true,
   "requiereIA": true,
-  "duracionEstimada": "15-20 min",
-  "cumplimientoNormativo": [
-    "NOM-251-SSA1-2009"
-  ],
-  "tags": [
-    "mantenimiento",
-    "refrigerador",
-    "equipo",
-    "preventivo",
-    "seguridad"
-  ],
-  "aiConfig": {
-    "provider": "openai",
-    "maxRetries": 2
-  },
-  "alertConfig": {
-    "criticalThreshold": {
-      "priority": "ALTA",
-      "notifyImmediately": true,
-      "notifyRoles": [
-        "GERENTE",
-        "SUPERVISOR"
-      ],
-      "channels": [
-        "whatsapp",
-        "email",
-        "dashboard"
-      ]
-    }
-  },
+  "duracionEstimada": "20-30 min",
   "complianceConfig": {
     "complianceType": "NOM-251",
-    "regulationSection": "5.2.2 (Mantenimiento de equipo)",
-    "requiredFrequency": "weekly",
+    "regulationSection": "5.3",
+    "requiredFrequency": "monthly",
     "auditable": true,
     "evidenceRequired": true,
     "criticalForCompliance": true
   },
+  "cumplimientoNormativo": [
+    {
+      "norma": "NOM-251",
+      "seccion": "5.3",
+      "descripcion": "Mantenimiento preventivo de equipos de refrigeración para seguridad alimentaria"
+    }
+  ],
+  "tags": ["mantenimiento", "refrigeracion", "preventivo", "NOM-251", "AI", "before-after"],
+  "aiConfig": {
+    "provider": "moondream",
+    "fallbackProvider": "openai",
+    "maxRetries": 2
+  },
+  "escalationChain": [
+    {
+      "level": 1,
+      "role": "Técnico",
+      "channel": "whatsapp",
+      "timeout": "0min",
+      "condition": "critical"
+    },
+    {
+      "level": 2,
+      "role": "Gerente",
+      "channel": "whatsapp",
+      "timeout": "24h",
+      "condition": "no_response"
+    }
+  ],
+  "completionActions": [
+    {
+      "type": "SEND_NOTIFICATION",
+      "target": "GERENTE",
+      "channel": "whatsapp",
+      "message": "Mantenimiento de equipo de refrigeración completado"
+    },
+    {
+      "type": "UPDATE_MAINTENANCE_SCHEDULE",
+      "message": "Actualizar calendario de mantenimiento con fecha de próxima revisión"
+    },
+    {
+      "type": "GENERATE_PDF_REPORT"
+    }
+  ],
   "pasos": [
     {
-      "id": "mant-equip-title",
-      "fieldType": "Title",
-      "label": "🔧 Mantenimiento de Equipos - Refrigeradores",
-      "required": false,
-      "static": true
+      "id": "paso-1",
+      "type": "TextField",
+      "titulo": "ID del Equipo",
+      "obligatorio": true
     },
     {
-      "id": "mant-equip-intro",
-      "fieldType": "Paragraph",
-      "label": "Realice la verificación y mantenimiento preventivo de los equipos de refrigeración según el protocolo establecido.",
-      "required": false,
-      "static": true
-    },
-    {
-      "id": "mant-equip-timestamp",
-      "fieldType": "DateTime",
-      "label": "Fecha y Hora del Mantenimiento",
-      "required": true,
-      "extraAttributes": {
-        "defaultValue": "now",
-        "readonly": true
-      }
-    },
-    {
-      "id": "mant-equip-refrigerador-seleccion",
-      "fieldType": "Select",
-      "label": "Seleccione el Refrigerador a Revisar",
-      "required": true,
-      "options": [
-        {
-          "value": "ref_1",
-          "label": "Refrigerador Principal"
-        },
-        {
-          "value": "ref_2",
-          "label": "Refrigerador Secundario"
-        },
-        {
-          "value": "ref_3",
-          "label": "Congelador"
-        },
-        {
-          "value": "ref_4",
-          "label": "Mostrador Refrigerado"
-        }
-      ]
-    },
-    {
-      "id": "mant-equip-separator-1",
-      "fieldType": "Separator",
-      "required": false,
-      "static": true
-    },
-    {
-      "id": "mant-equip-section-visual",
-      "fieldType": "SubTitle",
-      "label": "1. 🔍 Inspección Visual",
-      "required": false,
-      "static": true
-    },
-    {
-      "id": "mant-equip-foto-general",
-      "fieldType": "Photo",
-      "label": "📷 Foto General del Equipo",
-      "required": true,
+      "id": "paso-2",
+      "type": "PhotoField",
+      "titulo": "Limpieza del Condensador (Antes)",
+      "obligatorio": true,
       "aiVerification": {
         "enabled": true,
-        "type": "QUALITY_ANALYSIS",
-        "provider": "openai",
-        "prompt": "Analiza esta imagen de un refrigerador industrial. Evalúa su estado general, presencia de daños visibles, corrosión, o cualquier problema estructural. Clasifica como: EXCELENTE, BUENO, ACEPTABLE, DEFICIENTE, INACEPTABLE. Proporciona una breve justificación.",
-        "confidenceThreshold": 0.8,
-        "autoApprove": false,
-        "requireManualReviewIfFailed": true
-      }
-    },
-    {
-      "id": "mant-equip-check-estado",
-      "fieldType": "Checkbox",
-      "label": "Equipo en buenas condiciones visibles",
-      "required": true
-    },
-    {
-      "id": "mant-equip-check-sellado",
-      "fieldType": "Checkbox",
-      "label": "Sellado y uniones en buen estado",
-      "required": true
-    },
-    {
-      "id": "mant-equip-separator-2",
-      "fieldType": "Separator",
-      "required": false,
-      "static": true
-    },
-    {
-      "id": "mant-equip-section-funcionamiento",
-      "fieldType": "SubTitle",
-      "label": "2. ⚙️ Funcionamiento del Equipo",
-      "required": false,
-      "static": true
-    },
-    {
-      "id": "mant-equip-foto-temperatura",
-      "fieldType": "Photo",
-      "label": "📷 Foto del Panel de Control/Termómetro",
-      "required": true,
-      "aiVerification": {
-        "enabled": true,
-        "type": "OCR",
-        "provider": "moondream",
-        "prompt": "Lee el valor de temperatura mostrado en este panel de control o termómetro. Responde SOLO con el número en formato decimal (ejemplo: 3.5).",
-        "confidenceThreshold": 0.85,
-        "autoFillField": "mant-equip-lectura-actual"
-      }
-    },
-    {
-      "id": "mant-equip-lectura-actual",
-      "fieldType": "Number",
-      "label": "Temperatura Actual del Equipo (°C)",
-      "required": true,
-      "extraAttributes": {
-        "min": -30,
-        "max": 30,
-        "step": 0.1,
-        "suffix": "°C"
-      },
-      "validation": {
-        "type": "number",
-        "min": -30,
-        "max": 30,
-        "rules": [
-          {
-            "id": "temp-rule-1",
-            "condition": "value >= 0 && value <= 4",
-            "result": "PASS",
-            "message": "✅ Temperatura en rango óptimo"
-          },
-          {
-            "id": "temp-rule-2",
-            "condition": "value > 4 && value <= 7",
-            "result": "WARNING",
-            "message": "⚠️ Temperatura elevada - Requiere atención",
-            "action": "LOG_WARNING"
-          },
-          {
-            "id": "temp-rule-3",
-            "condition": "value > 7",
-            "result": "CRITICAL",
-            "message": "🚨 CRÍTICO: Equipo no mantiene temperatura adecuada",
-            "action": "CREATE_ALERT",
-            "alertConfig": {
-              "priority": "ALTA",
-              "notifyImmediately": true,
-              "notifyRoles": [
-                "SUPERVISOR",
-                "MANTENIMIENTO"
-              ],
-              "channels": [
-                "whatsapp",
-                "dashboard"
-              ]
-            }
-          }
+        "prompt": "Verificar acumulación de polvo y suciedad en los serpentines del condensador: evaluar nivel de acumulación de polvo, presencia de escombros o residuos",
+        "threshold": 0.6,
+        "expectedConditions": [
+          "Serpentines del condensador visibles para evaluación",
+          "Nivel de acumulación de polvo identificable",
+          "Ausencia o presencia de escombros documentable"
         ]
       }
     },
     {
-      "id": "mant-equip-funcionamiento",
-      "fieldType": "Select",
-      "label": "Estado del Funcionamiento",
-      "required": true,
-      "options": [
+      "id": "paso-3",
+      "type": "PhotoField",
+      "titulo": "Limpieza del Condensador (Después)",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar que los serpentines del condensador estén limpios después del mantenimiento: sin acumulación de polvo, sin escombros, superficies limpias",
+        "threshold": 0.75,
+        "expectedConditions": [
+          "Serpentines del condensador limpios",
+          "Sin acumulación de polvo visible",
+          "Sin escombros ni residuos"
+        ]
+      }
+    },
+    {
+      "id": "paso-4",
+      "type": "PhotoField",
+      "titulo": "Verificación de Sellos de Puerta",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar integridad de los sellos de puerta del refrigerador: sin grietas, sin roturas, alineación correcta del sello con la puerta",
+        "threshold": 0.8,
+        "expectedConditions": [
+          "Sellos de puerta sin grietas ni roturas",
+          "Alineación correcta del sello",
+          "Cierre hermético de la puerta"
+        ]
+      },
+      "logicRules": [
         {
-          "value": "normal",
-          "label": "Funcionamiento Normal"
-        },
-        {
-          "value": "ruido",
-          "label": "Presenta Ruido Anormal"
-        },
-        {
-          "value": "fuga",
-          "label": "Detectada Fuga de Refrigerante"
-        },
-        {
-          "value": "no_enfria",
-          "label": "No Enfría Adecuadamente"
-        },
-        {
-          "value": "otro",
-          "label": "Otro Problema (Especificar)"
+          "id": "lr-sello-danado",
+          "condition": "ai_verification_failed",
+          "severity": "HIGH",
+          "message": "Sello de puerta dañado detectado. Se requiere reemplazo inmediato para mantener temperatura segura.",
+          "actions": ["CREATE_MAINTENANCE_TICKET"],
+          "remediationProtocol": "Crear ticket de mantenimiento para reemplazo de sello de puerta",
+          "escalationChain": [
+            {
+              "role": "Gerente",
+              "channel": "whatsapp",
+              "timeout": "0min"
+            }
+          ]
         }
       ]
     },
     {
-      "id": "mant-equip-fuga-detalle",
-      "fieldType": "Textarea",
-      "label": "Detalles del Problema Detectado",
-      "required": false,
-      "extraAttributes": {
-        "placeholder": "Especifique el problema detectado...",
-        "helperText": "Describa cualquier problema específico encontrado"
+      "id": "paso-5",
+      "type": "NumberField",
+      "titulo": "Temperatura de Operación (°C)",
+      "obligatorio": true,
+      "validation": {
+        "min": -30,
+        "max": 10
       }
     },
     {
-      "id": "mant-equip-separator-3",
-      "fieldType": "Separator",
-      "required": false,
-      "static": true
+      "id": "paso-6",
+      "type": "Select",
+      "titulo": "Nivel de Refrigerante",
+      "obligatorio": true,
+      "options": ["Normal", "Bajo", "Muy bajo", "Vacío"],
+      "logicRules": [
+        {
+          "id": "lr-refrigerante-vacio",
+          "condition": "value == 'Vacío'",
+          "severity": "CRITICAL",
+          "message": "Nivel de refrigerante vacío. Riesgo crítico de falla del equipo. Escalación inmediata al técnico.",
+          "actions": ["ESCALATE", "CREATE_MAINTENANCE_TICKET"],
+          "remediationProtocol": "Recarga de refrigerante urgente por técnico certificado",
+          "escalationChain": [
+            {
+              "role": "Técnico",
+              "channel": "whatsapp",
+              "timeout": "0min"
+            },
+            {
+              "role": "Gerente",
+              "channel": "whatsapp",
+              "timeout": "1h"
+            }
+          ]
+        },
+        {
+          "id": "lr-refrigerante-muy-bajo",
+          "condition": "value == 'Muy bajo'",
+          "severity": "HIGH",
+          "message": "Nivel de refrigerante muy bajo. Se requiere servicio técnico pronto.",
+          "actions": ["CREATE_MAINTENANCE_TICKET"],
+          "remediationProtocol": "Programar recarga de refrigerante con técnico certificado",
+          "escalationChain": [
+            {
+              "role": "Técnico",
+              "channel": "whatsapp",
+              "timeout": "0min"
+            }
+          ]
+        }
+      ]
     },
     {
-      "id": "mant-equip-section-mantenimiento",
-      "fieldType": "SubTitle",
-      "label": "3. 🧽 Mantenimiento Realizado",
-      "required": false,
-      "static": true
+      "id": "paso-7",
+      "type": "YesNo",
+      "titulo": "¿Ruidos Anormales?",
+      "obligatorio": true,
+      "branches": [
+        {
+          "condition": "yes",
+          "targetStepId": "paso-escalacion-tecnico"
+        }
+      ],
+      "logicRules": [
+        {
+          "id": "lr-ruidos-anormales",
+          "condition": "value == true",
+          "severity": "WARNING",
+          "message": "Ruidos anormales detectados en el equipo de refrigeración. Puede indicar desgaste de componentes.",
+          "actions": ["ESCALATE"],
+          "escalationChain": [
+            {
+              "role": "Técnico",
+              "channel": "whatsapp",
+              "timeout": "0min"
+            }
+          ]
+        }
+      ]
     },
     {
-      "id": "mant-equip-limpieza-externa",
-      "fieldType": "Checkbox",
-      "label": "Limpieza externa del equipo realizada",
-      "required": true
+      "id": "paso-8",
+      "type": "PhotoField",
+      "titulo": "Limpieza Interior (Después)",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar que el interior del refrigerador esté limpio después del mantenimiento: sin derrames, superficies limpias, organizado",
+        "threshold": 0.75,
+        "expectedConditions": [
+          "Interior del refrigerador limpio",
+          "Sin derrames ni residuos",
+          "Productos organizados y ordenados"
+        ]
+      }
     },
     {
-      "id": "mant-equip-limpieza-condensador",
-      "fieldType": "Checkbox",
-      "label": "Limpieza de condensador realizada",
-      "required": true
+      "id": "paso-9",
+      "type": "Date",
+      "titulo": "Próxima Revisión Programada",
+      "obligatorio": true
     },
     {
-      "id": "mant-equip-verificacion-ventilacion",
-      "fieldType": "Checkbox",
-      "label": "Verificación y limpieza de ventilación realizada",
-      "required": true
-    },
-    {
-      "id": "mant-equip-firma-mantenimiento",
-      "fieldType": "Signature",
-      "label": "Firma de Confirmación de Mantenimiento",
-      "required": true
+      "id": "paso-10",
+      "type": "YesNo",
+      "titulo": "¿Mantenimiento completado?",
+      "obligatorio": true
     }
   ]
 }

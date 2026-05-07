@@ -4,10 +4,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-export type StepType =
-    | 'text' | 'number' | 'yes_no' | 'multiple_choice' | 'photo' | 'checklist'
-    | 'TimeField' | 'TemperatureField' | 'SignatureField' | 'OPSLocationField' | 'PhotoField' | 'timer'
-    | 'video' | 'audio' | 'instruction';
+import { BuilderStepType, StepCategory, getStepCategory, normalizeStepType, normalizeOptions, STEP_TYPE_DISPLAY } from '@/lib/workflow-type-map';
+
+export type StepType = BuilderStepType;
+export type { StepCategory };
+export { getStepCategory, normalizeStepType, normalizeOptions, STEP_TYPE_DISPLAY };
 
 export interface AIVerificationConfig {
     enabled: boolean;

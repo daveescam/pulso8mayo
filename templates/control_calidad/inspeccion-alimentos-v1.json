@@ -1,149 +1,198 @@
 {
   "id": "tpl-inspeccion-alimentos-v1",
-  "nombre": "🥫 Inspección de Alimentos Recibidos",
-  "descripcion": "Protocolo de inspección para alimentos y materias primas recibidos en el establecimiento",
-  "tipo": "INSPECCION",
+  "nombre": "🔍 Inspección de Alimentos",
+  "descripcion": "Inspección detallada de alimentos con evaluación visual AI, verificación OCR de etiquetas y decisión de aptitud conforme a NOM-251",
   "categoria": "CONTROL_CALIDAD",
-  "version": 2,
-  "activo": true,
+  "version": 1,
   "requiereIA": true,
-  "duracionEstimada": "10-15 min por proveedor",
+  "duracionEstimada": "5-10 min",
+  "activo": true,
+  "complianceConfig": {
+    "complianceType": "NOM-251",
+    "regulationSection": "5.1",
+    "requiredFrequency": "per-inspection",
+    "auditable": true,
+    "evidenceRequired": true,
+    "criticalForCompliance": false
+  },
   "cumplimientoNormativo": [
-    "NOM-251-SSA1-2009",
-    "HACCP"
+    {
+      "norma": "NOM-251",
+      "seccion": "5.1",
+      "descripcion": "Inspección y verificación de alimentos"
+    }
   ],
-  "tags": [
-    "inspeccion",
-    "alimentos",
-    "recepcion",
-    "proveedores",
-    "calidad"
-  ],
+  "tags": ["inspeccion", "alimentos", "NOM-251", "control-calidad", "evaluacion"],
   "aiConfig": {
-    "provider": "openai",
+    "provider": "moondream",
+    "fallbackProvider": "openai",
     "maxRetries": 2
   },
+  "escalationChain": [
+    {
+      "rol": "Gerente",
+      "tiempoMinutos": 0
+    },
+    {
+      "rol": "Chef",
+      "tiempoMinutos": 30
+    }
+  ],
+  "completionActions": [
+    {
+      "type": "SEND_NOTIFICATION",
+      "target": "Gerente",
+      "channel": "whatsapp",
+      "message": "Inspección de alimentos completada"
+    },
+    {
+      "type": "UPDATE_INVENTORY",
+      "condition": "rejected",
+      "message": "Actualizar inventario por producto rechazado"
+    },
+    {
+      "type": "GENERATE_PDF_REPORT",
+      "message": "Generar reporte PDF de inspección de alimentos"
+    }
+  ],
   "pasos": [
     {
-      "id": "insp-title",
-      "fieldType": "Title",
-      "label": "🥫 Inspección de Alimentos",
-      "static": true
+      "id": "paso-1",
+      "titulo": "Tipo de Inspección",
+      "type": "Select",
+      "obligatorio": true,
+      "options": ["Rutina", "Pre-servicio", "Queja de cliente", "Verificación post-almacenamiento"]
     },
     {
-      "id": "insp-proveedor",
-      "fieldType": "Text",
-      "label": "Proveedor",
-      "required": true
+      "id": "paso-2",
+      "titulo": "Fecha y Hora",
+      "type": "DateTime",
+      "obligatorio": true
     },
     {
-      "id": "insp-temp-transporte",
-      "fieldType": "Number",
-      "label": "Temperatura Transporte (°C)",
-      "required": true,
-      "extraAttributes": {
-        "min": -20,
-        "max": 20,
-        "suffix": "°C"
-      },
-      "logicRules": [
-        {
-          "id": "rule_insp_temp_bad",
-          "condition": "value > 4",
-          "severity": "CRITICAL",
-          "message": "🚨 Transporte inadecuado ({value}°C).",
-          "escalationChain": [
-            {
-              "level": 1,
-              "notifyRoles": [
-                "GERENTE"
-              ],
-              "channel": "whatsapp",
-              "message": "🚨 INSPECCIÓN: Temp alta en transporte ({value}°C)."
-            }
-          ]
-        }
-      ]
+      "id": "paso-3",
+      "titulo": "Producto a Inspeccionar",
+      "type": "TextField",
+      "obligatorio": true
     },
     {
-      "id": "insp-foto-producto",
-      "fieldType": "Photo",
-      "label": "📷 Foto del Producto",
-      "required": true,
+      "id": "paso-4",
+      "titulo": "Evaluación Visual del Producto",
+      "type": "PhotoField",
+      "obligatorio": true,
       "aiVerification": {
         "enabled": true,
-        "type": "QUALITY_ANALYSIS",
-        "provider": "openai",
-        "prompt": "Analiza calidad, frescura y empaque. Clasifica: EXCELENTE, BUENO, MALO.",
-        "confidenceThreshold": 0.8,
-        "autoFillField": "insp-calidad-ia"
+        "prompt": "Evaluar visualmente el producto: verificar color, textura y apariencia general. Detectar signos de decoloración o descomposición.",
+        "threshold": 0.8,
+        "expectedConditions": [
+          "Color apropiado para el tipo de alimento",
+          "Textura consistente y sin alteraciones",
+          "Sin decoloración ni signos de descomposición visibles"
+        ]
       }
     },
     {
-      "id": "insp-calidad-ia",
-      "fieldType": "Select",
-      "label": "Calidad Detectada (IA)",
-      "required": true,
-      "options": [
-        {
-          "value": "EXCELENTE",
-          "label": "Excelente"
-        },
-        {
-          "value": "BUENO",
-          "label": "Bueno"
-        },
-        {
-          "value": "MALO",
-          "label": "Malo/Dañado"
-        }
-      ],
+      "id": "paso-5",
+      "titulo": "Evaluación de Olor",
+      "type": "Select",
+      "obligatorio": true,
+      "options": ["Normal", "Ligeramente anormal", "Anormal", "Putrefacto"],
       "logicRules": [
         {
-          "id": "rule_calidad_bad",
-          "condition": "value === 'MALO'",
+          "id": "lr-olor-anormal",
+          "condition": "value == 'Anormal' || value == 'Putrefacto'",
           "severity": "CRITICAL",
-          "message": "🚨 IA detectó producto en mal estado.",
-          "remediationProtocol": {
-            "enabled": true,
-            "type": "GUIDED_SELF_FIX",
-            "maxAttempts": 1,
-            "timeoutMinutes": 5,
-            "steps": [
-              {
-                "instruction": "Segregar producto dañado",
-                "waitSeconds": 0
-              },
-              {
-                "instruction": "Documentar rechazo",
-                "waitSeconds": 0
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "id": "insp-decision",
-      "fieldType": "Radio",
-      "label": "Decisión Final",
-      "required": true,
-      "options": [
-        {
-          "value": "ACEPTAR",
-          "label": "Aceptar"
+          "message": "Olor anormal o putrefacto detectado. El producto debe ser evaluado para rechazo inmediato.",
+          "actions": ["ESCALATE"]
         },
         {
-          "value": "RECHAZAR",
-          "label": "Rechazar"
+          "id": "lr-olor-ligeramente",
+          "condition": "value == 'Ligeramente anormal'",
+          "severity": "WARNING",
+          "message": "Olor ligeramente anormal. Se requiere evaluación adicional del supervisor.",
+          "actions": ["ESCALATE"]
         }
       ]
     },
     {
-      "id": "insp-firma",
-      "fieldType": "Signature",
-      "label": "Firma Inspector",
-      "required": true
+      "id": "paso-6",
+      "titulo": "Evaluación de Textura",
+      "type": "Select",
+      "obligatorio": true,
+      "options": ["Normal", "Ligeramente alterada", "Alterada", "Inaceptable"],
+      "logicRules": [
+        {
+          "id": "lr-textura-inaceptable",
+          "condition": "value == 'Inaceptable'",
+          "severity": "CRITICAL",
+          "message": "Textura inaceptable detectada. El producto debe ser desechado.",
+          "actions": ["ESCALATE"]
+        },
+        {
+          "id": "lr-textura-alterada",
+          "condition": "value == 'Alterada'",
+          "severity": "HIGH",
+          "message": "Textura alterada detectada. Se requiere evaluación del supervisor.",
+          "actions": ["ESCALATE"]
+        }
+      ]
+    },
+    {
+      "id": "paso-7",
+      "titulo": "Verificación de Etiqueta (OCR)",
+      "type": "PhotoField",
+      "obligatorio": false,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Realizar OCR de la etiqueta del producto: verificar fecha de caducidad, número de lote e instrucciones de almacenamiento.",
+        "threshold": 0.7,
+        "expectedConditions": [
+          "Fecha de caducidad legible y vigente",
+          "Número de lote legible",
+          "Instrucciones de almacenamiento legibles"
+        ]
+      }
+    },
+    {
+      "id": "paso-8",
+      "titulo": "Decisión",
+      "type": "Select",
+      "obligatorio": true,
+      "options": ["Apto", "No apto", "Dudoso - requiere evaluación supervisor"],
+      "branches": [
+        {
+          "condition": "No apto",
+          "targetStepId": "paso-registro-merma"
+        },
+        {
+          "condition": "Dudoso - requiere evaluación supervisor",
+          "targetStepId": "paso-evaluacion-supervisor"
+        }
+      ]
+    },
+    {
+      "id": "paso-registro-merma",
+      "titulo": "Registro de Merma",
+      "type": "instruction",
+      "descripcion": "El producto ha sido clasificado como No Apto. Registre la merma en el sistema de inventario, documente la causa del rechazo y asegure la disposición adecuada del producto."
+    },
+    {
+      "id": "paso-evaluacion-supervisor",
+      "titulo": "Evaluación del Supervisor",
+      "type": "instruction",
+      "descripcion": "El producto requiere evaluación del supervisor. Notifique al Gerente o Chef para que realicen una evaluación adicional antes de tomar una decisión final."
+    },
+    {
+      "id": "paso-9",
+      "titulo": "Acción Correctiva",
+      "type": "TextField",
+      "obligatorio": false
+    },
+    {
+      "id": "paso-10",
+      "titulo": "¿Inspección completada?",
+      "type": "YesNo",
+      "obligatorio": true
     }
   ]
 }

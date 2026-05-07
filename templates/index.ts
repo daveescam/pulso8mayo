@@ -4,6 +4,7 @@
  */
 
 import type { WorkflowTemplateData as Template } from '../lib/types/workflow';
+import { STEP_TYPE_TO_EXECUTOR_TYPE, normalizeOptions } from '../lib/workflow-type-map';
 
 // Atención al Cliente
 import reporteIncidentesV2 from './atencion_cliente/reporte-incidentes-v2-enhanced.json';
@@ -48,14 +49,53 @@ const normalizeTemplate = (json: any): Template => {
     title: json.nombre || json.title || "Sin Título",
     description: json.descripcion || json.description || "",
     category: json.categoria || json.category || "GENERAL",
-    steps: (json.pasos || json.steps || []).map((step: any) => ({
-      id: step.id || crypto.randomUUID(),
-      type: step.tipo || step.type || 'text',
-      title: step.titulo || step.nombre || step.title || 'Untitled Step',
-      description: step.descripcion || step.description,
-      required: step.obligatorio || step.required || false,
-      config: step.config || {}
-    })),
+    aiConfig: json.aiConfig || json.configuracionIA,
+    complianceConfig: json.complianceConfig || json.configuracionCumplimiento,
+    completionActions: json.completionActions || json.accionesCompletado,
+    tags: json.tags || json.etiquetas,
+    duracionEstimada: json.duracionEstimada || json.duracion_estimada,
+    steps: (json.pasos || json.steps || []).map((step: any) => {
+      const rawType = step.fieldType || step.tipo || step.type || 'text';
+      const canonicalType = (STEP_TYPE_TO_EXECUTOR_TYPE[rawType] || 'TEXT') as any;
+
+      const rawTitle = step.label || step.titulo || step.nombre || step.title || 'Untitled Step';
+      const rawDesc = step.descripcion || step.description || '';
+      const rawRequired = step.obligatorio || step.required || false;
+
+      const extra = step.extraAttributes || {};
+      const placeholder = step.placeholder || extra.placeholder || '';
+      const defaultValue = step.defaultValue || extra.defaultValue || extra.value || '';
+      const readOnly = step.readOnly ?? step.static ?? extra.readonly ?? extra.readOnly ?? false;
+      const helperText = extra.helperText || '';
+
+      const config = step.config || { ...extra };
+      const rawOptions = step.options || step.opciones || config.options || config.items;
+      const options = normalizeOptions(rawOptions);
+
+      return {
+        id: step.id || crypto.randomUUID(),
+        type: canonicalType,
+        title: rawTitle,
+        description: rawDesc || helperText,
+        required: rawRequired,
+        aiVerification: step.aiVerification || step.verificacionIA,
+        logicRules: step.logicRules || step.reglasLogica,
+        branches: step.branches || step.ramas,
+        validation: step.validation || step.validacion,
+        readOnly,
+        conditionalLogic: step.conditionalLogic || step.logicaCondicional,
+        options: options.length > 0 ? options : undefined,
+        placeholder: placeholder || undefined,
+        defaultValue: defaultValue || undefined,
+        config: {
+          ...config,
+          ...(options.length > 0 ? { options } : {}),
+          ...(placeholder ? { placeholder } : {}),
+          ...(defaultValue ? { defaultValue } : {}),
+          ...(readOnly ? { readOnly: true } : {}),
+        },
+      } as any;
+    }),
   } as Template;
 };
 

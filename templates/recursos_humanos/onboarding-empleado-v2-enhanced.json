@@ -1,149 +1,166 @@
 {
-    "id": "tpl-onboarding-empleado-v2",
-    "nombre": "👋 Onboarding de Nuevo Empleado",
-    "descripcion": "Lista de control y registro para el primer día de trabajo de un nuevo colaborador.",
-    "tipo": "ONBOARDING",
-    "categoria": "RECURSOS_HUMANOS",
-    "version": 2,
-    "activo": true,
-    "requiereIA": true,
-    "duracionEstimada": "45-60 min",
-    "cumplimientoNormativo": [
-        "NOM-035",
-        "LABOR_LAW"
-    ],
-    "tags": [
-        "rh",
-        "contratacion",
-        "empleado",
-        "equipo"
-    ],
-    "aiConfig": {
-        "provider": "moondream",
-        "threshold": 0.8
+  "id": "tpl-onboarding-empleado-v2",
+  "nombre": "👤 Onboarding de Empleado",
+  "descripcion": "Proceso completo de incorporación de nuevo empleado con verificación AI/OCR de documentos y firma de contrato",
+  "tipo": "RECURSOS_HUMANOS",
+  "version": 2,
+  "requiereIA": true,
+  "duracionEstimada": "30-45 min",
+  "activo": true,
+  "tags": ["recursos humanos", "onboarding", "empleado", "contrato", "verificación OCR"],
+  "cumplimientoNormativo": [
+    {
+      "norma": "LABOR_LAW",
+      "seccion": "Contratación y Onboarding",
+      "descripcion": "Cumplimiento con la Ley Federal del Trabajo para procesos de contratación"
+    }
+  ],
+  "complianceConfig": {
+    "complianceType": "LABOR_LAW",
+    "regulationSection": "LFT-Titulo-IV",
+    "requiredFrequency": "per-event",
+    "auditable": true,
+    "evidenceRequired": true,
+    "criticalForCompliance": false
+  },
+  "aiConfig": {
+    "provider": "moondream",
+    "fallbackProvider": "openai",
+    "maxRetries": 2
+  },
+  "escalationChain": [
+    {
+      "role": "RH",
+      "delayMinutes": 0,
+      "channel": "in-app"
     },
-    "complianceConfig": {
-        "complianceType": "LABOR_LAW",
-        "requiredFrequency": "on_demand",
-        "auditable": true,
-        "evidenceRequired": true,
-        "criticalForCompliance": true
+    {
+      "role": "Gerente",
+      "delayMinutes": 1440,
+      "channel": "whatsapp"
+    }
+  ],
+  "completionActions": [
+    {
+      "type": "CREATE_EMPLOYEE_RECORD"
     },
-    "pasos": [
+    {
+      "type": "SEND_NOTIFICATION",
+      "target": "RH",
+      "channel": "in-app",
+      "message": "Onboarding completado para nuevo empleado"
+    },
+    {
+      "type": "ACTIVATE_SYSTEM_ACCESS"
+    },
+    {
+      "type": "GENERATE_PDF_REPORT"
+    }
+  ],
+  "pasos": [
+    {
+      "id": "paso-1",
+      "type": "TextField",
+      "titulo": "Nombre Completo del Empleado",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-2",
+      "type": "ChecklistField",
+      "titulo": "Documentos Requeridos",
+      "obligatorio": true,
+      "options": [
+        "INE/IFE",
+        "RFC",
+        "NSS (Seguro Social)",
+        "Comprobante de Domicilio",
+        "Acta de Nacimiento",
+        "Contrato Firmado",
+        "Carta de Antecedentes No Penales",
+        "Certificado Médico"
+      ]
+    },
+    {
+      "id": "paso-3",
+      "type": "PhotoField",
+      "titulo": "Verificación de Documentos (AI/OCR)",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar completitud de documentos presentados. Revisar que el nombre del empleado coincida en todos los documentos visibles. Confirmar que los documentos son legibles y válidos.",
+        "threshold": 0.7,
+        "expectedConditions": [
+          "Documento legible",
+          "Nombre coincide en documentos",
+          "Documento vigente",
+          "Fotografía coincide con persona"
+        ]
+      },
+      "branches": [
         {
-            "id": "datos_empleado",
-            "type": "text",
-            "title": "Nombre Completo del Empleado",
-            "required": true
-        },
-        {
-            "id": "puesto",
-            "type": "multiple_choice",
-            "title": "Puesto Asignado",
-            "required": true,
-            "options": [
-                "Mesero",
-                "Cocinero",
-                "Lavaloza",
-                "Hostess",
-                "Cajero",
-                "Ayudante General",
-                "Gerente"
-            ]
-        },
-        {
-            "id": "documentacion",
-            "type": "checklist",
-            "title": "Entrega de Documentación",
-            "description": "Verifique que se reciban/firmen todos los documentos legales.",
-            "required": true,
-            "options": [
-                "Contrato Individual de Trabajo firmado",
-                "Copia de Identificación Oficial (INE/Pasaporte)",
-                "Comprobante de Domicilio",
-                "Alta en IMSS (Hoja Rosa o comprobante)",
-                "Carta de Confidencialidad firmada"
-            ],
-            "validation": {
-                "message": "Todos los documentos legales son obligatorios para el ingreso."
-            }
-        },
-        {
-            "id": "foto_documentos",
-            "type": "photo",
-            "title": "Evidencia: Contrato Firmado",
-            "description": "Foto de la primera y última hoja del contrato firmado.",
-            "required": true
-        },
-        {
-            "id": "entrega_uniforme",
-            "type": "checklist",
-            "title": "Entrega de Equipo y Uniforme",
-            "required": true,
-            "options": [
-                "Camisa/Polo institucional",
-                "Mandil",
-                "Gorra/Red para cabello",
-                "Zapatos antiderrapantes (verificación visual)"
-            ]
-        },
-        {
-            "id": "foto_uniformado",
-            "type": "photo",
-            "title": "Evidencia: Empleado con Uniforme",
-            "description": "Foto del empleado portando el uniforme completo correctamente.",
-            "required": true,
-            "aiVerification": {
-                "enabled": true,
-                "prompt": "Verifica que la persona esté usando el uniforme, incluyendo camisa o polo, mandil y gorra o red para el cabello.",
-                "threshold": 0.8,
-                "expectedConditions": [
-                    "wearing_apron",
-                    "wearing_uniform_shirt",
-                    "wearing_cap_or_hairnet"
-                ]
-            }
-        },
-        {
-            "id": "capacitacion_inicial",
-            "type": "checklist",
-            "title": "Capacitación Inicial (Día 1)",
-            "required": true,
-            "options": [
-                "Recorrido por instalaciones (baños, salidas, cocina)",
-                "Presentación con el equipo de trabajo",
-                "Explicación del Reglamento Interno",
-                "Registro de huella/código en sistema de asistencia",
-                "Asignación de casillero/espacio personal"
-            ]
-        },
-        {
-            "id": "firma_empleado",
-            "type": "SignatureField",
-            "title": "Firma del Empleado",
-            "description": "Confirmo que he recibido mi uniforme, capacitación inicial y he firmado mi contrato.",
-            "required": true
-        },
-        {
-            "id": "comentario_gerente",
-            "type": "text",
-            "title": "Observaciones del Gerente",
-            "required": false
+          "condition": "documento_faltante",
+          "targetStepId": "paso-registrar-pendiente"
         }
-    ],
-    "completionActions": [
-        {
-            "type": "UPDATE_USER_STATUS",
-            "userId": "{param:userId}",
-            "status": "ACTIVE"
-        },
-        {
-            "type": "SEND_NOTIFICATION",
-            "target": [
-                "RECURSOS_HUMANOS"
-            ],
-            "channel": "email",
-            "message": "👤 Nuevo ingreso completado: {steps.datos_empleado.value}"
-        }
-    ]
+      ]
+    },
+    {
+      "id": "paso-4",
+      "type": "instruction",
+      "titulo": "Capacitación Inicial - Revisar políticas de la empresa"
+    },
+    {
+      "id": "paso-5",
+      "type": "YesNo",
+      "titulo": "¿Tour de Instalaciones Completado?",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-6",
+      "type": "Select",
+      "titulo": "Equipo Asignado",
+      "options": [
+        "Uniforme",
+        "Credencial",
+        "Llaves",
+        "Tablet/Dispositivo",
+        "Herramientas de trabajo"
+      ]
+    },
+    {
+      "id": "paso-7",
+      "type": "YesNo",
+      "titulo": "¿Accesos al Sistema Creados?",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-8",
+      "type": "YesNo",
+      "titulo": "¿Uniforme Entregado?",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-9",
+      "type": "SignatureField",
+      "titulo": "Firma de Contrato",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-10",
+      "type": "TextField",
+      "titulo": "Contacto de Emergencia",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-11",
+      "type": "TextField",
+      "titulo": "Teléfono de Emergencia",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-12",
+      "type": "YesNo",
+      "titulo": "¿Onboarding completado?",
+      "obligatorio": true
+    }
+  ]
 }

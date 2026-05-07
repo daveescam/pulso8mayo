@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { magicLinks, workflowInstances, workflowAssignments } from "@/lib/db/schema";
 import { eq, and, gt } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || nanoid(32);
 
@@ -30,21 +31,6 @@ export interface ValidatedSmartLink {
     role?: string;
     assignmentId?: string;
     stepId?: string;
-    type: string;
-    iat: number;
-    exp: number;
-  };
-}
-
-export interface ValidatedSmartLink {
-  link: typeof magicLinks.$inferSelect;
-  instance: typeof workflowInstances.$inferSelect;
-  decoded: {
-    instanceId: string;
-    templateId: string;
-    sessionId: string;
-    requiredRole?: string;
-    assignedTo?: string;
     type: string;
     iat: number;
     exp: number;

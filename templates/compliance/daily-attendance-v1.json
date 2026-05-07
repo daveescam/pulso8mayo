@@ -1,101 +1,145 @@
 {
-    "id": "daily-attendance-v1",
-    "nombre": "Registro Diario y Check de Salud",
-    "descripcion": "Registro de entrada diario con validación de uniforme y estado de salud básico.",
-    "tipo": "LABOR",
-    "categoria": "COMPLIANCE",
-    "version": 1,
-    "activo": true,
-    "requiereIA": true,
-    "duracionEstimada": "2 min",
-    "cumplimientoNormativo": [
-        "NOM-030-STPS-2009"
-    ],
-    "tags": [
-        "asistencia",
-        "salud",
-        "uniforme"
-    ],
-    "aiConfig": {
-        "provider": "moondream",
-        "fallbackProvider": "openai",
-        "maxRetries": 2
+  "id": "tpl-daily-attendance-v1",
+  "nombre": "⏰ Asistencia Diaria",
+  "descripcion": "Registro de asistencia con validación GPS, verificación facial AI y control de breaks",
+  "categoria": "COMPLIANCE",
+  "version": 1,
+  "activo": true,
+  "requiereIA": true,
+  "duracionEstimada": "2-5 min",
+  "complianceConfig": {
+    "complianceType": "LABOR_LAW",
+    "regulationSection": "LFT",
+    "requiredFrequency": "daily",
+    "auditable": true,
+    "evidenceRequired": false,
+    "criticalForCompliance": false
+  },
+  "cumplimientoNormativo": [
+    {
+      "norma": "LFT",
+      "seccion": "Jornada de Trabajo",
+      "descripcion": "Ley Federal del Trabajo - Control de jornada, asistencia y descansos obligatorios"
+    }
+  ],
+  "tags": ["asistencia", "GPS", "facial", "check-in", "breaks", "jornada", "compliance", "AI"],
+  "aiConfig": {
+    "provider": "moondream",
+    "fallbackProvider": "openai",
+    "maxRetries": 2
+  },
+  "escalationChain": [
+    {
+      "level": 1,
+      "role": "Gerente",
+      "channel": "whatsapp",
+      "timeout": "0min"
     },
-    "complianceConfig": {
-        "complianceType": "LABOR_LAW",
-        "regulationSection": "NOM-030-STPS-2009 (4.1)",
-        "requiredFrequency": "daily",
-        "auditable": true,
-        "evidenceRequired": true,
-        "criticalForCompliance": true
+    {
+      "level": 2,
+      "role": "RH",
+      "channel": "internal",
+      "timeout": "24h"
+    }
+  ],
+  "completionActions": [
+    {
+      "type": "UPDATE_WORK_SHIFT",
+      "message": "Actualizar registro de turno de trabajo del empleado"
     },
-    "pasos": [
+    {
+      "type": "CALCULATE_HOURS",
+      "message": "Calcular horas trabajadas y horas extra"
+    },
+    {
+      "type": "SEND_NOTIFICATION",
+      "target": "RH",
+      "channel": "internal",
+      "condition": "discrepancy",
+      "message": "Discrepancia detectada en registro de asistencia"
+    }
+  ],
+  "pasos": [
+    {
+      "id": "paso-1",
+      "type": "GPSLocationField",
+      "titulo": "Validación de Ubicación",
+      "obligatorio": true,
+      "validation": {
+        "radiusMeters": 200
+      }
+    },
+    {
+      "id": "paso-2",
+      "type": "TimeField",
+      "titulo": "Hora de Entrada",
+      "obligatorio": true,
+      "logicRules": [
         {
-            "id": "step_photo_uniform",
-            "type": "PhotoField",
-            "title": "Foto de Uniforme",
-            "description": "Sube una foto tuya con el uniforme completo y limpio.",
-            "required": true,
-            "aiVerification": {
-                "enabled": true,
-                "type": "UNIFORM_CHECK",
-                "prompt": "Check if the person is wearing the correct uniform, is well-groomed, and has no visible jewelry.",
-                "threshold": 0.8,
-                "expectedConditions": [
-                    "uniform_present",
-                    "clean_appearance"
-                ]
+          "id": "lr-retardo-menor",
+          "condition": "arrival_delay > 15min && arrival_delay <= 30min",
+          "severity": "WARNING",
+          "message": "Retardo detectado (más de 15 minutos). Se registrará como retardo.",
+          "actions": ["LOG_RETARD"]
+        },
+        {
+          "id": "lr-retardo-mayor",
+          "condition": "arrival_delay > 30min",
+          "severity": "HIGH",
+          "message": "Falta por retardo (más de 30 minutos). Se notificará al gerente y se registrará como falta.",
+          "actions": ["LOG_ABSENCE"],
+          "escalationChain": [
+            {
+              "role": "Gerente",
+              "channel": "whatsapp",
+              "timeout": "0min"
             }
-        },
-        {
-            "id": "step_health_symptoms",
-            "type": "CheckboxField",
-            "title": "Estado de Salud",
-            "description": "Selecciona si presentas alguno de estos síntomas hoy:",
-            "required": true,
-            "options": [
-                "Fiebre",
-                "Tos",
-                "Escurrimiento Nasal",
-                "Dolor de cuerpo",
-                "Ninguno"
-            ],
-            "logicRules": [
-                {
-                    "id": "health_block",
-                    "condition": "value includes 'Fiebre' || value includes 'Tos'",
-                    "severity": "CRITICAL",
-                    "message": "No puedes ingresar con síntomas de enfermedad infecciosa."
-                }
-            ]
-        },
-        {
-            "id": "step_clock_location",
-            "type": "LocationField",
-            "title": "Ubicación de Entrada",
-            "description": "Confirma tu ubicación para registrar la entrada.",
-            "required": true,
-            "validation": {
-                "radiusMeters": 100,
-                "message": "Debes estar en la sucursal para registrar asistencia."
-            }
-        },
-        {
-            "id": "step_signature",
-            "type": "SignatureField",
-            "title": "Firma de Conformidad",
-            "description": "Firmo que estoy apto para trabajar hoy.",
-            "required": true
+          ]
         }
-    ],
-    "completionActions": [
+      ]
+    },
+    {
+      "id": "paso-3",
+      "type": "PhotoField",
+      "titulo": "Verificación de Identidad (Selfie)",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Realizar verificación facial básica comparando la selfie capturada con la foto de perfil del empleado. Verificar que es la misma persona.",
+        "threshold": 0.7,
+        "expectedConditions": [
+          "Rostro visible y claramente identificable",
+          "Coincidencia facial con foto de perfil del empleado",
+          "Iluminación adecuada para verificación"
+        ]
+      }
+    },
+    {
+      "id": "paso-4",
+      "type": "TimeField",
+      "titulo": "Inicio de Break",
+      "obligatorio": false
+    },
+    {
+      "id": "paso-5",
+      "type": "TimeField",
+      "titulo": "Fin de Break",
+      "obligatorio": false,
+      "logicRules": [
         {
-            "type": "SEND_NOTIFICATION",
-            "target": [
-                "GERENTE"
-            ],
-            "channel": "whatsapp",
-            "message": "✅ Asistencia registrada: {employee_name} - {completion_time}"
+          "id": "lr-sin-break",
+          "condition": "no_break_in_6h_shift",
+          "severity": "WARNING",
+          "message": "No se registró break en turno de más de 6 horas. Violación a la Ley Federal del Trabajo - se requiere al menos 30 minutos de descanso.",
+          "actions": ["LOG_VIOLATION", "NOTIFY_RH"]
         }
-    ]
+      ]
+    },
+    {
+      "id": "paso-6",
+      "type": "TimeField",
+      "titulo": "Hora de Salida",
+      "obligatorio": true
+    }
+  ]
 }

@@ -305,27 +305,35 @@ export class StockCountService {
       try {
         const category = (instanceData as Record<string, unknown>)?.category as string || "";
         const categoryLabel = this.getCategoryName(category);
-        const managers = await db.query.users.findMany({
-          where: and(
-            eq(users.companyId, instance.companyId || ""),
-            sql`${users.role} IN ('ADMIN', 'GERENTE', 'SUPERVISOR')`
-          )
-        });
 
-        await Promise.allSettled(
-          managers.map(manager =>
-            NotificationDispatcher.sendStockCountVarianceAlert({
-              userId: manager.id,
-              data: {
-                branchId: instance.branchId,
-                category: categoryLabel,
-                alertCount: alertItems.length,
-                totalProducts: results.length,
-                instanceId,
-              },
-            })
-          )
-        );
+        const template = await db.query.workflowTemplates.findFirst({
+          where: eq(workflowTemplates.id, instance.workflowTemplateId),
+        });
+        const companyId = template?.companyId || "";
+
+        if (companyId) {
+          const managers = await db.query.users.findMany({
+            where: and(
+              eq(users.companyId, companyId),
+              sql`${users.role} IN ('ADMIN', 'GERENTE', 'SUPERVISOR')`
+            )
+          });
+
+          await Promise.allSettled(
+            managers.map(manager =>
+              NotificationDispatcher.sendStockCountVarianceAlert({
+                userId: manager.id,
+                data: {
+                  branchId: instance.branchId,
+                  category: categoryLabel,
+                  alertCount: alertItems.length,
+                  totalProducts: results.length,
+                  instanceId,
+                },
+              })
+            )
+          );
+        }
       } catch (error) {
         console.error("[StockCount] Error sending variance alerts:", error);
       }

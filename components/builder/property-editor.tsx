@@ -3,6 +3,7 @@
 
 import React from 'react';
 import { useBuilder } from './builder-context';
+import { getStepCategory, STEP_TYPE_DISPLAY } from '@/lib/workflow-type-map';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -28,7 +29,7 @@ export function PropertyEditor() {
     return (
         <div className="w-80 flex-shrink-0 border-l bg-background p-6 space-y-6 overflow-y-auto h-full">
             <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-lg">{step.type} Settings</h3>
+                <h3 className="font-semibold text-lg">{STEP_TYPE_DISPLAY[step.type] || step.type} Settings</h3>
                 <Button variant="ghost" size="icon" onClick={() => removeStep(step.id)} className="text-destructive hover:bg-destructive/10">
                     <Trash2 className="w-4 h-4" />
                 </Button>
@@ -72,7 +73,7 @@ export function PropertyEditor() {
 
                 <div className="space-y-2">
                     <Label>Description</Label>
-                    {step.type === 'instruction' ? (
+                    {getStepCategory(step.type) === 'INFO' ? (
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
                                 <Label className="text-xs">Rich Text</Label>
@@ -127,7 +128,7 @@ export function PropertyEditor() {
             </div>
 
             {/* Validation Config */}
-            {(step.type === 'number' || step.type === 'TemperatureField') && (
+            {(getStepCategory(step.type) === 'NUMBER') && (
                 <div className="space-y-4 border-t pt-4">
                     <h4 className="font-medium text-sm">Validation</h4>
                     <div className="grid grid-cols-2 gap-4">
@@ -166,7 +167,7 @@ export function PropertyEditor() {
             )}
 
             {/* Time Validation */}
-            {step.type === 'TimeField' && (
+            {(getStepCategory(step.type) === 'TIME' || getStepCategory(step.type) === 'TIMER' || getStepCategory(step.type) === 'DATE') && (
                 <div className="space-y-4 border-t pt-4">
                     <h4 className="font-medium text-sm">Time Validation</h4>
                     <div className="grid grid-cols-2 gap-4">
@@ -205,7 +206,7 @@ export function PropertyEditor() {
             )}
 
             {/* GPS/Location Validation */}
-            {step.type === 'OPSLocationField' && (
+            {(getStepCategory(step.type) === 'LOCATION') && (
                 <div className="space-y-4 border-t pt-4">
                     <h4 className="font-medium text-sm">Location Validation</h4>
                     <div className="space-y-2">
@@ -223,7 +224,7 @@ export function PropertyEditor() {
             )}
 
             {/* Type specific config */}
-            {(step.type === 'photo' || step.type === 'PhotoField') && (
+            {(getStepCategory(step.type) === 'PHOTO') && (
                 <div className="space-y-4 border-t pt-4">
                     <h4 className="font-medium text-sm">AI Verification</h4>
 
@@ -301,7 +302,7 @@ export function PropertyEditor() {
             )}
 
             {/* Conditional Branches */}
-            {(step.type === 'yes_no' || step.type === 'multiple_choice' || step.type === 'checklist') && (
+            {(getStepCategory(step.type) === 'YESNO' || getStepCategory(step.type) === 'SELECT' || getStepCategory(step.type) === 'CHECKBOX') && (
                 <div className="space-y-4 border-t pt-4">
                     <h4 className="font-medium text-sm">Conditional Branches</h4>
                     <p className="text-xs text-muted-foreground">
@@ -373,7 +374,7 @@ export function PropertyEditor() {
             )}
 
             {/* Checklist Options */}
-            {step.type === 'checklist' && (
+            {(getStepCategory(step.type) === 'CHECKBOX') && (
                 <div className="space-y-4 border-t pt-4">
                     <div className="flex items-center justify-between">
                         <h4 className="font-medium text-sm">Checklist Options</h4>
@@ -430,7 +431,7 @@ export function PropertyEditor() {
             )}
 
             {/* Select Options */}
-            {step.type === 'multiple_choice' && (
+            {(getStepCategory(step.type) === 'SELECT') && (
                 <div className="space-y-4 border-t pt-4">
                     <div className="flex items-center justify-between">
                         <h4 className="font-medium text-sm">Choice Options</h4>
@@ -551,7 +552,7 @@ export function PropertyEditor() {
             </div>
 
             {/* Timer Options */}
-            {(step.type === 'timer') && (
+            {(getStepCategory(step.type) === 'TIMER') && (
                 <div className="space-y-4 border-t pt-4">
                     <h4 className="font-medium text-sm">Timer Settings</h4>
                     <div className="space-y-2">

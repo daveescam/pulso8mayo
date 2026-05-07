@@ -23,6 +23,7 @@ import {
 import { Plus, Search, Shield, Calendar, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ComplianceServiceForm } from "@/components/equipment/compliance-service-form";
+import { getComplianceServiceTypeLabel, getMaintenanceFrequencyLabel } from "@/lib/equipment-constants";
 
 interface ComplianceService {
   id: string;
@@ -51,8 +52,8 @@ export default function EquipmentCompliancePage() {
     try {
       const res = await fetch("/api/compliance-services");
       if (res.ok) {
-        const data = await res.json();
-        setServices(data);
+      const data = await res.json();
+      setServices(data.data || []);
       }
     } catch (error) {
       toast({ title: "Error", description: "No se pudieron cargar los servicios" });
@@ -67,36 +68,9 @@ export default function EquipmentCompliancePage() {
       service.serviceType.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getServiceTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      FUMIGATION: "Fumigación",
-      FIRE_SYSTEM_CHECK: "Sistema Contra Incendios",
-      ELECTRICAL_INSPECTION: "Inspección Eléctrica",
-      GAS_INSPECTION: "Inspección de Gas",
-      WATER_QUALITY: "Calidad del Agua",
-      AIR_QUALITY: "Calidad del Aire",
-      PEST_CONTROL: "Control de Plagas",
-      HYGIENE_AUDIT: "Auditoría de Higiene",
-      SAFETY_INSPECTION: "Inspección de Seguridad",
-      OTHER: "Otro",
-    };
-    return labels[type] || type;
-  };
+  const getServiceTypeLabel = (type: string) => getComplianceServiceTypeLabel(type);
 
-  const getFrequencyLabel = (freq: string) => {
-    const labels: Record<string, string> = {
-      DAILY: "Diario",
-      WEEKLY: "Semanal",
-      BIWEEKLY: "Quincenal",
-      MONTHLY: "Mensual",
-      BIMONTHLY: "Bimestral",
-      QUARTERLY: "Trimestral",
-      SEMIANNUAL: "Semestral",
-      ANNUAL: "Anual",
-      CUSTOM: "Personalizado",
-    };
-    return labels[freq] || freq;
-  };
+  const getFrequencyLabel = (freq: string) => getMaintenanceFrequencyLabel(freq);
 
   if (loading) {
     return <div className="p-6">Cargando servicios...</div>;

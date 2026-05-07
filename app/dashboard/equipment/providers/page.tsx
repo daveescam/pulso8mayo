@@ -53,8 +53,8 @@ export default function EquipmentProvidersPage() {
     try {
       const res = await fetch("/api/equipment/providers");
       if (res.ok) {
-        const data = await res.json();
-        setProviders(data);
+      const data = await res.json();
+      setProviders(data.data || []);
       }
     } catch (error) {
       toast({ title: "Error", description: "No se pudieron cargar los proveedores" });

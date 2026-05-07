@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight, CheckCircle2, AlertCircle, Camera, Upload, FileText, Calendar, Hash, ListChecks, Loader2, Package } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, AlertCircle, Camera, Upload, FileText, Calendar, Hash, ListChecks, Loader2, Package, MapPin, Mic, Video } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -455,19 +455,110 @@ export function WorkflowExecutor({
           </Alert>
         );
 
-      case 'SIGNATURE':
-        return (
-          <div className="space-y-2">
-            <Label>Firma digital</Label>
-            <div className="border-2 border-dashed rounded-lg p-8 text-center bg-muted/50">
-              <p className="text-muted-foreground">
-                La firma se capturará automáticamente al completar este paso
-              </p>
-            </div>
-          </div>
-        );
+ case 'SIGNATURE':
+ return (
+ <div className="space-y-2">
+ <Label>Firma digital</Label>
+ <div className="border-2 border-dashed rounded-lg p-8 text-center bg-muted/50">
+ <p className="text-muted-foreground">
+ La firma se capturará automáticamente al completar este paso
+ </p>
+ </div>
+ </div>
+ );
 
-      default:
+ case 'YESNO':
+ return (
+ <div className="flex gap-3">
+ <button
+ onClick={() => setStepData({ ...stepData, [step.id]: 'SI' })}
+ className={`flex-1 h-12 rounded-lg border-2 font-semibold transition-colors ${stepValue === 'SI' ? 'border-green-500 bg-green-100 text-green-700' : 'border-border hover:bg-muted'}`}
+ >
+ ✓ Sí
+ </button>
+ <button
+ onClick={() => setStepData({ ...stepData, [step.id]: 'NO' })}
+ className={`flex-1 h-12 rounded-lg border-2 font-semibold transition-colors ${stepValue === 'NO' ? 'border-red-500 bg-red-100 text-red-700' : 'border-border hover:bg-muted'}`}
+ >
+ ✗ No
+ </button>
+ </div>
+ );
+
+ case 'TIME':
+ return (
+ <Input
+ type="time"
+ value={stepValue || ''}
+ onChange={(e) => setStepData({ ...stepData, [step.id]: e.target.value })}
+ />
+ );
+
+ case 'TIMER':
+ return (
+ <div className="space-y-2">
+ <Label>Temporizador (segundos)</Label>
+ <Input
+ type="number"
+ placeholder="0"
+ value={stepValue || ''}
+ onChange={(e) => setStepData({ ...stepData, [step.id]: e.target.value })}
+ />
+ </div>
+ );
+
+ case 'LOCATION':
+ return (
+ <div className="space-y-4">
+ <div className="flex items-center justify-center w-full">
+ <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-muted/50 hover:bg-muted/70 transition-colors">
+ <div className="flex flex-col items-center justify-center pt-5 pb-6">
+ <MapPin className="w-10 h-10 mb-3 text-muted-foreground" />
+ <p className="mb-2 text-sm text-muted-foreground">
+ <span className="font-semibold">Capturar ubicación GPS</span>
+ </p>
+ </div>
+ </label>
+ </div>
+ <Button variant="outline" className="w-full gap-2" onClick={() => setStepData({ ...stepData, [step.id]: 'GPS_CAPTURED' })}>
+ <MapPin className="h-4 w-4" /> Capturar Ubicación
+ </Button>
+ </div>
+ );
+
+ case 'AUDIO':
+ return (
+ <div className="space-y-4">
+ <div className="flex items-center justify-center w-full">
+ <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-muted/50 hover:bg-muted/70 transition-colors">
+ <div className="flex flex-col items-center justify-center pt-5 pb-6">
+ <Mic className="w-10 h-10 mb-3 text-muted-foreground" />
+ <p className="mb-2 text-sm text-muted-foreground">
+ <span className="font-semibold">Grabar nota de voz</span>
+ </p>
+ </div>
+ </label>
+ </div>
+ </div>
+ );
+
+ case 'VIDEO':
+ return (
+ <div className="space-y-4">
+ <div className="flex items-center justify-center w-full">
+ <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-muted/50 hover:bg-muted/70 transition-colors">
+ <div className="flex flex-col items-center justify-center pt-5 pb-6">
+ <Video className="w-10 h-10 mb-3 text-muted-foreground" />
+ <p className="mb-2 text-sm text-muted-foreground">
+ <span className="font-semibold">Grabar video</span>
+ </p>
+ </div>
+ </label>
+ </div>
+ </div>
+ );
+
+ default:
         return (
           <Textarea
             placeholder="Ingresa la información solicitada..."
@@ -479,37 +570,51 @@ export function WorkflowExecutor({
     }
   };
 
-  const getStepIcon = (type: string) => {
-    switch (type) {
-      case 'TEXT':
-        return <FileText className="h-5 w-5" />;
-      case 'NUMBER':
-        return <Hash className="h-5 w-5" />;
-      case 'SELECT':
-        return <ListChecks className="h-5 w-5" />;
-      case 'PHOTO':
-        return <Camera className="h-5 w-5" />;
-      case 'CHECKBOX':
-        return <Checkbox className="h-5 w-5" />;
-      case 'DATE':
-        return <Calendar className="h-5 w-5" />;
-      case 'INFO':
-        return <AlertCircle className="h-5 w-5" />;
-      default:
-        return <FileText className="h-5 w-5" />;
-    }
-  };
+const getStepIcon = (type: string) => {
+ switch (type) {
+ case 'TEXT':
+ return <FileText className="h-5 w-5" />;
+ case 'NUMBER':
+ return <Hash className="h-5 w-5" />;
+ case 'SELECT':
+ case 'YESNO':
+ return <ListChecks className="h-5 w-5" />;
+ case 'PHOTO':
+ case 'VIDEO':
+ return <Camera className="h-5 w-5" />;
+ case 'CHECKBOX':
+ return <Checkbox className="h-5 w-5" />;
+ case 'DATE':
+ case 'TIME':
+ case 'TIMER':
+ return <Calendar className="h-5 w-5" />;
+ case 'INFO':
+ return <AlertCircle className="h-5 w-5" />;
+ case 'SIGNATURE':
+ return <FileText className="h-5 w-5" />;
+ case 'LOCATION':
+ return <MapPin className="h-5 w-5" />;
+ case 'AUDIO':
+ return <Mic className="h-5 w-5" />;
+ default:
+ return <FileText className="h-5 w-5" />;
+ }
+ };
 
   const isStepCompleteable = () => {
     if (!currentStep) return false;
-    if (currentStep.type === 'INFO') return true;
+ if (currentStep.type === 'INFO') return true;
 
-    const value = stepData[currentStep.id] || currentStepInstance?.value;
-    const hasEvidence = evidenceFiles.length > 0 || currentStepInstance?.evidenceUrl;
+ const value = stepData[currentStep.id] || currentStepInstance?.value;
+ const hasEvidence = evidenceFiles.length > 0 || currentStepInstance?.evidenceUrl;
 
-    if (currentStep.type === 'PHOTO') {
-      return hasEvidence;
-    }
+ if (currentStep.type === 'PHOTO' || currentStep.type === 'VIDEO' || currentStep.type === 'LOCATION') {
+ return hasEvidence || !!value;
+ }
+
+ if (currentStep.type === 'AUDIO') {
+ return !!value;
+ }
 
     if (currentStep.required) {
       return value && (typeof value === 'string' ? value.trim() : value.length > 0);

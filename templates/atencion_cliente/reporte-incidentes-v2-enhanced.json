@@ -1,141 +1,209 @@
 {
-    "id": "tpl-reporte-incidentes-v2",
-    "nombre": "🚨 Reporte de Incidente de Cliente",
-    "descripcion": "Formulario oficial para el registro y gestión de quejas, accidentes o incidentes relevantes con clientes.",
-    "tipo": "INCIDENTE",
-    "categoria": "ATENCION_CLIENTE",
-    "version": 2,
-    "activo": true,
-    "requiereIA": false,
-    "duracionEstimada": "5-10 min",
-    "cumplimientoNormativo": [
-        "INTERNAL"
-    ],
-    "tags": [
-        "cliente",
-        "queja",
-        "incidente",
-        "seguridad"
-    ],
-    "complianceConfig": {
-        "complianceType": "INTERNAL",
-        "regulationSection": "Protocolo de Atención a Clientes",
-        "requiredFrequency": "on_demand",
-        "auditable": true,
-        "evidenceRequired": true,
-        "criticalForCompliance": false
+  "id": "tpl-reporte-incidentes-v2",
+  "nombre": "⚠️ Reporte de Incidentes",
+  "descripcion": "Reporte de incidentes con verificación AI, evaluación de severidad y escalamiento automático",
+  "tipo": "ATENCION_CLIENTE",
+  "version": 2,
+  "requiereIA": true,
+  "duracionEstimada": "5-10 min",
+  "activo": true,
+  "tags": ["atención cliente", "incidente", "seguridad", "NOM-251", "escalamiento"],
+  "cumplimientoNormativo": [
+    {
+      "norma": "NOM-251",
+      "seccion": "Seguridad alimentaria y reporte de incidentes",
+      "descripcion": "Cumplimiento con NOM-251-SSA1-2009 para prácticas higiénicas y reporte de incidentes alimentarios"
+    }
+  ],
+  "complianceConfig": {
+    "complianceType": "NOM-251",
+    "regulationSection": "NOM-251-SSA1-2009",
+    "requiredFrequency": "per-event",
+    "auditable": true,
+    "evidenceRequired": true,
+    "criticalForCompliance": true
+  },
+  "aiConfig": {
+    "provider": "moondream",
+    "fallbackProvider": "openai",
+    "maxRetries": 2
+  },
+  "escalationChain": [
+    {
+      "role": "Gerente",
+      "delayMinutes": 0,
+      "channel": "whatsapp",
+      "condition": "CRITICAL"
     },
-    "pasos": [
+    {
+      "role": "Owner",
+      "delayMinutes": 30,
+      "channel": "whatsapp"
+    }
+  ],
+  "completionActions": [
+    {
+      "type": "SEND_NOTIFICATION",
+      "target": "OWNER",
+      "channel": "whatsapp",
+      "message": "Incidente crítico reportado - requiere atención inmediata",
+      "condition": "severity=CRITICAL"
+    },
+    {
+      "type": "GENERATE_PDF_REPORT"
+    },
+    {
+      "type": "CREATE_INCIDENT_RECORD"
+    }
+  ],
+  "pasos": [
+    {
+      "id": "paso-1",
+      "type": "Select",
+      "titulo": "Tipo de Incidente",
+      "obligatorio": true,
+      "options": [
+        "Queja de cliente",
+        "Accidente",
+        "Alergia alimentaria",
+        "Intoxicación alimentaria",
+        "Daño a propiedad",
+        "Otro"
+      ],
+      "logicRules": [
         {
-            "id": "hora_incidente",
-            "type": "TimeField",
-            "title": "Hora del Incidente",
-            "description": "Hora aproximada en que sucedió el evento.",
-            "required": true
-        },
-        {
-            "id": "tipo_incidente",
-            "type": "multiple_choice",
-            "title": "Tipo de Incidente",
-            "required": true,
-            "options": [
-                "Queja de Alimentos",
-                "Queja de Servicio",
-                "Accidente/Caída",
-                "Objeto Olvidado",
-                "Disputa de Cuenta",
-                "Otro"
-            ]
-        },
-        {
-            "id": "descripcion",
-            "type": "text",
-            "title": "Descripción Detallada",
-            "description": "Describa los hechos objetivamente (qué, quién, cómo).",
-            "placeholder": "El cliente indicó que...",
-            "required": true,
-            "validation": {
-                "message": "La descripción es fundamental para el seguimiento."
+          "id": "rule-intoxicacion",
+          "condition": "tipo_incidente == 'Intoxicación alimentaria'",
+          "severity": "CRITICAL",
+          "message": "Intoxicación alimentaria detectada - Se requiere reporte COFEPRIS y notificación inmediata al propietario",
+          "escalationChain": ["OWNER"],
+          "actions": [
+            {
+              "type": "SEND_NOTIFICATION",
+              "target": "OWNER",
+              "channel": "whatsapp",
+              "message": "ALERTA: Intoxicación alimentaria reportada - Se requiere reporte COFEPRIS"
+            },
+            {
+              "type": "CREATE_COFEPRIS_REPORT"
             }
+          ]
         },
         {
-            "id": "cliente_info",
-            "type": "text",
-            "title": "Contacto del Cliente",
-            "description": "Nombre y Teléfono/Email (Solo si el cliente acepta).",
-            "required": false
+          "id": "rule-alergia",
+          "condition": "tipo_incidente == 'Alergia alimentaria'",
+          "severity": "CRITICAL",
+          "message": "Alergia alimentaria reportada - Se requiere notificación inmediata y reporte COFEPRIS",
+          "escalationChain": ["OWNER"],
+          "actions": [
+            {
+              "type": "SEND_NOTIFICATION",
+              "target": "OWNER",
+              "channel": "whatsapp",
+              "message": "ALERTA: Alergia alimentaria reportada - Se requiere reporte COFEPRIS"
+            },
+            {
+              "type": "CREATE_COFEPRIS_REPORT"
+            }
+          ]
         },
         {
-            "id": "accion_tomada",
-            "type": "text",
-            "title": "Acción Inmediata Tomada",
-            "description": "¿Qué solución se ofreció en el momento? (Descuento, cortesía, ayuda médica).",
-            "required": true
-        },
-        {
-            "id": "requiere_seguimiento",
-            "type": "yes_no",
-            "title": "¿Requiere seguimiento posterior?",
-            "description": "Indique SÍ si el problema no se resolvió totalmente en el sitio.",
-            "required": true
-        },
-        {
-            "id": "evidencia",
-            "type": "photo",
-            "title": "Evidencia Fotográfica",
-            "description": "Foto del platillo, ticket, o lugar del incidente (si aplica).",
-            "required": false
-        },
-        {
-            "id": "firma_gerente",
-            "type": "SignatureField",
-            "title": "Firma del Gerente en Turno",
-            "required": true
+          "id": "rule-accidente",
+          "condition": "tipo_incidente == 'Accidente'",
+          "severity": "HIGH",
+          "message": "Accidente reportado - Se requiere reporte STPS",
+          "escalationChain": ["Gerente"],
+          "actions": [
+            {
+              "type": "CREATE_STPS_REPORT"
+            }
+          ]
         }
-    ],
-    "logicRules": [
+      ]
+    },
+    {
+      "id": "paso-2",
+      "type": "Select",
+      "titulo": "Severidad",
+      "obligatorio": true,
+      "options": [
+        "Baja",
+        "Media",
+        "Alta",
+        "Crítica"
+      ]
+    },
+    {
+      "id": "paso-3",
+      "type": "Textarea",
+      "titulo": "Descripción del Incidente",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-4",
+      "type": "PhotoField",
+      "titulo": "Fotos de Evidencia",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Analizar el área o condición mostrada en la foto para identificar riesgos de seguridad, condiciones insalubres, peligros físicos o violaciones de normativas de seguridad alimentaria.",
+        "threshold": 0.6,
+        "expectedConditions": [
+          "Área limpia y ordenada",
+          "Sin riesgos de seguridad visibles",
+          "Equipos en buen estado",
+          "Señalización adecuada"
+        ]
+      }
+    },
+    {
+      "id": "paso-5",
+      "type": "TextField",
+      "titulo": "Cliente Involucrado",
+      "obligatorio": false
+    },
+    {
+      "id": "paso-6",
+      "type": "TextField",
+      "titulo": "Empleado Involucrado",
+      "obligatorio": false
+    },
+    {
+      "id": "paso-7",
+      "type": "Textarea",
+      "titulo": "Acciones Inmediatas Tomadas",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-8",
+      "type": "YesNo",
+      "titulo": "¿Se requiere seguimiento?",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-9",
+      "type": "YesNo",
+      "titulo": "¿Gerente notificado?",
+      "obligatorio": true,
+      "logicRules": [
         {
-            "id": "rule_accidente",
-            "condition": "steps.tipo_incidente.value == 'Accidente/Caída'",
-            "severity": "CRITICAL",
-            "message": "Accidente reportado en sucursal.",
-            "escalationChain": [
-                {
-                    "level": 1,
-                    "triggerAfterMinutes": 0,
-                    "notifyRoles": [
-                        "GERENTE",
-                        "OWNER",
-                        "LEGAL"
-                    ],
-                    "channel": "whatsapp",
-                    "message": "🚑 ALERTA: Accidente de cliente reportado. Revisar detalles inmediatamente."
-                }
-            ]
-        },
-        {
-            "id": "rule_seguimiento",
-            "condition": "steps.requiere_seguimiento.value == 'yes'",
-            "severity": "HIGH",
-            "message": "Incidente requiere seguimiento post-servicio.",
-            "actions": [
-                {
-                    "type": "CREATE_TICKET",
-                    "priority": "HIGH",
-                    "assignTo": "GERENTE_GENERAL",
-                    "description": "Seguimiento a incidente con cliente"
-                }
-            ]
+          "id": "rule-gerente-no-notificado",
+          "condition": "gerente_notificado == false && severidad IN ['Alta', 'Crítica']",
+          "severity": "CRITICAL",
+          "message": "BLOCKED: Es obligatorio notificar al gerente para incidentes de severidad Alta o Crítica",
+          "actions": [
+            {
+              "type": "BLOCK"
+            }
+          ]
         }
-    ],
-    "completionActions": [
-        {
-            "type": "SEND_NOTIFICATION",
-            "target": [
-                "GERENTE"
-            ],
-            "channel": "email",
-            "message": "⚠️ Nuevo reporte de incidente generado"
-        }
-    ]
+      ]
+    },
+    {
+      "id": "paso-10",
+      "type": "YesNo",
+      "titulo": "¿Reporte completado?",
+      "obligatorio": true
+    }
+  ]
 }

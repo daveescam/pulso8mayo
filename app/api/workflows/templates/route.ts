@@ -63,25 +63,30 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const body = await request.json();
-        const { name, description, category, steps } = body;
+    const body = await request.json();
+    const { name, description, category, steps, aiConfig, complianceConfig, completionActions, tags, duracionEstimada } = body;
 
-        if (!name || !category) {
-            return NextResponse.json(
-                { error: 'Name and category are required' },
-                { status: 400 }
-            );
-        }
+    if (!name || !category) {
+      return NextResponse.json(
+        { error: 'Name and category are required' },
+        { status: 400 }
+      );
+    }
 
-        const newTemplate = await db.insert(workflowTemplates).values({
-            name,
-            description: description || '',
-            category: category.toUpperCase(),
-            steps: steps || [],
-            companyId: session.user.companyId,
-            createdAt: new Date(),
-            updatedAt: new Date()
-        }).returning();
+    const newTemplate = await db.insert(workflowTemplates).values({
+      name,
+      description: description || '',
+      category: category.toUpperCase(),
+      steps: steps || [],
+      companyId: session.user.companyId,
+      aiConfig: aiConfig || null,
+      complianceConfig: complianceConfig || null,
+      completionActions: completionActions || [],
+      tags: tags || [],
+      duracionEstimada: duracionEstimada || null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }).returning();
 
         return NextResponse.json({
             data: newTemplate[0],

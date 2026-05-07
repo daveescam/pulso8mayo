@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { serviceProviders } from "@/lib/db/schema";
-import { eq, and, asc } from "drizzle-orm";
 import { requireTenant, requireAuth } from "@/lib/tenant-context";
 import { ApiHandler } from "@/lib/api/response";
 

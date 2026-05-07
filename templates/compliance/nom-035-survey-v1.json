@@ -1,88 +1,189 @@
 {
-    "id": "nom-035-survey-v1",
-    "nombre": "Cuestionario NOM-035 - Acontecimientos Traumáticos Severos",
-    "descripcion": "Cuestionario para identificar a los trabajadores que fueron sujetos a acontecimientos traumáticos severos durante o con motivo del trabajo.",
-    "tipo": "COMPLIANCE",
-    "categoria": "COMPLIANCE",
-    "version": 1,
-    "activo": true,
-    "requiereIA": false,
-    "duracionEstimada": "5 min",
-    "cumplimientoNormativo": [
-        "NOM-035-STPS-2018"
-    ],
-    "tags": [
-        "nom-035",
-        "psicosocial",
-        "seguridad"
-    ],
-    "complianceConfig": {
-        "complianceType": "NOM-035",
-        "regulationSection": "7.1 (Identificación de acontecimientos traumáticos)",
-        "requiredFrequency": "annual",
-        "auditable": true,
-        "evidenceRequired": false,
-        "criticalForCompliance": true
+  "id": "tpl-nom-035-survey-v1",
+  "nombre": "📋 NOM-035 Encuesta de Clima Laboral",
+  "descripcion": "Encuesta anónima NOM-035 para evaluar entorno organizacional, violencia laboral y equilibrio vida-trabajo",
+  "categoria": "COMPLIANCE",
+  "version": 1,
+  "activo": true,
+  "requiereIA": false,
+  "duracionEstimada": "15-25 min",
+  "complianceConfig": {
+    "complianceType": "NOM-035-STPS-2018",
+    "regulationSection": "NOM-035-STPS-2018",
+    "requiredFrequency": "annual/biannual",
+    "auditable": true,
+    "evidenceRequired": true,
+    "criticalForCompliance": true
+  },
+  "cumplimientoNormativo": [
+    {
+      "norma": "NOM-035-STPS-2018",
+      "seccion": "General",
+      "descripcion": "Prácticas para identificar, analizar y prevenir los factores de riesgo psicosocial en el trabajo"
+    }
+  ],
+  "tags": ["NOM-035", "clima-laboral", "psicosocial", "encuesta", "violencia-laboral", "compliance", "anónimo"],
+  "aiConfig": {
+    "provider": null,
+    "fallbackProvider": null,
+    "maxRetries": 0
+  },
+  "escalationChain": [
+    {
+      "level": 1,
+      "role": "RH",
+      "channel": "internal",
+      "timeout": "24h"
+    }
+  ],
+  "completionActions": [
+    {
+      "type": "CALCULATE_SCORE",
+      "message": "Calcular puntaje global de la encuesta NOM-035"
     },
-    "pasos": [
+    {
+      "type": "GENERATE_ANONYMOUS_REPORT",
+      "condition": "always",
+      "message": "Generar reporte anónimo de resultados de encuesta"
+    },
+    {
+      "type": "SEND_NOTIFICATION",
+      "target": "RH",
+      "channel": "internal",
+      "condition": "critical_score",
+      "message": "Alerta: Se detectaron factores de riesgo psicosocial críticos en encuesta NOM-035"
+    },
+    {
+      "type": "GENERATE_PDF_REPORT",
+      "message": "Generar reporte PDF de resultados de encuesta NOM-035"
+    }
+  ],
+  "pasos": [
+    {
+      "id": "paso-1",
+      "type": "instruction",
+      "titulo": "Instrucciones y Consentimiento",
+      "descripcion": "Esta encuesta es completamente anónima y confidencial conforme a la NOM-035-STPS-2018. Sus respuestas serán utilizadas únicamente para evaluar el entorno organizacional y mejorar las condiciones de trabajo. No se almacenarán datos personales que puedan identificarle. La participación es voluntaria pero altamente valorada. Sus respuestas están protegidas bajo la Ley Federal de Protección de Datos Personales."
+    },
+    {
+      "id": "paso-2",
+      "type": "TextField",
+      "titulo": "ID Anónimo de Empleado",
+      "obligatorio": true,
+      "placeholder": "Use cualquier código de 6 caracteres"
+    },
+    {
+      "id": "paso-3",
+      "type": "Select",
+      "titulo": "Entorno Organizacional - ¿Se siente respetado en su trabajo?",
+      "obligatorio": true,
+      "options": ["1 - Nunca", "2 - Raramente", "3 - A veces", "4 - Frecuentemente", "5 - Siempre"]
+    },
+    {
+      "id": "paso-4",
+      "type": "Select",
+      "titulo": "Condiciones de Trabajo - ¿Su espacio de trabajo es adecuado?",
+      "obligatorio": true,
+      "options": ["1 - Nunca", "2 - Raramente", "3 - A veces", "4 - Frecuentemente", "5 - Siempre"]
+    },
+    {
+      "id": "paso-5",
+      "type": "Select",
+      "titulo": "Violencia Laboral - ¿Ha experimentado violencia en el trabajo?",
+      "obligatorio": true,
+      "options": ["1 - Nunca", "2 - Raramente", "3 - A veces", "4 - Frecuentemente", "5 - Siempre"],
+      "logicRules": [
         {
-            "id": "step_intro",
-            "type": "ParagraphField",
-            "title": "Instrucciones",
-            "description": "Responda con sinceridad. Este cuestionario busca identificar si ha presenciado o sufrido acontecimientos traumáticos severos con motivo del trabajo.",
-            "required": true,
-            "text": "Presione Siguiente para comenzar."
-        },
-        {
-            "id": "step_1_witness",
-            "type": "YesNo",
-            "title": "I. Acontecimientos traumáticos",
-            "description": "¿Ha presenciado o sufrido algún acto de violencia, secuestro, amenaza, o accidente grave en el trabajo?",
-            "required": true,
-            "branches": [
-                {
-                    "condition": "value == false",
-                    "targetStepId": "step_3_dreams"
-                }
-            ]
-        },
-        {
-            "id": "step_2_memories",
-            "type": "YesNo",
-            "title": "II. Recuerdos persistentes",
-            "description": "¿Tiene recuerdos recurrentes sobre el acontecimiento que le provocan malestares?",
-            "required": true
-        },
-        {
-            "id": "step_3_dreams",
-            "type": "YesNo",
-            "title": "Sueños recurrentes",
-            "description": "¿Tiene sueños de carácter repetitivo sobre el acontecimiento, que le producen malestar?",
-            "required": true
-        },
-        {
-            "id": "step_4_avoidance",
-            "type": "YesNo",
-            "title": "III. Esfuerzo por evitar circunstancias",
-            "description": "¿Se esfuerza por evitar pensamientos o sentimientos asociados al acontecimiento?",
-            "required": true
-        },
-        {
-            "id": "step_5_interest",
-            "type": "YesNo",
-            "title": "IV. Afectación",
-            "description": "¿Ha disminuido su interés por actividades que antes le gustaban o se siente alejado de los demás?",
-            "required": true
+          "id": "lr-violencia-laboral-critica",
+          "condition": "value == '5 - Siempre'",
+          "severity": "CRITICAL",
+          "message": "Se detectó indicador de violencia laboral severa. Se generará alerta anónima a Recursos Humanos para intervención inmediata conforme a NOM-035.",
+          "actions": ["NOTIFY_RH_ANONYMOUS"],
+          "escalationChain": [
+            {
+              "role": "RH",
+              "channel": "internal",
+              "timeout": "0min"
+            }
+          ]
         }
-    ],
-    "completionActions": [
+      ]
+    },
+    {
+      "id": "paso-6",
+      "type": "Select",
+      "titulo": "Carga de Trabajo - ¿Su carga de trabajo es manejable?",
+      "obligatorio": true,
+      "options": ["1 - Nunca", "2 - Raramente", "3 - A veces", "4 - Frecuentemente", "5 - Siempre"]
+    },
+    {
+      "id": "paso-7",
+      "type": "Select",
+      "titulo": "Liderazgo - ¿Su supervisor apoya su desarrollo?",
+      "obligatorio": true,
+      "options": ["1 - Nunca", "2 - Raramente", "3 - A veces", "4 - Frecuentemente", "5 - Siempre"]
+    },
+    {
+      "id": "paso-8",
+      "type": "Select",
+      "titulo": "Desarrollo Profesional - ¿Tiene oportunidades de crecimiento?",
+      "obligatorio": true,
+      "options": ["1 - Nunca", "2 - Raramente", "3 - A veces", "4 - Frecuentemente", "5 - Siempre"]
+    },
+    {
+      "id": "paso-9",
+      "type": "Select",
+      "titulo": "Equilibrio Vida-Trabajo - ¿Puede balancear trabajo y vida personal?",
+      "obligatorio": true,
+      "options": ["1 - Nunca", "2 - Raramente", "3 - A veces", "4 - Frecuentemente", "5 - Siempre"]
+    },
+    {
+      "id": "paso-10",
+      "type": "Select",
+      "titulo": "Comunicación - ¿Se siente informado sobre decisiones importantes?",
+      "obligatorio": true,
+      "options": ["1 - Nunca", "2 - Raramente", "3 - A veces", "4 - Frecuentemente", "5 - Siempre"]
+    },
+    {
+      "id": "paso-11",
+      "type": "Select",
+      "titulo": "Reconocimiento - ¿Su trabajo es valorado?",
+      "obligatorio": true,
+      "options": ["1 - Nunca", "2 - Raramente", "3 - A veces", "4 - Frecuentemente", "5 - Siempre"]
+    },
+    {
+      "id": "paso-12",
+      "type": "Select",
+      "titulo": "Seguridad Psicológica - ¿Se siente seguro para expresar opiniones?",
+      "obligatorio": true,
+      "options": ["1 - Nunca", "2 - Raramente", "3 - A veces", "4 - Frecuentemente", "5 - Siempre"]
+    },
+    {
+      "id": "paso-13",
+      "type": "Textarea",
+      "titulo": "Comentarios Adicionales",
+      "obligatorio": false
+    },
+    {
+      "id": "paso-14",
+      "type": "instruction",
+      "titulo": "Sus respuestas han sido registradas de forma anónima",
+      "descripcion": "Gracias por su participación. Sus respuestas han sido registradas de forma completamente anónima y serán utilizadas para mejorar las condiciones de trabajo en la organización. Si requiere apoyo adicional, puede contactar a Recursos Humanos de manera confidencial."
+    },
+    {
+      "id": "paso-15",
+      "type": "YesNo",
+      "titulo": "¿Confirmar envío de encuesta?",
+      "obligatorio": true,
+      "logicRules": [
         {
-            "type": "GENERATE_PDF_REPORT",
-            "template": "nom_035_individual_report",
-            "includePhotos": false,
-            "sendTo": [
-                "RRHH"
-            ]
+          "id": "lr-puntaje-bajo",
+          "condition": "overall_score < 2.5",
+          "severity": "WARNING",
+          "message": "Puntaje global bajo detectado. Se generará un plan de acción para abordar los factores de riesgo psicosocial identificados conforme a NOM-035.",
+          "actions": ["GENERATE_ACTION_PLAN"]
         }
-    ]
+      ]
+    }
+  ]
 }

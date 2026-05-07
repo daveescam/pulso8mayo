@@ -40,13 +40,13 @@ export async function checkOverdueAssignments() {
         await NotificationDispatcher.sendNotification({
           userId: assignment.assignedTo,
           title: '⚠️ Tarea Vencida',
-          message: `Tarea VENCIDA: ${assignment.workflowTemplateId || 'Workflow'}`,
+          message: `Tarea VENCIDA: ${(assignment as any).workflowTemplateId || 'Workflow'}`,
           type: 'error',
           eventType: 'workflow_overdue',
           actionUrl: `/dashboard/workflows/${assignment.id}`,
           actionLabel: 'Completar Urgente',
           metadata: {
-            workflowName: assignment.workflowTemplateId || 'Workflow',
+            workflowName: (assignment as any).workflowTemplateId || 'Workflow',
             overdueTime: assignment.dueDate
               ? `desde ${new Date(assignment.dueDate).toLocaleDateString('es-MX')}`
               : 'hace poco',

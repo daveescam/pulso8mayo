@@ -1,327 +1,210 @@
 {
-  "id": "tpl-inspeccion-incendios-v1",
-  "nombre": "🔥 Inspección de Sistema Contra Incendios",
-  "descripcion": "Verificación y mantenimiento del sistema de detección y supresión de incendios conforme a normativa NOM-002-STPS-2010 y NOM-004-SSA3-2012.",
-  "tipo": "COMPLIANCE",
-  "categoria": "SEGURIDAD",
+  "id": "tpl-inspeccion-sistema-incendios-v1",
+  "nombre": "🧯 Inspección Sistema Contra Incendios",
+  "descripcion": "Inspección completa del sistema contra incendios con OCR de fechas de extintores y verificación AI de rutas de evacuación",
+  "categoria": "COMPLIANCE",
   "version": 1,
   "activo": true,
-  "requiereIA": false,
-  "duracionEstimada": "30-45 min",
-  "cumplimientoNormativo": [
-    "NOM-002-STPS-2010",
-    "NOM-004-SSA3-2012"
-  ],
-  "tags": [
-    "incendios",
-    "seguridad",
-    "prevencion",
-    "extintores",
-    "alarmas",
-    "normativa"
-  ],
+  "requiereIA": true,
+  "duracionEstimada": "15-20 min",
   "complianceConfig": {
     "complianceType": "NOM-002-STPS",
-    "regulationSection": "Sistema contra incendios",
-    "requiredFrequency": "quarterly",
+    "regulationSection": "NOM-002-STPS",
+    "requiredFrequency": "monthly/quarterly",
     "auditable": true,
     "evidenceRequired": true,
     "criticalForCompliance": true
   },
-  "pasos": [
+  "cumplimientoNormativo": [
     {
-      "id": "intro",
-      "type": "text",
-      "title": "Inspección de Sistema Contra Incendios",
-      "description": "Verifique el estado de todos los equipos contra incendios. Esta inspección debe realizarla personal certificado o bajo supervisión del responsable de seguridad.",
-      "readOnly": true
-    },
-    {
-      "id": "fecha_inspeccion",
-      "type": "date",
-      "title": "Fecha de Inspección",
-      "required": true
-    },
-    {
-      "id": "inspector_nombre",
-      "type": "text",
-      "title": "Nombre del Inspector",
-      "required": true
-    },
-    {
-      "id": "inspector_cargo",
-      "type": "text",
-      "title": "Cargo del Inspector",
-      "required": true,
-      "placeholder": "Ej. Responsable de Seguridad, Gerente, etc."
-    },
-    {
-      "id": "extintores_seccion",
-      "type": "section",
-      "title": "1. Extintores",
-      "description": "Verificación de extintores portátiles"
-    },
-    {
-      "id": "numero_extintores",
-      "type": "number",
-      "title": "Número de Extintores en el Local",
-      "required": true,
-      "validation": {
-        "min": 0
-      }
-    },
-    {
-      "id": "extintores_checklist",
-      "type": "checklist",
-      "title": "Verificación de Extintores",
-      "description": "Marque los puntos verificados",
-      "required": true,
-      "options": [
-        "Ubicación accesible y visible",
-        "Señalización clara y visible",
-        "Cilindro sin golpes ni corrosión",
-        "Manómetro en rango verde (cargado)",
-        "Precinto de seguridad intacto",
-        "Etiqueta de recarga vigente",
-        "Manguera sin daños",
-        "Boquilla/salvador sin obstrucciones",
-        "Soporte de pared seguro"
-      ]
-    },
-    {
-      "id": "foto_extintores",
-      "type": "photo",
-      "title": "Foto de Extintores",
-      "description": "Fotografía de los extintores principales y su ubicación",
-      "required": true,
-      "allowMultiple": true
-    },
-    {
-      "id": "extintores_vencidos",
-      "type": "number",
-      "title": "Extintores con Recarga Vencida",
-      "description": "Número de extintores que requieren recarga",
-      "validation": {
-        "min": 0
-      }
-    },
-    {
-      "id": "sistema_deteccion_seccion",
-      "type": "section",
-      "title": "2. Sistema de Detección",
-      "description": "Verificación de detectores de humo y calor"
-    },
-    {
-      "id": "detectores_checklist",
-      "type": "checklist",
-      "title": "Verificación de Detectores",
-      "options": [
-        "Detectores instalados en todas las áreas requeridas",
-        "Luz indicadora funcional (roja/verde)",
-        "Sin señal de batería baja",
-        "Libres de polvo y suciedad",
-        "Sin pintura ni obstrucciones",
-        "Fecha de última revisión visible"
-      ]
-    },
-    {
-      "id": "alarma_incendios",
-      "type": "yes_no",
-      "title": "¿Cuenta con alarma contra incendios?",
-      "required": true
-    },
-    {
-      "id": "alarma_funcionando",
-      "type": "yes_no",
-      "title": "¿La alarma está funcionando correctamente?",
-      "conditionalLogic": {
-        "dependentOn": "alarma_incendios",
-        "value": "yes"
-      }
-    },
-    {
-      "id": "foto_detectores",
-      "type": "photo",
-      "title": "Foto de Detectores/Alarmas",
-      "conditionalLogic": {
-        "dependentOn": "alarma_incendios",
-        "value": "yes"
-      }
-    },
-    {
-      "id": "salidas_emergencia_seccion",
-      "type": "section",
-      "title": "3. Salidas de Emergencia",
-      "description": "Verificación de rutas de evacuación"
-    },
-    {
-      "id": "salidas_checklist",
-      "type": "checklist",
-      "title": "Verificación de Salidas",
-      "options": [
-        "Señalización de salidas iluminada y funcionando",
-        "Puertas de emergencia desobstruidas",
-        "Barra antipánico operativa",
-        "Ruta de evacuación despejada",
-        "Señalética direccional visible",
-        "Iluminación de emergencia funcional"
-      ]
-    },
-    {
-      "id": "foto_salidas",
-      "type": "photo",
-      "title": "Foto de Salidas de Emergencia",
-      "required": true
-    },
-    {
-      "id": "sistema_hidrante_seccion",
-      "type": "section",
-      "title": "4. Sistema de Hidrantes (si aplica)",
-      "description": "Verificación de hidrantes y gabinetes"
-    },
-    {
-      "id": "tiene_hidrantes",
-      "type": "yes_no",
-      "title": "¿El local cuenta con sistema de hidrantes?",
-      "required": true
-    },
-    {
-      "id": "hidrantes_checklist",
-      "type": "checklist",
-      "title": "Verificación de Hidrantes",
-      "conditionalLogic": {
-        "dependentOn": "tiene_hidrantes",
-        "value": "yes"
-      },
-      "options": [
-        "Gabinete accesible y señalizado",
-        "Manguera sin daños ni fugas",
-        "Boquilla completa y operativa",
-        "Llave de paso funcional",
-        "Presión adecuada"
-      ]
-    },
-    {
-      "id": "foto_hidrantes",
-      "type": "photo",
-      "title": "Foto de Hidrantes",
-      "conditionalLogic": {
-        "dependentOn": "tiene_hidrantes",
-        "value": "yes"
-      }
-    },
-    {
-      "id": "anomalias_detectadas",
-      "type": "yes_no",
-      "title": "¿Se detectaron anomalías que requieren atención?",
-      "description": "Extintores vencidos, detectores sin funcionar, obstrucciones, etc.",
-      "required": true
-    },
-    {
-      "id": "detalle_anomalias",
-      "type": "textarea",
-      "title": "Detalle de Anomalías",
-      "description": "Describa cada anomalía encontrada y su ubicación",
-      "conditionalLogic": {
-        "dependentOn": "anomalias_detectadas",
-        "value": "yes"
-      },
-      "required": true
-    },
-    {
-      "id": "foto_anomalias",
-      "type": "photo",
-      "title": "Fotos de Anomalías",
-      "description": "Documente las anomalías encontradas",
-      "conditionalLogic": {
-        "dependentOn": "anomalias_detectadas",
-        "value": "yes"
-      },
-      "allowMultiple": true
-    },
-    {
-      "id": "accion_correctiva",
-      "type": "textarea",
-      "title": "Acción Correctiva Requerida",
-      "conditionalLogic": {
-        "dependentOn": "anomalias_detectadas",
-        "value": "yes"
-      },
-      "required": true
-    },
-    {
-      "id": "fecha_seguimiento",
-      "type": "date",
-      "title": "Fecha de Seguimiento",
-      "description": "Fecha para verificar que se atendieron las anomalías",
-      "conditionalLogic": {
-        "dependentOn": "anomalias_detectadas",
-        "value": "yes"
-      },
-      "required": true
-    },
-    {
-      "id": "observaciones",
-      "type": "textarea",
-      "title": "Observaciones Generales",
-      "placeholder": "Comentarios adicionales sobre la inspección..."
-    },
-    {
-      "id": "firma_inspector",
-      "type": "SignatureField",
-      "title": "Firma del Inspector",
-      "required": true
-    },
-    {
-      "id": "firma_gerente",
-      "type": "SignatureField",
-      "title": "Firma del Gerente/Responsable",
-      "required": true
+      "norma": "NOM-002-STPS",
+      "seccion": "General",
+      "descripcion": "Condiciones de seguridad - prevención y protección contra incendios en los centros de trabajo"
     }
   ],
-  "logicRules": [
+  "tags": ["incendios", "extintores", "evacuación", "NOM-002", "seguridad", "compliance", "AI", "OCR"],
+  "aiConfig": {
+    "provider": "moondream",
+    "fallbackProvider": "openai",
+    "maxRetries": 2
+  },
+  "escalationChain": [
     {
-      "id": "rule_anomalias_criticas",
-      "condition": "steps.anomalias_detectadas.value == 'yes'",
-      "severity": "HIGH",
-      "message": "Se detectaron anomalías en el sistema contra incendios que requieren atención inmediata.",
-      "escalationChain": [
-        {
-          "level": 1,
-          "triggerAfterMinutes": 0,
-          "notifyRoles": [
-            "GERENTE",
-            "OWNER"
-          ],
-          "channel": "whatsapp",
-          "message": "⚠️ Anomalías detectadas en sistema contra incendios. Revisar reporte de inmediato."
-        }
-      ],
-      "actions": [
-        {
-          "type": "CREATE_FOLLOW_UP",
-          "priority": "HIGH",
-          "dueDate": "48_hours"
-        }
-      ]
+      "level": 1,
+      "role": "Gerente",
+      "channel": "whatsapp",
+      "timeout": "0min"
+    },
+    {
+      "level": 2,
+      "role": "Owner",
+      "channel": "whatsapp",
+      "timeout": "24h"
+    },
+    {
+      "level": 3,
+      "role": "Autoridad",
+      "channel": "official",
+      "timeout": "persistent"
     }
   ],
   "completionActions": [
     {
       "type": "SEND_NOTIFICATION",
-      "target": [
-        "GERENTE"
-      ],
-      "channel": "email",
-      "message": "✅ Inspección de sistema contra incendios completada"
+      "target": "GERENTE",
+      "channel": "whatsapp",
+      "message": "Inspección de sistema contra incendios completada"
     },
     {
       "type": "GENERATE_PDF_REPORT",
-      "template": "inspeccion_incendios_v1",
-      "includePhotos": true,
-      "sendTo": [
-        "GERENTE"
+      "message": "Generar reporte PDF de inspección de sistema contra incendios"
+    },
+    {
+      "type": "CREATE_MAINTENANCE_TICKET",
+      "condition": "issues_found",
+      "message": "Crear ticket de mantenimiento para problemas detectados en sistema contra incendios"
+    }
+  ],
+  "pasos": [
+    {
+      "id": "paso-1",
+      "type": "TextField",
+      "titulo": "Ubicación de Extintores",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-2",
+      "type": "PhotoField",
+      "titulo": "Fecha de Vigencia de Extintores (OCR)",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Realizar OCR de la etiqueta del extintor para extraer la fecha de vigencia. Verificar que la fecha no esté vencida y que el extintor esté vigente conforme a NOM-002-STPS.",
+        "threshold": 0.7,
+        "expectedConditions": [
+          "Etiqueta del extintor legible con fecha de vigencia visible",
+          "Fecha de vigencia vigente (no vencida)",
+          "Extintor con sello de inspección intacto"
+        ]
+      },
+      "logicRules": [
+        {
+          "id": "lr-extintor-vencido",
+          "condition": "expiry_date < today",
+          "severity": "CRITICAL",
+          "message": "Extintor VENCIDO detectado. Reemplazo urgente requerido inmediatamente según NOM-002-STPS.",
+          "actions": ["CREATE_MAINTENANCE_TICKET", "BLOCK"],
+          "escalationChain": [
+            {
+              "role": "Gerente",
+              "channel": "whatsapp",
+              "timeout": "0min"
+            }
+          ]
+        }
       ]
+    },
+    {
+      "id": "paso-3",
+      "type": "PhotoField",
+      "titulo": "Señalización de Incendios",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar que la señalización de incendios está visible, en buen estado, correctamente colocada y conforme a las normas de seguridad contra incendios.",
+        "threshold": 0.8,
+        "expectedConditions": [
+          "Señales de incendio visibles y legibles",
+          "Señalización colocada en posición correcta y altura adecuada",
+          "Señales en buen estado sin deterioro"
+        ]
+      }
+    },
+    {
+      "id": "paso-4",
+      "type": "PhotoField",
+      "titulo": "Rutas de Evacuación",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar que las rutas de evacuación están libres de obstrucciones, la señalización de salida es visible, y no hay objetos bloqueando el paso conforme a NOM-002-STPS.",
+        "threshold": 0.85,
+        "expectedConditions": [
+          "Rutas de evacuación despejadas sin obstrucciones",
+          "Señalización de salida visible y legible",
+          "Piso sin obstáculos que impidan la evacuación"
+        ]
+      },
+      "logicRules": [
+        {
+          "id": "lr-ruta-bloqueada",
+          "condition": "ai_verification_failed",
+          "severity": "HIGH",
+          "message": "Ruta de evacuación bloqueada u obstruida. Se requiere remediación inmediata.",
+          "actions": ["BLOCK"],
+          "remediationProtocol": "Despejar inmediatamente la ruta de evacuación y tomar nueva fotografía para verificación",
+          "escalationChain": [
+            {
+              "role": "Gerente",
+              "channel": "whatsapp",
+              "timeout": "0min"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paso-5",
+      "type": "YesNo",
+      "titulo": "Luces de Emergencia Funcionando",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-6",
+      "type": "YesNo",
+      "titulo": "Sistema de Rociadores Operativo",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-7",
+      "type": "YesNo",
+      "titulo": "Alarma de Incendio Funcionando",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-8",
+      "type": "Select",
+      "titulo": "Simulacro Vigente",
+      "obligatorio": true,
+      "options": ["Sí - menos de 6 meses", "Sí - 6-12 meses", "No - más de 12 meses", "Nunca"],
+      "logicRules": [
+        {
+          "id": "lr-simulacro-nunca",
+          "condition": "value == 'Nunca' || value == 'No - más de 12 meses'",
+          "severity": "HIGH",
+          "message": "Simulacro de evacuación no vigente. Se debe programar un simulacro inmediatamente según NOM-002-STPS.",
+          "actions": ["CREATE_MAINTENANCE_TICKET"],
+          "escalationChain": [
+            {
+              "role": "Gerente",
+              "channel": "whatsapp",
+              "timeout": "0min"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paso-9",
+      "type": "TextField",
+      "titulo": "Acciones Correctivas",
+      "obligatorio": false
+    },
+    {
+      "id": "paso-10",
+      "type": "YesNo",
+      "titulo": "¿Inspección completada?",
+      "obligatorio": true
     }
   ]
 }

@@ -1,170 +1,162 @@
 {
-    "id": "tpl-mantenimiento-equipos-v2",
-    "nombre": "🛠️ Mantenimiento Preventivo de Equipos",
-    "descripcion": "Lista de verificación mensual para el mantenimiento preventivo y correctivo de equipos de cocina y refrigeración.",
-    "tipo": "MANTENIMIENTO",
-    "categoria": "OPERACIONES",
-    "version": 2,
-    "activo": true,
-    "requiereIA": true,
-    "duracionEstimada": "30-45 min",
-    "cumplimientoNormativo": [
-        "NOM-251"
-    ],
-    "tags": [
-        "mantenimiento",
-        "equipos",
-        "refrigeracion",
-        "cocina"
-    ],
-    "aiConfig": {
-        "provider": "moondream",
-        "fallbackProvider": "openai",
-        "maxRetries": 2
+  "id": "tpl-mantenimiento-equipos-v2",
+  "nombre": "🔧 Mantenimiento de Equipos V2",
+  "descripcion": "Workflow de verificación y mantenimiento de equipos de cocina con verificación AI y generación de tickets de mantenimiento",
+  "categoria": "OPERACIONES_DIARIAS",
+  "version": 2,
+  "activo": true,
+  "requiereIA": true,
+  "duracionEstimada": "15-20 min",
+  "cumplimientoNormativo": [
+    {
+      "norma": "NOM-251",
+      "seccion": "5.4",
+      "descripcion": "Mantenimiento indirecto de equipos para cumplimiento sanitario"
+    }
+  ],
+  "complianceConfig": {
+    "complianceType": "NOM-251",
+    "regulationSection": "5.4",
+    "requiredFrequency": "daily/weekly",
+    "auditable": true,
+    "evidenceRequired": true,
+    "criticalForCompliance": false
+  },
+  "tags": ["mantenimiento", "equipos", "cocina", "NOM-251", "AI", "tickets"],
+  "aiConfig": {
+    "provider": "moondream",
+    "fallbackProvider": "openai",
+    "maxRetries": 2
+  },
+  "escalationChain": [
+    {
+      "level": 1,
+      "role": "Técnico",
+      "channel": "whatsapp",
+      "timeout": "0min"
     },
-    "complianceConfig": {
-        "complianceType": "NOM-251",
-        "regulationSection": "5.6 Mantenimiento de equipo",
-        "requiredFrequency": "monthly",
-        "auditable": true,
-        "evidenceRequired": true,
-        "criticalForCompliance": true
+    {
+      "level": 2,
+      "role": "Gerente",
+      "channel": "whatsapp",
+      "timeout": "30min"
+    }
+  ],
+  "completionActions": [
+    {
+      "type": "SEND_NOTIFICATION",
+      "target": "GERENTE",
+      "channel": "whatsapp",
+      "message": "Revisión de mantenimiento de equipos completada"
     },
-    "pasos": [
+    {
+      "type": "CREATE_MAINTENANCE_TICKET",
+      "condition": "issues_detected",
+      "priority": "URGENT",
+      "descripcion": "Se detectaron problemas en equipos que requieren atención de mantenimiento"
+    }
+  ],
+  "pasos": [
+    {
+      "id": "paso-1",
+      "type": "instruction",
+      "titulo": "Checklist de Equipos de Cocina",
+      "descripcion": "Verifique el estado de cada equipo de cocina. Tome fotos de los equipos principales y reporte cualquier problema detectado."
+    },
+    {
+      "id": "paso-2",
+      "type": "PhotoField",
+      "titulo": "Estufa/Hornos",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar limpieza, estado operativo y sin daños visibles en estufas y hornos",
+        "threshold": 0.75,
+        "expectedConditions": ["limpieza_adecuada", "estado_operativo", "sin_danos"]
+      }
+    },
+    {
+      "id": "paso-3",
+      "type": "PhotoField",
+      "titulo": "Freidoras",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar nivel de aceite, limpieza y estado operativo de las freidoras",
+        "threshold": 0.75,
+        "expectedConditions": ["nivel_aceite_adecuado", "limpieza_adecuada", "estado_operativo"]
+      }
+    },
+    {
+      "id": "paso-4",
+      "type": "YesNo",
+      "titulo": "Microondas Funcionando",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-5",
+      "type": "YesNo",
+      "titulo": "Licuadoras/Batidoras Funcionando",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-6",
+      "type": "YesNo",
+      "titulo": "Cafetera Funcionando",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-7",
+      "type": "YesNo",
+      "titulo": "Hielera Funcionando",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-8",
+      "type": "YesNo",
+      "titulo": "Lavavajillas Funcionando",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-9",
+      "type": "NumberField",
+      "titulo": "Temperatura de Operación (°C)",
+      "obligatorio": true,
+      "validation": {
+        "min": -20,
+        "max": 300
+      }
+    },
+    {
+      "id": "paso-10",
+      "type": "TextField",
+      "titulo": "Problemas Detectados",
+      "obligatorio": false
+    },
+    {
+      "id": "paso-11",
+      "type": "TextField",
+      "titulo": "Acciones Tomadas",
+      "obligatorio": false
+    },
+    {
+      "id": "paso-12",
+      "type": "YesNo",
+      "titulo": "¿Equipos en buen estado?",
+      "obligatorio": true,
+      "logicRules": [
         {
-            "id": "intro",
-            "type": "text",
-            "title": "Instrucciones de Mantenimiento",
-            "description": "Realice la inspección detallada de los siguientes equipos. Reporte cualquier anomalía inmediata.",
-            "readOnly": true
-        },
-        {
-            "id": "eq_refrigeracion",
-            "type": "checklist",
-            "title": "Equipos de Refrigeración",
-            "description": "Verifique el estado de todos los refrigeradores y congeladores.",
-            "required": true,
-            "options": [
-                "Limpieza de condensadores (libre de polvo)",
-                "Verificación de empaques de puertas (herméticos)",
-                "Revisión de temperaturas (rango 0-4°C)",
-                "Desagües libres de obstrucciones",
-                "Iluminación interna funcional"
-            ],
-            "validation": {
-                "message": "Debe verificar todos los puntos críticos de refrigeración."
-            }
-        },
-        {
-            "id": "foto_condensadores",
-            "type": "photo",
-            "title": "Evidencia: Condensadores Limpios",
-            "description": "Tome una foto clara de los condensadores o rejillas de ventilación traseras.",
-            "required": true,
-            "aiVerification": {
-                "enabled": true,
-                "prompt": "Verifica que las rejillas de ventilación o el condensador estén libres de polvo excesivo y suciedad.",
-                "threshold": 0.75,
-                "expectedConditions": [
-                    "clean_vents",
-                    "no_dust_accumulation"
-                ]
-            }
-        },
-        {
-            "id": "eq_coccion",
-            "type": "checklist",
-            "title": "Equipos de Cocción (Estufas/Hornos)",
-            "required": true,
-            "options": [
-                "Limpieza de quemadores (flama azul)",
-                "Verificación de pilotos encendidos",
-                "Revisión de fugas de gas (agua jabonosa)",
-                "Calibración de termostatos",
-                "Engrasado de bisagras de hornos"
-            ]
-        },
-        {
-            "id": "falla_detectada",
-            "type": "yes_no",
-            "title": "¿Se detectó alguna falla crítica o riesgo?",
-            "description": "Fugas de gas, cables expuestos, temperaturas fuera de rango no corregibles.",
-            "required": true
-        },
-        {
-            "id": "descripcion_falla",
-            "type": "text",
-            "title": "Descripción de la Falla",
-            "description": "Detalle la falla encontrada y el equipo afectado.",
-            "required": true,
-            "conditionalLogic": {
-                "dependentOn": "falla_detectada",
-                "value": "yes"
-            },
-            "validation": {
-                "message": "Es obligatorio describir la falla si indicó que existe una."
-            }
-        },
-        {
-            "id": "foto_falla",
-            "type": "photo",
-            "title": "Evidencia de la Falla",
-            "required": true,
-            "conditionalLogic": {
-                "dependentOn": "falla_detectada",
-                "value": "yes"
-            }
-        },
-        {
-            "id": "firma_tecnico",
-            "type": "SignatureField",
-            "title": "Firma del Técnico/Responsable",
-            "required": true
+          "id": "rule-equipos-mal-estado",
+          "condition": "value == 'no'",
+          "severity": "HIGH",
+          "message": "Se detectaron equipos en mal estado. Se creará ticket de mantenimiento urgente.",
+          "actions": ["CREATE_MAINTENANCE_TICKET", "BLOCK"],
+          "maintenanceTicket": {
+            "priority": "URGENT",
+            "descripcion": "Equipos de cocina requieren mantenimiento inmediato"
+          }
         }
-    ],
-    "logicRules": [
-        {
-            "id": "rule_falla_critica",
-            "condition": "steps.falla_detectada.value == 'yes'",
-            "severity": "HIGH",
-            "message": "Falla crítica detectada en equipos durante mantenimiento.",
-            "escalationChain": [
-                {
-                    "level": 1,
-                    "triggerAfterMinutes": 0,
-                    "notifyRoles": [
-                        "GERENTE",
-                        "OWNER"
-                    ],
-                    "channel": "whatsapp",
-                    "message": "⚠️ Falla crítica reportada en mantenimiento de equipos. Revisar reporte."
-                }
-            ],
-            "actions": [
-                {
-                    "type": "CREATE_MAINTENANCE_TICKET",
-                    "priority": "HIGH",
-                    "assignTo": "TECHNICAL_SERVICE"
-                }
-            ]
-        }
-    ],
-    "completionActions": [
-        {
-            "type": "SEND_NOTIFICATION",
-            "target": [
-                "GERENTE"
-            ],
-            "channel": "email",
-            "message": "✅ Mantenimiento mensual completado"
-        },
-        {
-            "type": "GENERATE_PDF_REPORT",
-            "template": "maintenance_report_v1",
-            "includePhotos": true,
-            "sendTo": [
-                "GERENTE"
-            ]
-        }
-    ]
+      ]
+    }
+  ]
 }

@@ -15,15 +15,16 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useBuilder, WorkflowStep } from "@/components/builder/builder-context";
+import { getStepCategory, normalizeOptions } from "@/lib/workflow-type-map";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar as CalendarIcon, GripVertical, Trash2 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { GripVertical, Trash2 } from "lucide-react";
 
 // Individual Sortable Item Component
 function SortableItem({ element }: { element: WorkflowStep }) {
@@ -45,50 +46,98 @@ function SortableItem({ element }: { element: WorkflowStep }) {
 
     const isSelected = selectedStepId === element.id;
 
-    const renderFieldPreview = () => {
-        switch (element.type) {
-            case "text":
-                return <Input disabled placeholder="Short text answer..." />;
-            case "number":
-                return <Input disabled placeholder="Numeric input..." type="number" />;
-            case "multiple_choice":
-                return (
-                    <Select disabled>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Seleccionar..." />
-                        </SelectTrigger>
-                    </Select>
-                );
-            case "checklist":
-                return (
-                    <div className="flex flex-col gap-2">
-                        {element.options?.map((opt, i) => (
-                            <div key={i} className="flex items-center space-x-2">
-                                <Checkbox disabled id={`${element.id}-${i}`} />
-                                <Label htmlFor={`${element.id}-${i}`}>{opt}</Label>
-                            </div>
-                        )) || <div className="text-sm text-muted-foreground">No options defined</div>}
-                    </div>
-                );
-            case "yes_no":
-                return (
-                    <div className="flex items-center space-x-2">
-                        <Switch disabled id={element.id} />
-                        <Label htmlFor={element.id}>{element.title}</Label>
-                    </div>
-                );
-            case "photo":
-            case "PhotoField":
-                return (
-                    <div className="h-20 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground bg-accent/10">
-                        <span className="text-xs">Photo Upload Area</span>
-                    </div>
-                );
-            default:
-                // Fallback for text inputs or unknown types
-                return <Input disabled placeholder="Type answer here..." />;
-        }
-    };
+ const renderFieldPreview = () => {
+  const cat = getStepCategory(element.type);
+
+  switch (cat) {
+  case 'TEXT':
+   return <Input disabled placeholder={element.placeholder || "Short text answer..."} />;
+
+  case 'NUMBER':
+   return <Input disabled placeholder="0" type="number" />;
+
+  case 'YESNO':
+   return (
+   <div className="flex items-center space-x-2">
+    <Switch disabled id={element.id} />
+    <Label htmlFor={element.id}>{element.title}</Label>
+   </div>
+   );
+
+  case 'SELECT': {
+   const options = normalizeOptions(element.options || element.config?.options);
+   return (
+   <Select disabled>
+    <SelectTrigger>
+    <SelectValue placeholder={options.length > 0 ? options[0] : "Seleccionar..."} />
+    </SelectTrigger>
+   </Select>
+   );
+  }
+
+  case 'CHECKBOX': {
+   const items = normalizeOptions(element.options || element.config?.options);
+   return (
+   <div className="flex flex-col gap-2">
+    {items.length > 0 ? items.slice(0, 3).map((opt, i) => (
+    <div key={i} className="flex items-center space-x-2">
+     <Checkbox disabled id={`${element.id}-${i}`} />
+     <Label htmlFor={`${element.id}-${i}`}>{opt}</Label>
+    </div>
+    )) : <div className="text-sm text-muted-foreground">No options defined</div>}
+    {items.length > 3 && <div className="text-xs text-muted-foreground">+{items.length - 3} more</div>}
+   </div>
+   );
+  }
+
+  case 'PHOTO':
+  case 'VIDEO':
+   return (
+   <div className="h-20 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground bg-accent/10">
+    <span className="text-xs">{cat === 'VIDEO' ? 'Video' : 'Photo'} Upload Area</span>
+   </div>
+   );
+
+  case 'TIME':
+  case 'DATE':
+  case 'TIMER':
+   return <Input disabled placeholder={cat === 'DATE' ? '2024-01-01' : '00:00'} type={cat === 'DATE' ? 'datetime-local' : 'time'} />;
+
+  case 'SIGNATURE':
+   return (
+   <div className="h-20 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground bg-accent/10">
+    <span className="text-xs">Signature Area</span>
+   </div>
+   );
+
+  case 'LOCATION':
+   return (
+   <div className="h-20 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground bg-accent/10">
+    <span className="text-xs">GPS Location</span>
+   </div>
+   );
+
+  case 'AUDIO':
+   return (
+   <div className="h-20 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground bg-accent/10">
+    <span className="text-xs">Audio Note</span>
+   </div>
+   );
+
+  case 'INFO':
+   if (element.type === 'Separator') {
+   return <Separator className="my-1" />;
+   }
+   return (
+   <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded text-sm text-blue-700 dark:text-blue-300">
+   {element.description || element.title}
+   </div>
+   );
+
+  default:
+   return <Input disabled placeholder="Type answer here..." />;
+  }
+ };
 
     return (
         <div

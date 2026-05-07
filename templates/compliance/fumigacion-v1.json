@@ -1,320 +1,169 @@
 {
   "id": "tpl-fumigacion-v1",
-  "nombre": "🦟 Fumigación y Control de Plagas",
-  "descripcion": "Registro de servicio de fumigación y control de plagas para cumplimiento de normativas de salud e higiene.",
-  "tipo": "COMPLIANCE",
+  "nombre": "🐛 Fumigación",
+  "descripcion": "Registro de fumigación con verificación OCR de certificados y AI de alimentos expuestos",
   "categoria": "COMPLIANCE",
   "version": 1,
   "activo": true,
-  "requiereIA": false,
-  "duracionEstimada": "20-30 min",
-  "cumplimientoNormativo": [
-    "NOM-251",
-    "COFEPRIS"
-  ],
-  "tags": [
-    "fumigacion",
-    "control-plagas",
-    "sanitizacion",
-    "cumplimiento",
-    "normativa",
-    "higiene"
-  ],
-  "aiConfig": {
-    "provider": "openai",
-    "maxRetries": 2
-  },
+  "requiereIA": true,
+  "duracionEstimada": "10-15 min",
   "complianceConfig": {
     "complianceType": "NOM-251",
-    "regulationSection": "4.4 Control de plagas",
-    "requiredFrequency": "monthly",
+    "regulationSection": "6.1",
+    "requiredFrequency": "monthly/quarterly",
     "auditable": true,
     "evidenceRequired": true,
-    "criticalForCompliance": true
+    "criticalForCompliance": false
   },
-  "pasos": [
+  "cumplimientoNormativo": [
     {
-      "id": "intro",
-      "type": "text",
-      "title": "Servicio de Fumigación",
-      "description": "Registre la visita del proveedor de control de plagas. Verifique que el técnico cuente con las certificaciones requeridas y que se cubran todas las áreas establecidas.",
-      "readOnly": true
-    },
-    {
-      "id": "fecha_servicio",
-      "type": "date",
-      "title": "Fecha del Servicio",
-      "required": true,
-      "validation": {
-        "message": "La fecha del servicio es obligatoria"
-      }
-    },
-    {
-      "id": "hora_inicio",
-      "type": "time",
-      "title": "Hora de Inicio",
-      "required": true
-    },
-    {
-      "id": "hora_termino",
-      "type": "time",
-      "title": "Hora de Término",
-      "required": true
-    },
-    {
-      "id": "proveedor",
-      "type": "text",
-      "title": "Nombre del Proveedor",
-      "description": "Empresa que realiza el servicio de fumigación",
-      "required": true,
-      "placeholder": "Ej. Fumigaciones del Centro S.A. de C.V."
-    },
-    {
-      "id": "tecnico_nombre",
-      "type": "text",
-      "title": "Nombre del Técnico",
-      "description": "Nombre completo del técnico que realizó el servicio",
-      "required": true
-    },
-    {
-      "id": "tecnico_certificacion",
-      "type": "text",
-      "title": "Número de Certificación del Técnico",
-      "description": "Número de licencia o certificación COFEPRIS del técnico",
-      "required": true
-    },
-    {
-      "id": "foto_certificacion",
-      "type": "photo",
-      "title": "Foto de Certificación",
-      "description": "Tome una foto de la credencial o certificado del técnico",
-      "required": true
-    },
-    {
-      "id": "tipo_fumigacion",
-      "type": "select",
-      "title": "Tipo de Servicio",
-      "required": true,
-      "options": [
-        {
-          "value": "fumigacion_completa",
-          "label": "Fumigación Completa"
-        },
-        {
-          "value": "control_plagas",
-          "label": "Control de Plagas"
-        },
-        {
-          "value": "desinsectacion",
-          "label": "Desinsectación"
-        },
-        {
-          "value": "desratizacion",
-          "label": "Desratización"
-        },
-        {
-          "value": "tratamiento_especifico",
-          "label": "Tratamiento Específico"
-        },
-        {
-          "value": "seguimiento",
-          "label": "Visita de Seguimiento"
-        }
-      ]
-    },
-    {
-      "id": "areas_tratadas",
-      "type": "checkbox",
-      "title": "Áreas Tratadas",
-      "description": "Seleccione todas las áreas que fueron tratadas",
-      "required": true,
-      "options": [
-        "Cocina",
-        "Área de Almacén",
-        "Comedor",
-        "Baños",
-        "Oficinas",
-        "Áreas Exteriores",
-        "Estacionamiento",
-        "Zona de Residuos",
-        "Techo",
-        "Sótano"
-      ]
-    },
-    {
-      "id": "productos_usados",
-      "type": "textarea",
-      "title": "Productos Utilizados",
-      "description": "Liste los productos químicos utilizados y sus concentraciones",
-      "required": true,
-      "placeholder": "Ej. Cypermethrin 10% - 100ml por litro de agua\nDeltamethrin 2.5% - 50ml por litro de agua"
-    },
-    {
-      "id": "ficha_tecnica",
-      "type": "photo",
-      "title": "Ficha Técnica de Productos",
-      "description": "Fotografía de las fichas técnicas o etiquetas de los productos usados",
-      "required": true
-    },
-    {
-      "id": "plagas_detectadas",
-      "type": "checkbox",
-      "title": "Plagas Detectadas",
-      "description": "Seleccione si se detectaron signos de plagas",
-      "options": [
-        "Cucarachas",
-        "Hormigas",
-        "Moscas",
-        "Mosquitos",
-        "Roedores",
-        "Ácaros",
-        "Polillas",
-        "Ninguna"
-      ]
-    },
-    {
-      "id": "nivel_infestacion",
-      "type": "select",
-      "title": "Nivel de Infestación",
-      "required": true,
-      "options": [
-        {
-          "value": "ninguna",
-          "label": "Ninguna"
-        },
-        {
-          "value": "baja",
-          "label": "Baja"
-        },
-        {
-          "value": "media",
-          "label": "Media"
-        },
-        {
-          "value": "alta",
-          "label": "Alta"
-        }
-      ]
-    },
-    {
-      "id": "fotos_evidencia",
-      "type": "photo",
-      "title": "Fotos de Evidencia",
-      "description": "Tome fotos de las áreas tratadas, trampas revisadas, o evidencia de plagas",
-      "required": true,
-      "allowMultiple": true
-    },
-    {
-      "id": "recomendaciones",
-      "type": "textarea",
-      "title": "Recomendaciones del Técnico",
-      "description": "Anotar las recomendaciones proporcionadas por el técnico",
-      "placeholder": "Ej. Mantener cerradas las puertas de servicio, reparar grietas identificadas..."
-    },
-    {
-      "id": "acciones_correctivas",
-      "type": "yes_no",
-      "title": "¿Se requieren acciones correctivas?",
-      "description": "Indique si el técnico identificó problemas que requieren atención",
-      "required": true
-    },
-    {
-      "id": "detalle_acciones",
-      "type": "textarea",
-      "title": "Detalle de Acciones Correctivas",
-      "description": "Describa las acciones correctivas recomendadas",
-      "conditionalLogic": {
-        "dependentOn": "acciones_correctivas",
-        "value": "yes"
-      }
-    },
-    {
-      "id": "fecha_siguiente",
-      "type": "date",
-      "title": "Fecha del Próximo Servicio",
-      "description": "Fecha programada para la siguiente visita",
-      "required": true
-    },
-    {
-      "id": "observaciones",
-      "type": "textarea",
-      "title": "Observaciones Adicionales",
-      "placeholder": "Cualquier observación adicional sobre el servicio..."
-    },
-    {
-      "id": "firma_tecnico",
-      "type": "SignatureField",
-      "title": "Firma del Técnico",
-      "required": true
-    },
-    {
-      "id": "firma_responsable",
-      "type": "SignatureField",
-      "title": "Firma del Responsable del Local",
-      "required": true
+      "norma": "NOM-251",
+      "seccion": "6.1",
+      "descripcion": "Prácticas de higiene para el proceso de alimentos - control de plagas y fumigación"
     }
   ],
-  "logicRules": [
+  "tags": ["fumigación", "plagas", "NOM-251", "certificado", "compliance", "OCR", "AI"],
+  "aiConfig": {
+    "provider": "moondream",
+    "fallbackProvider": "openai",
+    "maxRetries": 2
+  },
+  "escalationChain": [
     {
-      "id": "rule_infestacion_alta",
-      "condition": "steps.nivel_infestacion.value == 'alta'",
-      "severity": "HIGH",
-      "message": "Se detectó nivel alto de infestación. Se requiere atención inmediata y seguimiento.",
-      "escalationChain": [
-        {
-          "level": 1,
-          "triggerAfterMinutes": 0,
-          "notifyRoles": [
-            "GERENTE",
-            "SUPERVISOR"
-          ],
-          "channel": "whatsapp",
-          "message": "🚨 ALTO: Se detectó nivel alto de infestación de plagas. Revisar reporte de fumigación."
-        }
-      ],
-      "actions": [
-        {
-          "type": "CREATE_FOLLOW_UP",
-          "priority": "HIGH",
-          "dueDate": "3_days"
-        }
-      ]
+      "level": 1,
+      "role": "Gerente",
+      "channel": "whatsapp",
+      "timeout": "0min"
     },
     {
-      "id": "rule_acciones_correctivas",
-      "condition": "steps.acciones_correctivas.value == 'yes'",
-      "severity": "MEDIUM",
-      "message": "Se identificaron acciones correctivas pendientes.",
-      "actions": [
-        {
-          "type": "CREATE_TASK",
-          "taskType": "CORRECTIVE_ACTION",
-          "assignTo": "MANAGER"
-        }
-      ]
+      "level": 2,
+      "role": "Owner",
+      "channel": "whatsapp",
+      "timeout": "24h"
     }
   ],
   "completionActions": [
     {
       "type": "SEND_NOTIFICATION",
-      "target": [
-        "GERENTE"
-      ],
-      "channel": "email",
-      "message": "✅ Servicio de fumigación completado"
+      "target": "GERENTE",
+      "channel": "whatsapp",
+      "message": "Registro de fumigación completado exitosamente"
     },
     {
       "type": "GENERATE_PDF_REPORT",
-      "template": "fumigacion_report_v1",
-      "includePhotos": true,
-      "sendTo": [
-        "GERENTE"
+      "message": "Generar reporte PDF de registro de fumigación"
+    },
+    {
+      "type": "UPDATE_FUMIGATION_LOG",
+      "message": "Actualizar registro de fumigación del establecimiento"
+    }
+  ],
+  "pasos": [
+    {
+      "id": "paso-1",
+      "type": "TextField",
+      "titulo": "Empresa Fumigadora",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-2",
+      "type": "PhotoField",
+      "titulo": "Certificado Vigente (OCR)",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Realizar OCR del certificado de fumigación para extraer: nombre de la empresa, número de licencia y fecha de vigencia. Verificar que el certificado esté vigente y que los datos coincidan con la empresa indicada.",
+        "threshold": 0.7,
+        "expectedConditions": [
+          "Certificado legible con nombre de empresa visible",
+          "Número de licencia profesional visible y legible",
+          "Fecha de vigencia vigente (no vencida)"
+        ]
+      },
+      "logicRules": [
+        {
+          "id": "lr-certificado-vencido",
+          "condition": "expiry_date < today || company_mismatch",
+          "severity": "CRITICAL",
+          "message": "Certificado de fumigación VENCIDO o datos no coinciden. Bloquear operación inmediatamente según NOM-251 Sección 6.1.",
+          "actions": ["BLOCK"],
+          "escalationChain": [
+            {
+              "role": "Gerente",
+              "channel": "whatsapp",
+              "timeout": "0min"
+            },
+            {
+              "role": "Owner",
+              "channel": "call_priority",
+              "timeout": "1h"
+            }
+          ]
+        }
       ]
     },
     {
-      "type": "SCHEDULE_NEXT_SERVICE",
-      "serviceType": "FUMIGATION",
-      "basedOnField": "fecha_siguiente"
+      "id": "paso-3",
+      "type": "TextField",
+      "titulo": "Áreas Tratadas",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-4",
+      "type": "TextField",
+      "titulo": "Productos Utilizados",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-5",
+      "type": "TimeField",
+      "titulo": "Hora de Aplicación",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-6",
+      "type": "TextField",
+      "titulo": "Precauciones Post-Aplicación",
+      "obligatorio": false
+    },
+    {
+      "id": "paso-7",
+      "type": "PhotoField",
+      "titulo": "Verificación de Alimentos No Expuestos",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar que NO hay alimentos expuestos o sin protección en las áreas tratadas. Todos los alimentos deben estar cubiertos, guardados o retirados del área de fumigación conforme a NOM-251.",
+        "threshold": 0.85,
+        "expectedConditions": [
+          "No hay alimentos expuestos en las áreas tratadas",
+          "Alimentos debidamente cubiertos o almacenados",
+          "Superficies de preparación de alimentos protegidas"
+        ]
+      },
+      "logicRules": [
+        {
+          "id": "lr-alimentos-expuestos",
+          "condition": "ai_verification_failed",
+          "severity": "HIGH",
+          "message": "Alimentos expuestos detectados en áreas fumigadas. Riesgo de contaminación según NOM-251. Remediación inmediata requerida.",
+          "actions": ["BLOCK"],
+          "remediationProtocol": "Retirar o cubrir todos los alimentos expuestos en las áreas tratadas. Limpiar superficies de contacto con alimentos. Tomar nueva fotografía para verificación.",
+          "escalationChain": [
+            {
+              "role": "Gerente",
+              "channel": "whatsapp",
+              "timeout": "0min"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paso-8",
+      "type": "YesNo",
+      "titulo": "¿Fumigación completada correctamente?",
+      "obligatorio": true
     }
   ]
 }

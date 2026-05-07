@@ -64,7 +64,7 @@ export async function sendDueSoonReminders() {
           actionUrl: `/dashboard/workflows/${assignment.id}`,
           actionLabel: 'Completar Ahora',
           metadata: {
-            workflowName: assignment.workflowTemplateId || 'Workflow',
+            workflowName: (assignment as any).workflowTemplateId || 'Workflow',
             hoursUntilDue,
             dueDate: assignment.dueDate?.toISOString(),
           },

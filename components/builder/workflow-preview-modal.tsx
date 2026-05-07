@@ -18,40 +18,31 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { WorkflowStep as BuilderWorkflowStep } from "@/components/builder/builder-context";
+import { getStepCategory, normalizeOptions, STEP_TYPE_DISPLAY } from "@/lib/workflow-type-map";
 import { Badge } from "@/components/ui/badge";
 
 interface WorkflowPreviewModalProps {
-    open: boolean;
-    onClose: () => void;
-    steps: BuilderWorkflowStep[];
-    title: string;
+ open: boolean;
+ onClose: () => void;
+ steps: BuilderWorkflowStep[];
+ title: string;
 }
 
-// Normalize builder step types for display
-function getStepCategory(type: string): string {
-    const map: Record<string, string> = {
-        'text': 'TEXT', 'TextField': 'TEXT',
-        'number': 'NUMBER', 'NumberField': 'NUMBER', 'TemperatureField': 'NUMBER',
-        'yes_no': 'YESNO', 'YesNo': 'YESNO',
-        'multiple_choice': 'SELECT', 'Select': 'SELECT',
-        'photo': 'PHOTO', 'PhotoField': 'PHOTO', 'video': 'PHOTO', 'audio': 'AUDIO',
-        'checklist': 'CHECKBOX', 'ChecklistField': 'CHECKBOX',
-        'TimeField': 'TIME', 'timer': 'TIMER',
-        'SignatureField': 'SIGNATURE',
-        'OPSLocationField': 'LOCATION', 'GPSLocationField': 'LOCATION',
-        'heading': 'INFO', 'Heading': 'INFO',
-    };
-    return map[type] || 'TEXT';
+interface WorkflowPreviewModalProps {
+ open: boolean;
+ onClose: () => void;
+ steps: BuilderWorkflowStep[];
+ title: string;
 }
 
 function StepField({ step, value, onChange, evidenceUrl, onEvidenceChange, checkboxValues, onCheckboxChange }: {
-    step: BuilderWorkflowStep;
-    value: string;
-    onChange: (v: string) => void;
-    evidenceUrl: string[];
-    onEvidenceChange: (urls: string[]) => void;
-    checkboxValues: Record<string, boolean>;
-    onCheckboxChange: (key: string, val: boolean) => void;
+ step: BuilderWorkflowStep;
+ value: string;
+ onChange: (v: string) => void;
+ evidenceUrl: string[];
+ onEvidenceChange: (urls: string[]) => void;
+ checkboxValues: Record<string, boolean>;
+ onCheckboxChange: (key: string, val: boolean) => void;
 }) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cat = getStepCategory(step.type);
@@ -68,15 +59,18 @@ function StepField({ step, value, onChange, evidenceUrl, onEvidenceChange, check
         if (fileInputRef.current) fileInputRef.current.value = "";
     }, [evidenceUrl, onEvidenceChange]);
 
-    if (cat === 'INFO') {
-        const content = step.config?.content as string || step.description || "Lee esta información antes de continuar.";
-        return (
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg flex gap-3 text-blue-700 dark:text-blue-300">
-                <Info className="h-5 w-5 shrink-0 mt-0.5" />
-                <p className="text-sm">{content}</p>
-            </div>
-        );
-    }
+ if (cat === 'INFO') {
+ if (step.type === 'Separator') {
+ return <Separator className="my-2" />;
+ }
+ const content = step.config?.content as string || (step as any).text || step.description || step.title || "Lee esta información antes de continuar.";
+ return (
+ <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg flex gap-3 text-blue-700 dark:text-blue-300">
+ <Info className="h-5 w-5 shrink-0 mt-0.5" />
+ <p className="text-sm">{content}</p>
+ </div>
+ );
+ }
 
     if (cat === 'TEXT') {
         return (
@@ -126,7 +120,7 @@ function StepField({ step, value, onChange, evidenceUrl, onEvidenceChange, check
     }
 
     if (cat === 'SELECT') {
-        const options: string[] = (step.options || step.config?.options || []) as string[];
+        const options: string[] = normalizeOptions(step.options || step.config?.options);
         return (
             <div className="space-y-2">
                 <Label>Selecciona una opción</Label>
@@ -154,7 +148,7 @@ function StepField({ step, value, onChange, evidenceUrl, onEvidenceChange, check
     }
 
     if (cat === 'CHECKBOX') {
-        const items: string[] = (step.options || step.config?.options || step.config?.items || []) as string[];
+        const items: string[] = normalizeOptions(step.options || step.config?.options || step.config?.items);
         return (
             <div className="space-y-2">
                 <Label>Marca los elementos completados</Label>
@@ -239,14 +233,41 @@ function StepField({ step, value, onChange, evidenceUrl, onEvidenceChange, check
         );
     }
 
-    if (cat === 'AUDIO') {
-        return (
-            <div className="border-2 border-dashed rounded-lg p-8 text-center">
-                <Mic className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground">Nota de voz</p>
-            </div>
-        );
-    }
+ if (cat === 'AUDIO') {
+ return (
+ <div className="border-2 border-dashed rounded-lg p-8 text-center">
+ <Mic className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+ <p className="text-sm text-muted-foreground">Nota de voz</p>
+ </div>
+ );
+ }
+
+ if (cat === 'VIDEO') {
+ return (
+ <div className="border-2 border-dashed rounded-lg p-8 text-center">
+ <Video className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+ <p className="text-sm text-muted-foreground">Grabar video</p>
+ </div>
+ );
+ }
+
+ if (cat === 'TIMER') {
+ return (
+ <div className="space-y-2">
+ <Label className="flex items-center gap-2"><Clock className="h-4 w-4" /> Temporizador</Label>
+ <Input type="number" value={value} onChange={e => onChange(e.target.value)} placeholder="Segundos" />
+ </div>
+ );
+ }
+
+ if (cat === 'DATE') {
+ return (
+ <div className="space-y-2">
+ <Label className="flex items-center gap-2"><Clock className="h-4 w-4" /> Fecha y hora</Label>
+ <Input type="datetime-local" value={value} onChange={e => onChange(e.target.value)} />
+ </div>
+ );
+ }
 
     // Fallback
     return (
@@ -259,15 +280,55 @@ function StepField({ step, value, onChange, evidenceUrl, onEvidenceChange, check
 }
 
 const STEP_TYPE_ICON: Record<string, React.ReactNode> = {
-    'TemperatureField': <Thermometer className="h-5 w-5 text-orange-500" />,
-    'TimeField': <Clock className="h-5 w-5 text-blue-500" />,
-    'PhotoField': <Camera className="h-5 w-5 text-purple-500" />,
-    'photo': <Camera className="h-5 w-5 text-purple-500" />,
-    'SignatureField': <FileText className="h-5 w-5 text-green-500" />,
-    'OPSLocationField': <MapPin className="h-5 w-5 text-red-500" />,
-    'GPSLocationField': <MapPin className="h-5 w-5 text-red-500" />,
-    'video': <Video className="h-5 w-5 text-indigo-500" />,
-    'audio': <Mic className="h-5 w-5 text-pink-500" />,
+  'TemperatureField': <Thermometer className="h-5 w-5 text-orange-500" />,
+  'TimeField': <Clock className="h-5 w-5 text-blue-500" />,
+  'TimerField': <Clock className="h-5 w-5 text-blue-500" />,
+  'DateTime': <Clock className="h-5 w-5 text-blue-500" />,
+  'PhotoField': <Camera className="h-5 w-5 text-purple-500" />,
+  'photo': <Camera className="h-5 w-5 text-purple-500" />,
+  'Photo': <Camera className="h-5 w-5 text-purple-500" />,
+  'PHOTO': <Camera className="h-5 w-5 text-purple-500" />,
+  'SignatureField': <FileText className="h-5 w-5 text-green-500" />,
+  'Signature': <FileText className="h-5 w-5 text-green-500" />,
+  'SIGNATURE': <FileText className="h-5 w-5 text-green-500" />,
+  'OPSLocationField': <MapPin className="h-5 w-5 text-red-500" />,
+  'GPSLocationField': <MapPin className="h-5 w-5 text-red-500" />,
+  'LOCATION': <MapPin className="h-5 w-5 text-red-500" />,
+  'video': <Video className="h-5 w-5 text-indigo-500" />,
+  'Video': <Video className="h-5 w-5 text-indigo-500" />,
+  'VIDEO': <Video className="h-5 w-5 text-indigo-500" />,
+  'audio': <Mic className="h-5 w-5 text-pink-500" />,
+  'AUDIO': <Mic className="h-5 w-5 text-pink-500" />,
+  'YesNo': <CheckCircle2 className="h-5 w-5 text-green-500" />,
+  'yes_no': <CheckCircle2 className="h-5 w-5 text-green-500" />,
+  'YESNO': <CheckCircle2 className="h-5 w-5 text-green-500" />,
+  'checklist': <Checkbox className="h-5 w-5 text-blue-500" />,
+  'ChecklistField': <Checkbox className="h-5 w-5 text-blue-500" />,
+  'Checkbox': <Checkbox className="h-5 w-5 text-blue-500" />,
+  'CHECKBOX': <Checkbox className="h-5 w-5 text-blue-500" />,
+  'Select': <CheckCircle2 className="h-5 w-5 text-indigo-500" />,
+  'multiple_choice': <CheckCircle2 className="h-5 w-5 text-indigo-500" />,
+  'Radio': <CheckCircle2 className="h-5 w-5 text-indigo-500" />,
+  'SELECT': <CheckCircle2 className="h-5 w-5 text-indigo-500" />,
+  'NumberField': <FileText className="h-5 w-5 text-primary" />,
+  'Number': <FileText className="h-5 w-5 text-primary" />,
+  'number': <FileText className="h-5 w-5 text-primary" />,
+  'NUMBER': <FileText className="h-5 w-5 text-primary" />,
+  'TextField': <FileText className="h-5 w-5 text-primary" />,
+  'Text': <FileText className="h-5 w-5 text-primary" />,
+  'text': <FileText className="h-5 w-5 text-primary" />,
+  'TEXT': <FileText className="h-5 w-5 text-primary" />,
+  'Heading': <Info className="h-5 w-5 text-blue-500" />,
+  'Title': <Info className="h-5 w-5 text-blue-500" />,
+  'SubTitle': <Info className="h-5 w-5 text-blue-500" />,
+  'Paragraph': <Info className="h-5 w-5 text-blue-500" />,
+  'Separator': <Separator className="h-5 w-5 text-muted-foreground" />,
+  'instruction': <Info className="h-5 w-5 text-blue-500" />,
+  'INFO': <Info className="h-5 w-5 text-blue-500" />,
+  'timer': <Clock className="h-5 w-5 text-blue-500" />,
+  'TIME': <Clock className="h-5 w-5 text-blue-500" />,
+  'TIMER': <Clock className="h-5 w-5 text-blue-500" />,
+  'DATE': <Clock className="h-5 w-5 text-blue-500" />,
 };
 
 export function WorkflowPreviewModal({ open, onClose, steps, title }: WorkflowPreviewModalProps) {

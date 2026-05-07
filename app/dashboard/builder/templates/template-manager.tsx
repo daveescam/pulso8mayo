@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit, Calendar, Copy, Loader2, UserPlus, Trash2 } from 'lucide-react';
+import { Plus, Edit, Calendar, Copy, Loader2, UserPlus, Trash2, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -106,15 +106,20 @@ export function TemplateManager({ userTemplates }: TemplateManagerProps) {
         }
     };
 
-    const handleClone = async (templateId: string, templateData: { title?: string; name?: string; description?: string; category?: string; steps?: unknown[] }) => {
-        setCloning(templateId);
-        try {
-            const payload = {
-                name: `${templateData.title || templateData.name} (Copia)`,
-                description: templateData.description,
-                category: templateData.category || "GENERAL",
-                steps: templateData.steps || []
-            };
+  const handleClone = async (templateId: string, templateData: { title?: string; name?: string; description?: string; category?: string; steps?: unknown[]; aiConfig?: any; complianceConfig?: any; completionActions?: any[]; tags?: string[]; duracionEstimada?: string }) => {
+    setCloning(templateId);
+    try {
+      const payload = {
+        name: `${templateData.title || templateData.name} (Copia)`,
+        description: templateData.description,
+        category: templateData.category || "GENERAL",
+        steps: templateData.steps || [],
+        aiConfig: templateData.aiConfig,
+        complianceConfig: templateData.complianceConfig,
+        completionActions: templateData.completionActions,
+        tags: templateData.tags,
+        duracionEstimada: templateData.duracionEstimada,
+      };
 
             const res = await fetch('/api/workflows/templates', {
                 method: 'POST',
@@ -314,20 +319,26 @@ export function TemplateManager({ userTemplates }: TemplateManagerProps) {
                                         <span className="bg-background/80 px-2 py-1 rounded-md border">{template.steps?.length || 0} pasos</span>
                                     </div>
                                 </CardContent>
-                                <CardFooter className="border-t pt-4">
-                                    <Button
-                                        className="w-full"
-                                        onClick={() => handleClone(template.id, template)}
-                                        disabled={cloning === template.id}
-                                    >
-                                        {cloning === template.id ? (
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        ) : (
-                                            <Copy className="w-4 h-4 mr-2" />
-                                        )}
-                                        Usar Plantilla
-                                    </Button>
-                                </CardFooter>
+              <CardFooter className="border-t pt-4 flex gap-2">
+                <Link href={`/dashboard/builder/preview/${template.id}`} className="flex-1">
+                  <Button variant="outline" className="w-full">
+                    <Eye className="w-4 h-4 mr-2" />
+                    Vista Previa
+                  </Button>
+                </Link>
+                <Button
+                  className="flex-1"
+                  onClick={() => handleClone(template.id, template)}
+                  disabled={cloning === template.id}
+                >
+                  {cloning === template.id ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Copy className="w-4 h-4 mr-2" />
+                  )}
+                  Usar Plantilla
+                </Button>
+              </CardFooter>
                             </Card>
                         ))}
                     </div>

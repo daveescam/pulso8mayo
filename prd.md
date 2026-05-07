@@ -477,7 +477,7 @@ Pulso is a multi-tenant SaaS platform that combines:
   - [ ] Build template selection UI
   - [ ] Implement template customization
   - [ ] Add template import/export
-  - [ ] Create template marketplace
+  
 
 ##### 3.1.3 Workflow Triggers & Rules
 - **Requirement**: Automated workflow assignment and triggering

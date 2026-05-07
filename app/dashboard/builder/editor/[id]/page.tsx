@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import EditorClient from "./editor-client";
 import { WorkflowStep } from "@/components/builder/builder-context";
+import { normalizeOptions } from "@/lib/workflow-type-map";
 import React from 'react';
 
 export default async function EditorPage({ params }: { params: Promise<{ id: string }> }) {
@@ -54,38 +55,52 @@ export default async function EditorPage({ params }: { params: Promise<{ id: str
         });
     }
 
-    const steps: WorkflowStep[] = rawSteps.map(step => {
-        // Extract all possible field variations
-        // Support both database format (title/type) and JSON template format (label/fieldType)
-        const stepId = step.id || crypto.randomUUID();
-        const stepType = step.fieldType || step.tipo || step.type || 'TextField';
-        const stepTitle = step.label || step.titulo || step.nombre || step.title || 'Untitled Step';
-        const stepDescription = step.descripcion || step.description || '';
-        const stepRequired = step.obligatorio ?? step.required ?? false;
+ const steps: WorkflowStep[] = rawSteps.map(step => {
+  const stepId = step.id || crypto.randomUUID();
+  const stepType = step.fieldType || step.tipo || step.type || 'text';
+  const stepTitle = step.label || step.titulo || step.nombre || step.title || 'Untitled Step';
+  const stepDescription = step.descripcion || step.description || '';
+  const stepRequired = step.obligatorio ?? step.required ?? false;
 
-        // Build the normalized step object
-        return {
-            id: stepId,
-            type: stepType,
-            title: stepTitle,
-            description: stepDescription,
-            required: stepRequired,
-            // Preserve all other fields for compatibility
-            config: step.config || step.extraAttributes,
-            validation: step.validation || step.validacion,
-            aiVerification: step.aiVerification || step.verificacionIA,
-            logicRules: step.logicRules || step.reglasLogica,
-            options: step.options || step.opciones,
-            readOnly: step.readOnly || step.soloLectura || step.static,
-            placeholder: step.placeholder,
-            defaultValue: step.defaultValue || step.valorPorDefecto,
-            conditionalLogic: step.conditionalLogic || step.logicaCondicional,
-            branches: step.branches,
-            category: step.category || step.categoria,
-            // Preserve any other fields
-            ...step
-        } as WorkflowStep;
-    });
+  const extra = step.extraAttributes || {};
+  const placeholder = step.placeholder || extra.placeholder || '';
+  const defaultValue = step.defaultValue || extra.defaultValue || extra.value || step.valorPorDefecto || '';
+  const readOnly = step.readOnly ?? step.soloLectura ?? step.static ?? extra.readonly ?? extra.readOnly ?? false;
+  const helperText = extra.helperText || '';
+
+  const config = step.config || { ...extra };
+
+  const rawOptions = step.options || step.opciones || config.options || config.items;
+  const options = normalizeOptions(rawOptions);
+
+  if (config.options) {
+  config.options = normalizeOptions(config.options);
+  }
+  if (config.items) {
+  config.items = normalizeOptions(config.items);
+  }
+
+  const finalDescription = stepDescription || helperText;
+
+  return {
+  id: stepId,
+  type: stepType,
+  title: stepTitle,
+  description: finalDescription,
+  required: stepRequired,
+  config,
+  validation: step.validation || step.validacion,
+  aiVerification: step.aiVerification || step.verificacionIA,
+  logicRules: step.logicRules || step.reglasLogica,
+  options: options.length > 0 ? options : undefined,
+  readOnly,
+  placeholder,
+  defaultValue,
+  conditionalLogic: step.conditionalLogic || step.logicaCondicional,
+  branches: step.branches,
+  category: step.category || step.categoria,
+  } as WorkflowStep;
+ });
 
     console.log('[EditorPage] Normalized steps:', steps.length, steps);
 

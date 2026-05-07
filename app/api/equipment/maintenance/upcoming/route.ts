@@ -2,9 +2,8 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import {
   equipmentMaintenanceHistory,
-  branchEquipments,
 } from "@/lib/db/schema";
-import { eq, and, gte, lte, or, asc } from "drizzle-orm";
+import { eq, and, gte, lte, or } from "drizzle-orm";
 import { addDays } from "date-fns";
 import { requireTenant } from "@/lib/tenant-context";
 import { ApiHandler } from "@/lib/api/response";

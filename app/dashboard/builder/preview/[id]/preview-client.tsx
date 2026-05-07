@@ -4,15 +4,17 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Smartphone, Monitor, AlertTriangle, CheckCircle2, Clock, MapPin, Thermometer, Camera, FileText, CheckSquare } from 'lucide-react';
+import { ArrowLeft, Smartphone, Monitor, AlertTriangle, CheckCircle2, Clock, MapPin, Thermometer, Camera, FileText, CheckSquare, Info, Minus, Mic, Video } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { getStepCategory, normalizeOptions, STEP_TYPE_DISPLAY } from '@/lib/workflow-type-map';
 
 interface WorkflowTemplate {
-    id: string;
-    name: string;
-    description: string;
-    steps: any[];
+  id: string;
+  name: string;
+  description: string;
+  steps: any[];
+  isCatalog?: boolean;
 }
 
 interface PreviewClientProps {
@@ -20,22 +22,21 @@ interface PreviewClientProps {
 }
 
 const STEP_ICONS: Record<string, any> = {
-    'TimeField': Clock,
-    'TimerField': Clock,
-    'TemperatureField': Thermometer,
-    'PhotoField': Camera,
-    'OPSLocationField': MapPin,
-    'GPSLocationField': MapPin,
-    'SignatureField': FileText,
-    'YesNo': CheckCircle2,
-    'TextField': FileText,
-    'NumberField': FileText,
-    'ChecklistField': CheckSquare,
-    'text': FileText,
-    'number': FileText,
-    'yes_no': CheckCircle2,
-    'photo': Camera,
-    'checklist': CheckSquare,
+  'TimeField': Clock, 'TimerField': Clock, 'DateTime': Clock,
+  'TIME': Clock, 'TIMER': Clock, 'DATE': Clock,
+  'TemperatureField': Thermometer,
+  'PhotoField': Camera, 'photo': Camera, 'Photo': Camera, 'PHOTO': Camera,
+  'OPSLocationField': MapPin, 'GPSLocationField': MapPin, 'LOCATION': MapPin,
+  'SignatureField': FileText, 'Signature': FileText, 'SIGNATURE': FileText,
+  'YesNo': CheckCircle2, 'yes_no': CheckCircle2, 'YESNO': CheckCircle2,
+  'TextField': FileText, 'Text': FileText, 'text': FileText, 'TEXT': FileText,
+  'NumberField': FileText, 'Number': FileText, 'number': FileText, 'NUMBER': FileText,
+  'ChecklistField': CheckSquare, 'Checkbox': CheckSquare, 'checklist': CheckSquare, 'CheckboxField': CheckSquare, 'CHECKBOX': CheckSquare,
+  'Select': CheckCircle2, 'multiple_choice': CheckCircle2, 'Radio': CheckCircle2, 'SELECT': CheckCircle2,
+  'Heading': Info, 'Title': Info, 'SubTitle': Info, 'Paragraph': Info, 'instruction': Info, 'INFO': Info,
+  'Separator': Minus,
+  'video': Video, 'Video': Video, 'VIDEO': Video,
+  'audio': Mic, 'AUDIO': Mic,
 };
 
 export function PreviewClient({ template }: PreviewClientProps) {
@@ -72,7 +73,7 @@ export function PreviewClient({ template }: PreviewClientProps) {
                 <div className="container mx-auto px-6 py-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                            <Link href={`/dashboard/builder/editor/${template.id}`}>
+                            <Link href={template.isCatalog ? '/dashboard/builder/templates' : `/dashboard/builder/editor/${template.id}`}>
                                 <Button variant="ghost" size="icon">
                                     <ArrowLeft className="h-4 w-4" />
                                 </Button>
@@ -136,7 +137,7 @@ export function PreviewClient({ template }: PreviewClientProps) {
                                                             <Icon className="h-3 w-3 text-muted-foreground" />
                                                             <p className="text-sm font-medium truncate">{step.title}</p>
                                                         </div>
-                                                        <p className="text-xs text-muted-foreground mt-0.5">{step.type}</p>
+                                                        <p className="text-xs text-muted-foreground mt-0.5">{STEP_TYPE_DISPLAY[step.type] || step.type}</p>
                                                         {step.logicRules && step.logicRules.length > 0 && (
                                                             <Badge variant="secondary" className="mt-1 text-xs">
                                                                 {step.logicRules.length} rule{step.logicRules.length > 1 ? 's' : ''}
@@ -204,128 +205,185 @@ export function PreviewClient({ template }: PreviewClientProps) {
                                         {/* Field Input Preview */}
                                         <Card className="border-2 border-primary/20">
                                             <CardHeader className="pb-3">
-                                                <CardTitle className="text-sm flex items-center gap-2">
-                                                    <StepIcon className="h-4 w-4" />
-                                                    {currentStep?.type}
+ <CardTitle className="text-sm flex items-center gap-2">
+ <StepIcon className="h-4 w-4" />
+ {STEP_TYPE_DISPLAY[currentStep?.type] || currentStep?.type}
                                                 </CardTitle>
                                                 <CardDescription className="text-xs">
                                                     This is what the user will interact with
                                                 </CardDescription>
                                             </CardHeader>
-                                            <CardContent>
-                                                {/* Render different field types */}
-                                                {(currentStep?.type === 'PhotoField' || currentStep?.type === 'photo') && (
-                                                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                                                        <Camera className="h-12 w-12 mx-auto text-gray-400 mb-2" />
-                                                        <p className="text-sm text-muted-foreground">Tap to take photo</p>
-                                                    </div>
-                                                )}
+ <CardContent>
+ {(() => {
+ if (!currentStep) return null;
+ const cat = getStepCategory(currentStep.type);
 
-                                                {(currentStep?.type === 'TemperatureField' || currentStep?.type === 'NumberField' || currentStep?.type === 'number') && (
-                                                    <div className="space-y-2">
-                                                        <label className="text-sm font-medium">Enter value</label>
-                                                        <div className="flex items-center gap-2">
-                                                            <input
-                                                                type="number"
-                                                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                                                placeholder="0"
-                                                                disabled
-                                                            />
-                                                            {currentStep?.type === 'TemperatureField' && (
-                                                                <span className="text-sm text-muted-foreground">°C</span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                )}
+ if (cat === 'PHOTO' || cat === 'VIDEO') {
+ return (
+ <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+ <Camera className="h-12 w-12 mx-auto text-gray-400 mb-2" />
+ <p className="text-sm text-muted-foreground">{cat === 'VIDEO' ? 'Tap to record video' : 'Tap to take photo'}</p>
+ </div>
+ );
+ }
 
-                                                {(currentStep?.type === 'TextField' || currentStep?.type === 'text') && (
-                                                    <div className="space-y-2">
-                                                        <label className="text-sm font-medium">Enter text</label>
-                                                        <textarea
-                                                            className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                                            placeholder="Type here..."
-                                                            disabled
-                                                        />
-                                                    </div>
-                                                )}
+ if (cat === 'NUMBER') {
+ return (
+ <div className="space-y-2">
+ <label className="text-sm font-medium">Enter value</label>
+ <div className="flex items-center gap-2">
+ <input
+ type="number"
+ className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+ placeholder="0"
+ disabled
+ />
+ {currentStep.type === 'TemperatureField' && (
+ <span className="text-sm text-muted-foreground">°C</span>
+ )}
+ </div>
+ </div>
+ );
+ }
 
-                                                {(currentStep?.type === 'YesNo' || currentStep?.type === 'yes_no') && (
-                                                    <div className="space-y-2">
-                                                        <label className="text-sm font-medium">Select option</label>
-                                                        <div className="flex gap-2">
-                                                            <button className="flex-1 h-12 rounded-md border-2 border-green-500 bg-green-50 text-green-700 font-medium">
-                                                                ✓ Yes
-                                                            </button>
-                                                            <button className="flex-1 h-12 rounded-md border-2 border-red-500 bg-red-50 text-red-700 font-medium">
-                                                                ✗ No
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                )}
+ if (cat === 'TEXT') {
+ return (
+ <div className="space-y-2">
+ <label className="text-sm font-medium">Enter text</label>
+ <textarea
+ className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+ placeholder="Type here..."
+ disabled
+ />
+ </div>
+ );
+ }
 
-                                                {(currentStep?.type === 'TimeField' || currentStep?.type === 'TimerField') && (
-                                                    <div className="space-y-2">
-                                                        <label className="text-sm font-medium">Select time</label>
-                                                        <input
-                                                            type="time"
-                                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                                            disabled
-                                                        />
-                                                    </div>
-                                                )}
+ if (cat === 'YESNO') {
+ return (
+ <div className="space-y-2">
+ <label className="text-sm font-medium">Select option</label>
+ <div className="flex gap-2">
+ <button className="flex-1 h-12 rounded-md border-2 border-green-500 bg-green-50 text-green-700 font-medium">
+ ✓ Yes
+ </button>
+ <button className="flex-1 h-12 rounded-md border-2 border-red-500 bg-red-50 text-red-700 font-medium">
+ ✗ No
+ </button>
+ </div>
+ </div>
+ );
+ }
 
-                                                {(currentStep?.type === 'GPSLocationField' || currentStep?.type === 'OPSLocationField') && (
-                                                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                                                        <MapPin className="h-12 w-12 mx-auto text-gray-400 mb-2" />
-                                                        <p className="text-sm text-muted-foreground">Tap to capture location</p>
-                                                        <p className="text-xs text-muted-foreground mt-1">GPS coordinates will be recorded</p>
-                                                    </div>
-                                                )}
+ if (cat === 'TIME' || cat === 'TIMER' || cat === 'DATE') {
+ return (
+ <div className="space-y-2">
+ <label className="text-sm font-medium">Select {cat === 'DATE' ? 'date/time' : cat === 'TIMER' ? 'timer' : 'time'}</label>
+ <input
+ type={cat === 'DATE' ? 'datetime-local' : 'time'}
+ className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+ disabled
+ />
+ </div>
+ );
+ }
 
-                                                {currentStep?.type === 'SignatureField' && (
-                                                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                                                        <FileText className="h-12 w-12 mx-auto text-gray-400 mb-2" />
-                                                        <p className="text-sm text-muted-foreground">Tap to sign</p>
-                                                    </div>
-                                                )}
+ if (cat === 'LOCATION') {
+ return (
+ <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+ <MapPin className="h-12 w-12 mx-auto text-gray-400 mb-2" />
+ <p className="text-sm text-muted-foreground">Tap to capture location</p>
+ <p className="text-xs text-muted-foreground mt-1">GPS coordinates will be recorded</p>
+ </div>
+ );
+ }
 
-                                                {(currentStep?.type === 'ChecklistField' || currentStep?.type === 'checklist') && (
-                                                    <div className="space-y-2">
-                                                        <label className="text-sm font-medium">Checklist items</label>
-                                                        <div className="space-y-2">
-                                                            {currentStep?.options?.map((option: string, i: number) => (
-                                                                <div key={i} className="flex items-center gap-2 p-2 border rounded">
-                                                                    <input type="checkbox" className="h-4 w-4" disabled />
-                                                                    <span className="text-sm">{option}</span>
-                                                                </div>
-                                                            )) || (
-                                                                    <>
-                                                                        <div className="flex items-center gap-2 p-2 border rounded">
-                                                                            <input type="checkbox" className="h-4 w-4" disabled />
-                                                                            <span className="text-sm">Item 1</span>
-                                                                        </div>
-                                                                        <div className="flex items-center gap-2 p-2 border rounded">
-                                                                            <input type="checkbox" className="h-4 w-4" disabled />
-                                                                            <span className="text-sm">Item 2</span>
-                                                                        </div>
-                                                                    </>
-                                                                )}
-                                                        </div>
-                                                    </div>
-                                                )}
+ if (cat === 'SIGNATURE') {
+ return (
+ <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+ <FileText className="h-12 w-12 mx-auto text-gray-400 mb-2" />
+ <p className="text-sm text-muted-foreground">Tap to sign</p>
+ </div>
+ );
+ }
 
-                                                {currentStep?.type === 'Select' && (
-                                                    <div className="space-y-2">
-                                                        <label className="text-sm font-medium">Select option</label>
-                                                        <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" disabled>
-                                                            <option>Choose an option...</option>
-                                                            {currentStep?.options?.map((option: string, i: number) => (
-                                                                <option key={i}>{option}</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
-                                                )}
-                                            </CardContent>
+ if (cat === 'CHECKBOX') {
+ const items = normalizeOptions(currentStep.options || currentStep.config?.options);
+ return (
+ <div className="space-y-2">
+ <label className="text-sm font-medium">Checklist items</label>
+ <div className="space-y-2">
+ {items.length > 0 ? items.map((option: string, i: number) => (
+ <div key={i} className="flex items-center gap-2 p-2 border rounded">
+ <input type="checkbox" className="h-4 w-4" disabled />
+ <span className="text-sm">{option}</span>
+ </div>
+ )) : (
+ <>
+ <div className="flex items-center gap-2 p-2 border rounded">
+ <input type="checkbox" className="h-4 w-4" disabled />
+ <span className="text-sm">Item 1</span>
+ </div>
+ <div className="flex items-center gap-2 p-2 border rounded">
+ <input type="checkbox" className="h-4 w-4" disabled />
+ <span className="text-sm">Item 2</span>
+ </div>
+ </>
+ )}
+ </div>
+ </div>
+ );
+ }
+
+ if (cat === 'SELECT') {
+ const options = normalizeOptions(currentStep.options || currentStep.config?.options);
+ return (
+ <div className="space-y-2">
+ <label className="text-sm font-medium">Select option</label>
+ <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" disabled>
+ <option>Choose an option...</option>
+ {options.map((option: string, i: number) => (
+ <option key={i}>{option}</option>
+ ))}
+ </select>
+ </div>
+ );
+ }
+
+ if (cat === 'AUDIO') {
+ return (
+ <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+ <Mic className="h-12 w-12 mx-auto text-gray-400 mb-2" />
+ <p className="text-sm text-muted-foreground">Audio note</p>
+ </div>
+ );
+ }
+
+ if (cat === 'INFO') {
+ if (currentStep.type === 'Separator') {
+ return <hr className="border-t border-gray-200 my-2" />;
+ }
+ const content = currentStep.config?.content || (currentStep as any).text || currentStep.description || currentStep.title;
+ return (
+ <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+ <p className="text-sm text-blue-700">{content}</p>
+ </div>
+ );
+ }
+
+ return (
+ <div className="space-y-2">
+ <label className="text-sm font-medium">Response</label>
+ <input
+ className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+ placeholder="Enter response..."
+ disabled
+ />
+ <p className="text-xs text-muted-foreground">Tipo: {currentStep.type}</p>
+ </div>
+ );
+ })()}
+ </CardContent>
                                         </Card>
                                         {/* AI Verification */}
                                         {currentStep?.aiVerification?.enabled && (

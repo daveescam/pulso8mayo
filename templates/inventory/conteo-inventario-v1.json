@@ -1,41 +1,185 @@
 {
   "id": "tpl-conteo-inventario-v1",
-  "nombre": "📦 Conteo de Inventario",
-  "descripcion": "Conteo físico de inventario por categoría con generación automática de ajustes. Los pasos de conteo de productos se generan dinámicamente al iniciar el workflow según la categoría seleccionada.",
-  "tipo": "INVENTORY",
-  "categoria": "INVENTORY",
+  "nombre": "📊 Conteo de Inventario",
+  "descripcion": "Conteo de inventario con verificación AI visual, detección de diferencias y acciones correctivas",
+  "tipo": "INVENTARIO",
   "version": 1,
+  "requiereIA": true,
+  "duracionEstimada": "15-30 min",
   "activo": true,
-  "requiereIA": false,
-  "duracionEstimada": "20-45 min",
-  "cumplimientoNormativo": [],
-  "tags": ["inventario", "conteo", "ajuste", "stock"],
-  "dynamicSteps": true,
-  "pasos": [
+  "tags": ["inventario", "conteo", "auditoría", "stock", "NOM-251"],
+  "cumplimientoNormativo": [
     {
-      "id": "category-select",
-      "type": "multiple_choice",
-      "title": "¿Qué área vas a contar?",
-      "description": "Selecciona la categoría de productos a contar",
-      "required": true,
-    "options": [
-      "Materia Prima",
-      "Producto Terminado",
-      "Insumo",
-      "Embalaje",
-      "Otro"
-    ]
+      "norma": "NOM-251",
+      "seccion": "Control de inventario y trazabilidad",
+      "descripcion": "Cumplimiento indirecto con NOM-251 para control de inventario de alimentos y bebidas"
+    }
+  ],
+  "complianceConfig": {
+    "complianceType": "NOM-251",
+    "regulationSection": "NOM-251-SSA1-2009-Trazabilidad",
+    "requiredFrequency": "weekly/monthly",
+    "auditable": true,
+    "evidenceRequired": false,
+    "criticalForCompliance": false
+  },
+  "aiConfig": {
+    "provider": "moondream",
+    "fallbackProvider": "openai",
+    "maxRetries": 2
+  },
+  "escalationChain": [
+    {
+      "role": "Gerente",
+      "delayMinutes": 0,
+      "channel": "in-app"
     },
     {
-      "id": "confirm-count",
-      "type": "SELECT",
-      "title": "¿Confirmas que el conteo está correcto?",
-      "description": "Una vez confirmado, se generarán los ajustes automáticamente. Los pasos de conteo de productos se agregan dinámicamente al iniciar el workflow.",
-      "required": true,
+      "role": "Owner",
+      "delayMinutes": 2880,
+      "channel": "whatsapp"
+    }
+  ],
+  "completionActions": [
+    {
+      "type": "UPDATE_INVENTORY"
+    },
+    {
+      "type": "GENERATE_DISCREPANCY_REPORT"
+    },
+    {
+      "type": "SEND_NOTIFICATION",
+      "target": "GERENTE",
+      "channel": "in-app",
+      "message": "Conteo de inventario completado - revisar diferencias detectadas"
+    }
+  ],
+  "pasos": [
+    {
+      "id": "paso-1",
+      "type": "Select",
+      "titulo": "Tipo de Conteo",
+      "obligatorio": true,
       "options": [
-        { "value": "yes", "label": "Sí, confirmar y generar ajustes" },
-        { "value": "no", "label": "No, revisar conteo" }
+        "Parcial",
+        "Completo",
+        "Cíclico"
       ]
+    },
+    {
+      "id": "paso-2",
+      "type": "Select",
+      "titulo": "Área",
+      "obligatorio": true,
+      "options": [
+        "Almacén General",
+        "Refrigerados",
+        "Congelados",
+        "Secos",
+        "Bar",
+        "Despensa"
+      ]
+    },
+    {
+      "id": "paso-3",
+      "type": "TextField",
+      "titulo": "Producto",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-4",
+      "type": "NumberField",
+      "titulo": "Cantidad Física",
+      "obligatorio": true,
+      "validation": {
+        "min": 0
+      }
+    },
+    {
+      "id": "paso-5",
+      "type": "Select",
+      "titulo": "Unidad",
+      "obligatorio": true,
+      "options": [
+        "Piezas",
+        "Kilogramos",
+        "Litros",
+        "Cajas",
+        "Bolsas",
+        "Paquetes"
+      ]
+    },
+    {
+      "id": "paso-6",
+      "type": "PhotoField",
+      "titulo": "Foto de Estantería (AI)",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Detectar y contar los productos visibles en la estantería. Estimar el nivel de stock visualmente. Identificar si hay productos vencidos o en mal estado. Verificar orden y organización del área.",
+        "threshold": 0.6,
+        "expectedConditions": [
+          "Estantería organizada",
+          "Productos visibles y contables",
+          "Sin productos vencidos visibles",
+          "Etiquetado correcto"
+        ]
+      }
+    },
+    {
+      "id": "paso-7",
+      "type": "NumberField",
+      "titulo": "Cantidad en Sistema",
+      "obligatorio": false
+    },
+    {
+      "id": "paso-8",
+      "type": "NumberField",
+      "titulo": "Diferencia",
+      "readOnly": true,
+      "logicRules": [
+        {
+          "id": "rule-diferencia-mayor-20",
+          "condition": "diferencia_porcentual > 20",
+          "severity": "WARNING",
+          "message": "Diferencia mayor al 20% entre cantidad física y sistema - Se requiere revisión del gerente",
+          "escalationChain": ["Gerente"],
+          "actions": [
+            {
+              "type": "SEND_NOTIFICATION",
+              "target": "Gerente",
+              "channel": "in-app",
+              "message": "ALERTA: Diferencia de inventario mayor al 20% detectada"
+            }
+          ]
+        },
+        {
+          "id": "rule-producto-vencido",
+          "condition": "producto_vencido == true",
+          "severity": "CRITICAL",
+          "message": "Producto vencido encontrado - Retirar inmediatamente y registrar disposición",
+          "actions": [
+            {
+              "type": "SEND_NOTIFICATION",
+              "target": "Gerente",
+              "channel": "whatsapp",
+              "message": "CRÍTICO: Producto vencido detectado en inventario - Requiere disposición inmediata"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paso-9",
+      "type": "TextField",
+      "titulo": "Motivo de la Diferencia",
+      "obligatorio": false
+    },
+    {
+      "id": "paso-10",
+      "type": "YesNo",
+      "titulo": "¿Conteo completado?",
+      "obligatorio": true
     }
   ]
 }

@@ -109,8 +109,8 @@ export function MaintenanceForm({ initialData, equipmentId: defaultEquipmentId, 
     try {
       const response = await fetch("/api/equipment/providers");
       if (response.ok) {
-        const data = await response.json();
-        setProviders(data || []);
+      const data = await response.json();
+      setProviders(data.data || []);
       }
     } catch (error) {
       console.error("Error fetching providers:", error);

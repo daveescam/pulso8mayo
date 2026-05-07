@@ -1,503 +1,241 @@
 {
-    "id": "tpl-limpieza-sanitizacion-v2",
-    "nombre": "🧹 Limpieza y Sanitización Profunda",
-    "descripcion": "Protocolo completo de limpieza con verificación IA, químicos, y certificación de áreas",
-    "tipo": "OPERACION_DIARIA",
-    "categoria": "OPERACIONES_DIARIAS",
-    "version": 2,
-    "activo": true,
-    "requiereIA": true,
-    "duracionEstimada": "30-45 min",
-    "cumplimientoNormativo": [
-        "NOM-251-SSA1-2009",
-        "NOM-120-SSA1-1994",
-        "HACCP"
-    ],
-    "tags": [
-        "limpieza",
-        "sanitizacion",
-        "higiene",
-        "ia-verificacion",
-        "haccp"
-    ],
-    "aiConfig": {
-        "provider": "moondream",
-        "fallbackProvider": "openai",
-        "maxRetries": 2
+  "id": "tpl-limpieza-sanitizacion-v2",
+  "nombre": "🧹 Limpieza y Sanitización",
+  "descripcion": "Workflow de limpieza y sanitización con verificación AI, control de concentración de cloro y validación de superficies críticas",
+  "categoria": "OPERACIONES_DIARIAS",
+  "version": 2,
+  "activo": true,
+  "requiereIA": true,
+  "duracionEstimada": "20-30 min",
+  "cumplimientoNormativo": [
+    {
+      "norma": "NOM-251",
+      "seccion": "5.2",
+      "descripcion": "Limpieza y sanitización de superficies y equipos en contacto con alimentos"
+    }
+  ],
+  "complianceConfig": {
+    "complianceType": "NOM-251",
+    "regulationSection": "5.2",
+    "requiredFrequency": "daily/weekly",
+    "auditable": true,
+    "evidenceRequired": true,
+    "criticalForCompliance": true
+  },
+  "tags": ["limpieza", "sanitización", "NOM-251", "cloro", "superficies", "AI"],
+  "aiConfig": {
+    "provider": "moondream",
+    "fallbackProvider": "openai",
+    "maxRetries": 2
+  },
+  "escalationChain": [
+    {
+      "level": 1,
+      "role": "Gerente",
+      "channel": "whatsapp",
+      "timeout": "0min"
     },
-    "complianceConfig": {
-        "complianceType": "NOM-251",
-        "regulationSection": "5.6 (Limpieza y desinfección)",
-        "requiredFrequency": "daily",
-        "auditable": true,
-        "evidenceRequired": true,
-        "criticalForCompliance": true
+    {
+      "level": 2,
+      "role": "Gerente General",
+      "channel": "whatsapp",
+      "timeout": "60min"
+    }
+  ],
+  "completionActions": [
+    {
+      "type": "SEND_NOTIFICATION",
+      "target": "GERENTE",
+      "channel": "whatsapp",
+      "message": "Limpieza y sanitización completada exitosamente"
     },
-    "pasos": [
+    {
+      "type": "GENERATE_PDF_REPORT"
+    }
+  ],
+  "pasos": [
+    {
+      "id": "paso-1",
+      "type": "Select",
+      "titulo": "Tipo de Limpieza",
+      "obligatorio": true,
+      "options": ["Profunda", "Rutina", "Sanitización"]
+    },
+    {
+      "id": "paso-2",
+      "type": "YesNo",
+      "titulo": "Productos Químicos Disponibles",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-3",
+      "type": "NumberField",
+      "titulo": "Concentración de Cloro (ppm)",
+      "obligatorio": true,
+      "validation": {
+        "min": 50,
+        "max": 200
+      }
+    },
+    {
+      "id": "paso-4",
+      "type": "PhotoField",
+      "titulo": "Mesas de Trabajo",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar que las superficies de las mesas de trabajo estén limpias y sin residuos",
+        "threshold": 0.8,
+        "expectedConditions": ["superficie_limpia", "sin_residuos"]
+      }
+    },
+    {
+      "id": "paso-5",
+      "type": "PhotoField",
+      "titulo": "Estufas y Hornos",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar que se haya removido la grasa y las superficies de estufas y hornos estén limpias",
+        "threshold": 0.75,
+        "expectedConditions": ["grasa_removida", "superficie_limpia"]
+      },
+      "remediationProtocol": {
+        "type": "GUIDED_SELF_FIX",
+        "instructions": "Aplique desengrasante, deje actuar 5 minutos, frote con estropajo y enjuague. Tome una nueva foto."
+      }
+    },
+    {
+      "id": "paso-6",
+      "type": "PhotoField",
+      "titulo": "Refrigeradores",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar que el interior del refrigerador esté limpio, sin derrames y organizado",
+        "threshold": 0.75,
+        "expectedConditions": ["interior_limpio", "sin_derrames", "organizado"]
+      }
+    },
+    {
+      "id": "paso-7",
+      "type": "PhotoField",
+      "titulo": "Tablas de Cortar",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar que las tablas de cortar no tengan cortes profundos, estén sanitizadas y con código de colores correcto",
+        "threshold": 0.85,
+        "expectedConditions": ["sin_cortes_profundos", "sanitizadas", "codigo_colores_correcto"]
+      },
+      "logicRules": [
         {
-            "id": "limpieza-title",
-            "type": "Heading",
-            "title": "🧹 Limpieza y Sanitización Profunda",
-            "required": false
-        },
-        {
-            "id": "limpieza-tipo",
-            "type": "Select",
-            "title": "Tipo de Limpieza",
-            "required": true,
-            "options": [
-                {
-                    "value": "diaria",
-                    "label": "Limpieza Diaria"
-                },
-                {
-                    "value": "profunda",
-                    "label": "Limpieza Profunda Semanal"
-                },
-                {
-                    "value": "sanitizacion",
-                    "label": "Sanitización Completa"
-                }
-            ]
-        },
-        {
-            "id": "limpieza-productos-disponibles",
-            "type": "checklist",
-            "title": "✅ Productos de Limpieza Disponibles",
-            "required": true,
-            "options": [
-                {
-                    "value": "desengrasante",
-                    "label": "Desengrasante"
-                },
-                {
-                    "value": "desinfectante",
-                    "label": "Desinfectante (cloro/cuaternario)"
-                },
-                {
-                    "value": "jabon",
-                    "label": "Jabón líquido"
-                },
-                {
-                    "value": "sanitizante",
-                    "label": "Sanitizante de superficies"
-                },
-                {
-                    "value": "limpiador_vidrios",
-                    "label": "Limpiador de vidrios"
-                }
-            ],
-            "logicRules": [
-                {
-                    "id": "rule_productos_faltantes",
-                    "condition": "!value.includes('desinfectante') || !value.includes('sanitizante')",
-                    "severity": "CRITICAL",
-                    "message": "🚨 Productos críticos faltantes",
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerAfterMinutes": 0,
-                            "notifyRoles": [
-                                "GERENTE"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "🚨 Falta desinfectante/sanitizante en {branch_name}"
-                        }
-                    ],
-                    "actions": [
-                        {
-                            "type": "CREATE_PURCHASE_ORDER",
-                            "items": [
-                                "Desinfectante",
-                                "Sanitizante"
-                            ],
-                            "priority": "URGENT"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "limpieza-concentracion-cloro",
-            "type": "NumberField",
-            "title": "🧪 Concentración de Cloro (ppm)",
-            "description": "Usar tiras reactivas para medir",
-            "required": true,
-            "validation": {
-                "min": 0,
-                "max": 500
-            },
-            "logicRules": [
-                {
-                    "id": "rule_cloro_bajo",
-                    "condition": "value < 50",
-                    "severity": "WARNING",
-                    "message": "⚠️ Concentración de cloro baja ({value} ppm). Mínimo: 50 ppm",
-                    "remediationProtocol": {
-                        "enabled": true,
-                        "type": "GUIDED_SELF_FIX",
-                        "maxAttempts": 2,
-                        "timeoutMinutes": 10,
-                        "steps": [
-                            {
-                                "instruction": "Preparar nueva solución de cloro con mayor concentración",
-                                "waitSeconds": 120
-                            },
-                            {
-                                "instruction": "Medir nuevamente con tiras reactivas",
-                                "verification": {
-                                    "type": "manual_input",
-                                    "targetCondition": "value >= 50"
-                                }
-                            }
-                        ]
-                    }
-                },
-                {
-                    "id": "rule_cloro_alto",
-                    "condition": "value > 200",
-                    "severity": "WARNING",
-                    "message": "⚠️ Concentración muy alta ({value} ppm). Puede dañar superficies."
-                }
-            ]
-        },
-        {
-            "id": "limpieza-foto-mesas-cocina",
-            "type": "PhotoField",
-            "title": "📷 Foto de Mesas de Trabajo Limpias",
-            "required": true,
-            "aiVerification": {
-                "enabled": true,
-                "prompt": "Inspect this work surface/table in a restaurant kitchen. Answer YES or NO.\n\nQuestion: Is this surface CLEAN and SANITIZED for food prep?\n\nFAIL if ANY of these are present:\n- Food particles or crumbs\n- Grease spots or stains\n- Wet spills\n- Dirty or cluttered\n- Not shiny/clean looking\n\nPASS only if:\n- Surface is completely clear\n- Shiny and clean\n- No visible residue\n- Ready for immediate food contact\n\nAnswer: YES or NO - [what you see]",
-                "threshold": 0.8,
-                "expectedConditions": [
-                    "limpio",
-                    "brillante",
-                    "sin residuos"
-                ]
-            },
-            "logicRules": [
-                {
-                    "id": "rule_mesas_sucias",
-                    "condition": "ai_result.passed == false",
-                    "severity": "HIGH",
-                    "message": "⚠️ Mesas no cumplen estándares: {ai_result.analysis}",
-                    "remediationProtocol": {
-                        "enabled": true,
-                        "type": "GUIDED_SELF_FIX",
-                        "maxAttempts": 2,
-                        "timeoutMinutes": 15,
-                        "steps": [
-                            {
-                                "instruction": "Aplicar desengrasante y frotar vigorosamente",
-                                "waitSeconds": 180
-                            },
-                            {
-                                "instruction": "Enjuagar con agua limpia",
-                                "waitSeconds": 60
-                            },
-                            {
-                                "instruction": "Aplicar sanitizante y dejar secar",
-                                "waitSeconds": 300
-                            },
-                            {
-                                "instruction": "Tomar nueva foto",
-                                "verification": {
-                                    "type": "ai_photo_verification",
-                                    "targetCondition": "ai_result.passed == true"
-                                }
-                            }
-                        ]
-                    }
-                }
-            ]
-        },
-        {
-            "id": "limpieza-foto-estufas",
-            "type": "PhotoField",
-            "title": "📷 Foto de Estufas y Hornos Limpios",
-            "required": true,
-            "aiVerification": {
-                "enabled": true,
-                "prompt": "Look at this grill/stove carefully. Answer with ONLY 'YES' or 'NO' at the start, followed by explanation.\n\nQuestion: Is this equipment CLEAN and SAFE for food preparation?\n\nFAIL if you see ANY of these:\n- Yellow/brown grease buildup on surfaces\n- Food residue or burnt material\n- Dirty grates or burners\n- Stains or discoloration from grease\n- Any visible dirt or debris\n\nPASS only if:\n- All surfaces are shiny and clean\n- No visible grease or residue\n- Equipment looks ready for immediate use\n\nAnswer format:\nYES - [brief explanation of why it's clean]\nor\nNO - [specific problems you see]",
-                "threshold": 0.75,
-                "expectedConditions": [
-                    "limpio",
-                    "sin grasa"
-                ]
-            },
-            "logicRules": [
-                {
-                    "id": "rule_estufas_grasosas",
-                    "condition": "ai_result.passed == false",
-                    "severity": "HIGH",
-                    "message": "⚠️ Estufas con grasa acumulada: {ai_result.analysis}",
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerAfterMinutes": 0,
-                            "notifyRoles": [
-                                "CHEF",
-                                "GERENTE"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "⚠️ Estufas requieren limpieza profunda. IA detectó: {ai_result.detectedIssues}"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "limpieza-foto-refrigeradores",
-            "type": "PhotoField",
-            "title": "📷 Foto Interior de Refrigeradores",
-            "required": true,
-            "aiVerification": {
-                "enabled": true,
-                "prompt": "Look inside this refrigerator. Answer YES or NO.\n\nQuestion: Is this refrigerator CLEAN and properly organized?\n\nFAIL if you see:\n- Spills or leaks on shelves\n- Expired or moldy food\n- Disorganized or messy\n- Dirty shelves or walls\n- Food not covered\n\nPASS only if:\n- All shelves are clean\n- Food is organized and covered\n- No visible spills\n- Looks well-maintained\n\nAnswer: YES or NO - [details]",
-                "threshold": 0.75,
-                "expectedConditions": [
-                    "limpio",
-                    "organizado"
-                ]
-            }
-        },
-        {
-            "id": "limpieza-foto-pisos",
-            "type": "PhotoField",
-            "title": "📷 Foto de Pisos de Cocina",
-            "required": true,
-            "aiVerification": {
-                "enabled": true,
-                "prompt": "Look at this kitchen floor. Answer with ONLY 'YES' or 'NO' at the start.\n\nQuestion: Is this floor CLEAN and properly sanitized?\n\nFAIL if you see ANY of these:\n- Spills or liquid puddles (especially yellow/brown liquids)\n- Food debris or trash\n- Stains or discoloration\n- Dirty corners or edges\n- Grease marks\n\nPASS only if:\n- Floor is uniformly clean\n- No visible spills or stains\n- Corners are clean\n- Surface looks freshly mopped\n\nAnswer: YES or NO - [explanation]",
-                "threshold": 0.7,
-                "expectedConditions": [
-                    "limpio",
-                    "brillante"
-                ]
-            },
-            "logicRules": [
-                {
-                    "id": "rule_pisos_sucios",
-                    "condition": "ai_result.passed == false",
-                    "severity": "HIGH",
-                    "message": "⚠️ Pisos no cumplen estándares: {ai_result.analysis}"
-                }
-            ]
-        },
-        {
-            "id": "limpieza-trampas-grasa",
-            "type": "YesNo",
-            "title": "¿Se limpiaron las trampas de grasa?",
-            "required": true,
-            "branches": [
-                {
-                    "condition": "value == 'no'",
-                    "targetStepId": "limpieza-razon-trampas"
-                }
-            ]
-        },
-        {
-            "id": "limpieza-razon-trampas",
-            "type": "TextField",
-            "title": "¿Por qué no se limpiaron las trampas?",
-            "required": true,
-            "logicRules": [
-                {
-                    "id": "rule_trampas_no_limpiadas",
-                    "condition": "value.length > 0",
-                    "severity": "WARNING",
-                    "message": "⚠️ Trampas de grasa no limpiadas",
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerAfterMinutes": 0,
-                            "notifyRoles": [
-                                "GERENTE"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "⚠️ Trampas de grasa pendientes: {value}"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "limpieza-foto-banos",
-            "type": "PhotoField",
-            "title": "📷 Foto de Baños Limpios",
-            "required": true,
-            "aiVerification": {
-                "enabled": true,
-                "prompt": "Inspect this bathroom carefully. Answer YES or NO.\n\nQuestion: Is this bathroom CLEAN and SANITIZED to health standards?\n\nFAIL if you see ANY of these:\n- Dirty toilet or urinal\n- Stained sink or fixtures\n- Dirty mirror\n- Wet or dirty floor\n- No toilet paper visible\n- Trash overflowing\n- Any visible dirt or grime\n\nPASS only if:\n- Toilet/urinal is spotless\n- Sink and fixtures are shiny\n- Mirror is clean\n- Floor is dry and clean\n- Supplies are stocked\n- Overall looks sanitized\n\nAnswer: YES or NO - [what you observe]",
-                "threshold": 0.75,
-                "expectedConditions": [
-                    "limpio",
-                    "sanitizado"
-                ]
-            },
-            "logicRules": [
-                {
-                    "id": "rule_banos_sucios",
-                    "condition": "ai_result.passed == false",
-                    "severity": "CRITICAL",
-                    "message": "🚨 Baños no cumplen estándares de higiene: {ai_result.analysis}",
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerAfterMinutes": 0,
-                            "notifyRoles": [
-                                "GERENTE"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "🚨 Baños requieren atención inmediata"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "limpieza-foto-comedor",
-            "type": "PhotoField",
-            "title": "📷 Foto del Comedor Limpio",
-            "required": true,
-            "aiVerification": {
-                "enabled": true,
-                "prompt": "Analiza este comedor. Verifica: 1) Mesas limpias, 2) Sillas ordenadas, 3) Piso limpio, 4) Sin basura. Responde 'APROBADO' si está listo para clientes.",
-                "threshold": 0.75,
-                "expectedConditions": [
-                    "limpio",
-                    "ordenado"
-                ]
-            }
-        },
-        {
-            "id": "limpieza-basureros-vaciados",
-            "type": "YesNo",
-            "title": "🗑️ ¿Se vaciaron y limpiaron todos los basureros?",
-            "required": true,
-            "logicRules": [
-                {
-                    "id": "rule_basureros_no_vaciados",
-                    "condition": "value == 'no'",
-                    "severity": "WARNING",
-                    "message": "⚠️ Basureros no vaciados"
-                }
-            ]
-        },
-        {
-            "id": "limpieza-areas-criticas",
-            "type": "Checkbox",
-            "title": "✅ Áreas Críticas Sanitizadas",
-            "required": true,
-            "options": [
-                {
-                    "value": "tablas_cortar",
-                    "label": "Tablas de cortar"
-                },
-                {
-                    "value": "cuchillos",
-                    "label": "Cuchillos y utensilios"
-                },
-                {
-                    "value": "licuadoras",
-                    "label": "Licuadoras y procesadores"
-                },
-                {
-                    "value": "manijas_puertas",
-                    "label": "Manijas de puertas y refrigeradores"
-                },
-                {
-                    "value": "interruptores",
-                    "label": "Interruptores de luz"
-                }
-            ],
-            "logicRules": [
-                {
-                    "id": "rule_areas_criticas_incompletas",
-                    "condition": "!value.includes('tablas_cortar') || !value.includes('cuchillos')",
-                    "severity": "CRITICAL",
-                    "message": "🚨 Áreas críticas sin sanitizar",
-                    "actions": [
-                        {
-                            "type": "BLOCK_WORKFLOW_COMPLETION",
-                            "message": "Debes sanitizar TODAS las áreas críticas"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "limpieza-tiempo-total",
-            "type": "NumberField",
-            "title": "⏱️ Tiempo Total de Limpieza (minutos)",
-            "required": true,
-            "validation": {
-                "min": 10,
-                "max": 180
-            },
-            "logicRules": [
-                {
-                    "id": "rule_tiempo_sospechoso",
-                    "condition": "value < 20",
-                    "severity": "WARNING",
-                    "message": "⚠️ Tiempo de limpieza muy corto ({value} min). Verificar calidad.",
-                    "escalationChain": [
-                        {
-                            "level": 1,
-                            "triggerAfterMinutes": 0,
-                            "notifyRoles": [
-                                "GERENTE"
-                            ],
-                            "channel": "whatsapp",
-                            "message": "⚠️ Limpieza completada en solo {value} minutos. Revisar calidad."
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "limpieza-observaciones",
-            "type": "TextField",
-            "title": "📝 Observaciones",
-            "required": false,
-            "placeholder": "Áreas que requieren atención especial, productos que se están acabando, etc."
-        },
-        {
-            "id": "limpieza-firma",
-            "type": "SignatureField",
-            "title": "✍️ Firma de Certificación",
-            "description": "Certifico que todas las áreas fueron limpiadas y sanitizadas correctamente",
-            "required": true
+          "id": "rule-tablas-cortar",
+          "condition": "ai_verification_failed",
+          "severity": "CRITICAL",
+          "message": "Tablas de cortar no aptas. Riesgo de contaminación cruzada según NOM-251.",
+          "actions": ["BLOCK"]
         }
-    ],
-    "completionActions": [
+      ]
+    },
+    {
+      "id": "paso-8",
+      "type": "PhotoField",
+      "titulo": "Cuchillos",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar que los cuchillos estén limpios, sin óxido y almacenados correctamente",
+        "threshold": 0.8,
+        "expectedConditions": ["limpios", "sin_oxido", "almacenados_correctamente"]
+      }
+    },
+    {
+      "id": "paso-9",
+      "type": "PhotoField",
+      "titulo": "Manijas y Pomos",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar que manijas y pomos estén sanitizados y sin suciedad visible",
+        "threshold": 0.8,
+        "expectedConditions": ["sanitizados", "sin_suciedad_visible"]
+      },
+      "logicRules": [
         {
-            "type": "SEND_NOTIFICATION",
-            "target": [
-                "GERENTE"
-            ],
-            "channel": "whatsapp",
-            "message": "✅ Limpieza completada por {employee_name}. Tipo: {limpieza-tipo}"
-        },
-        {
-            "type": "UPDATE_CLEANING_LOG",
-            "areas": "all",
-            "timestamp": "completion_time",
-            "certifiedBy": "employee_id"
-        },
-        {
-            "type": "GENERATE_PDF_REPORT",
-            "template": "limpieza_certificate",
-            "includePhotos": true,
-            "sendTo": [
-                "GERENTE"
-            ]
-        },
-        {
-            "type": "SCHEDULE_NEXT_CLEANING",
-            "mode": "auto",
-            "basedOn": "limpieza-tipo"
+          "id": "rule-manijas-pomos",
+          "condition": "ai_verification_failed",
+          "severity": "CRITICAL",
+          "message": "Manijas y pomos no sanitizados. Punto crítico de contaminación cruzada.",
+          "actions": ["BLOCK"]
         }
-    ]
+      ]
+    },
+    {
+      "id": "paso-10",
+      "type": "PhotoField",
+      "titulo": "Pisos",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar que los pisos estén limpios, sin agua estancada y sin residuos",
+        "threshold": 0.7,
+        "expectedConditions": ["piso_limpio", "sin_agua_estancada", "sin_residuos"]
+      }
+    },
+    {
+      "id": "paso-11",
+      "type": "PhotoField",
+      "titulo": "Baños",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar que los baños estén sanitizados, con suministros abastecidos y piso seco",
+        "threshold": 0.75,
+        "expectedConditions": ["sanitizados", "suministros_abastecidos", "piso_seco"]
+      },
+      "logicRules": [
+        {
+          "id": "rule-banos",
+          "condition": "ai_verification_failed",
+          "severity": "CRITICAL",
+          "message": "Baños no cumplen con estándares de sanitización. Riesgo para salud pública.",
+          "actions": ["BLOCK"]
+        }
+      ]
+    },
+    {
+      "id": "paso-12",
+      "type": "PhotoField",
+      "titulo": "Comedor",
+      "obligatorio": true,
+      "aiVerification": {
+        "enabled": true,
+        "prompt": "Verificar que mesas, sillas y piso del comedor estén limpios",
+        "threshold": 0.75,
+        "expectedConditions": ["mesas_limpias", "sillas_limpias", "piso_limpio"]
+      }
+    },
+    {
+      "id": "paso-13",
+      "type": "YesNo",
+      "titulo": "Productos Químicos Guardados Correctamente",
+      "obligatorio": true
+    },
+    {
+      "id": "paso-14",
+      "type": "NumberField",
+      "titulo": "Tiempo Empleado (minutos)",
+      "obligatorio": true,
+      "validation": {
+        "min": 0
+      }
+    },
+    {
+      "id": "paso-15",
+      "type": "YesNo",
+      "titulo": "¿Confirmar limpieza completada?",
+      "obligatorio": true
+    }
+  ]
 }
