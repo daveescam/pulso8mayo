@@ -93,6 +93,13 @@ export const ROUTE_PERMISSIONS: RoutePermission[] = [
         description: 'User profile settings'
     },
 
+    // Onboarding - All roles (for users without companyId)
+    {
+        path: '/onboarding',
+        allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'GERENTE', 'SUPERVISOR', 'EMPLEADO', 'READONLY'],
+        description: 'Onboarding flow for new users without company'
+    },
+
     // Dashboard home - All roles
     {
         path: '/dashboard',

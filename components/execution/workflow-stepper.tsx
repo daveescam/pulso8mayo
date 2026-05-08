@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, CheckCircle2, AlertCircle, Camera, ArrowRight, Trash2, Video, Mic, Info, CalendarIcon, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { CameraCapture } from "@/components/shared/camera-capture";
+import { usePhotoUpload } from "@/components/shared/use-photo-upload";
 
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -161,6 +163,8 @@ function StepperContent({ useStepper, steps, initialStep, token, executionId, ex
     const [autoSaveLoading] = useState(false);
     const [lastSaved] = useState<Date | null>(null);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const { uploadPhotos, uploading: uploadingPhotos, progress: uploadProgress } = usePhotoUpload();
 
     // Remediation State
     const [remediation, setRemediation] = useState<{
@@ -276,33 +280,51 @@ function StepperContent({ useStepper, steps, initialStep, token, executionId, ex
     };
 
     // File upload handler for PHOTO steps
-    const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files;
-        if (!files || files.length === 0) return;
+  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-        for (const file of Array.from(files)) {
-            if (!file.type.startsWith('image/')) {
-                toast.error("Solo se permiten imágenes");
-                continue;
-            }
-            if (file.size > 10 * 1024 * 1024) {
-                toast.error("Imagen demasiado grande (máx 10MB)");
-                continue;
-            }
+    const validFiles: File[] = [];
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith('image/')) {
+        toast.error("Solo se permiten imágenes");
+        continue;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("Imagen demasiado grande (máx 10MB)");
+        continue;
+      }
+      validFiles.push(file);
+    }
 
-            const reader = new FileReader();
-            reader.onload = () => {
-                const dataUrl = reader.result as string;
-                setEvidenceUrl(prev => {
-                    const current = Array.isArray(prev) ? prev : prev ? [prev] : [];
-                    return [...current, dataUrl];
-                });
-            };
-            reader.readAsDataURL(file);
-        }
+    if (validFiles.length === 0) return;
 
-        if (fileInputRef.current) fileInputRef.current.value = "";
-    }, []);
+    try {
+      const results = await uploadPhotos(validFiles);
+      const urls = results.map((r) => r.url);
+      setEvidenceUrl(prev => {
+        const current = Array.isArray(prev) ? prev : prev ? [prev] : [];
+        return [...current, ...urls];
+      });
+    } catch {
+      toast.error("Error al subir las fotos");
+    }
+
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, [uploadPhotos]);
+
+  const handleCameraConfirm = useCallback(async (files: File[]) => {
+    try {
+      const results = await uploadPhotos(files);
+      const urls = results.map((r) => r.url);
+      setEvidenceUrl(prev => {
+        const current = Array.isArray(prev) ? prev : prev ? [prev] : [];
+        return [...current, ...urls];
+      });
+    } catch {
+      toast.error("Error al subir las fotos");
+    }
+  }, [uploadPhotos]);
 
     // Early return AFTER all hooks — only if we don't even have steps to fallback to
     if (!stepper.current && !currentStepDef) {
@@ -642,61 +664,64 @@ function StepperContent({ useStepper, steps, initialStep, token, executionId, ex
                         </div>
                     )}
 
-                    {/* ===== PHOTO (Real file upload) ===== */}
-                    {currentStepDef.type === 'PHOTO' && (
-                        <div className="space-y-4">
-                            <Label>Evidencia Fotográfica</Label>
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept="image/*"
-                                capture="environment"
-                                multiple
-                                className="hidden"
-                                onChange={handleFileUpload}
-                            />
-                            <div className="grid grid-cols-2 gap-2">
-                                {(Array.isArray(evidenceUrl) ? evidenceUrl : evidenceUrl ? [evidenceUrl] : []).map((url: string, idx: number) => (
-                                    <div key={idx} className="relative aspect-video rounded-lg overflow-hidden border group">
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={url} alt={`Evidencia ${idx + 1}`} className="absolute inset-0 w-full h-full object-cover" />
-                                        <Button
-                                            variant="destructive"
-                                            size="icon"
-                                            className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            onClick={() => {
-                                                const current = Array.isArray(evidenceUrl) ? evidenceUrl : [evidenceUrl];
-                                                const newUrls = current.filter((_, i) => i !== idx);
-                                                setEvidenceUrl(newUrls.length === 0 ? "" : newUrls);
-                                            }}
-                                        >
-                                            <Trash2 className="h-3 w-3" />
-                                        </Button>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <Button variant="outline" className="w-full h-12 gap-2" onClick={() => {
-                                    if (fileInputRef.current) {
-                                        fileInputRef.current.setAttribute('capture', 'environment');
-                                        fileInputRef.current.click();
-                                    }
-                                }}>
-                                    <Camera className="w-4 h-4" />
-                                    Tomar Foto
-                                </Button>
-                                <Button variant="ghost" className="w-full h-10 gap-2 text-muted-foreground" onClick={() => {
-                                    if (fileInputRef.current) {
-                                        fileInputRef.current.removeAttribute('capture');
-                                        fileInputRef.current.click();
-                                    }
-                                }}>
-                                    <Upload className="w-4 h-4" />
-                                    Subir desde Galería
-                                </Button>
-                            </div>
-                        </div>
-                    )}
+        {/* ===== PHOTO (Live camera + gallery upload) ===== */}
+        {currentStepDef.type === 'PHOTO' && (
+          <div className="space-y-4">
+            <Label>Evidencia Fotográfica</Label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleFileUpload}
+            />
+            {uploadingPhotos && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Subiendo... {uploadProgress}%
+              </div>
+            )}
+            {(Array.isArray(evidenceUrl) ? evidenceUrl : evidenceUrl ? [evidenceUrl] : []).length > 0 && (
+              <div className="grid grid-cols-2 gap-2">
+                {(Array.isArray(evidenceUrl) ? evidenceUrl : evidenceUrl ? [evidenceUrl] : []).map((url: string, idx: number) => (
+                  <div key={idx} className="relative aspect-video rounded-lg overflow-hidden border group">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt={`Evidencia ${idx + 1}`} className="absolute inset-0 w-full h-full object-cover" />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => {
+                        const current = Array.isArray(evidenceUrl) ? evidenceUrl : [evidenceUrl];
+                        const newUrls = current.filter((_, i) => i !== idx);
+                        setEvidenceUrl(newUrls.length === 0 ? "" : newUrls);
+                      }}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex flex-col gap-2">
+              <Button variant="outline" className="w-full h-12 gap-2" onClick={() => setCameraOpen(true)} disabled={uploadingPhotos}>
+                <Camera className="w-4 h-4" />
+                Abrir Cámara
+              </Button>
+              <Button variant="ghost" className="w-full h-10 gap-2 text-muted-foreground" onClick={() => {
+                if (fileInputRef.current) {
+                  fileInputRef.current.removeAttribute("capture");
+                  fileInputRef.current.click();
+                }
+              }} disabled={uploadingPhotos}>
+                <Upload className="w-4 h-4" />
+                Subir desde Galería
+              </Button>
+            </div>
+            <CameraCapture open={cameraOpen} onOpenChange={setCameraOpen} onConfirm={handleCameraConfirm} maxPhotos={10} />
+          </div>
+        )}
 
                     {/* ===== TIMER ===== */}
                     {currentStepDef.type === 'TIMER' && (

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight, CheckCircle2, AlertCircle, Camera, Upload, FileText, Calendar, Hash, ListChecks, Loader2, Package, MapPin, Mic, Video } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, AlertCircle, Camera, FileText, Calendar, Hash, ListChecks, Loader2, Package, MapPin, Mic, Video } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,8 @@ import { AIVerificationStatus, AIVerificationStatusProps } from "@/components/wo
 import { WorkflowStep } from "@/lib/types/workflow";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { CameraCapture } from "@/components/shared/camera-capture";
+import { usePhotoUpload } from "@/components/shared/use-photo-upload";
 
 function StockCountConfirmSummary({ steps, onConfirm, value }: { steps: WorkflowStepData[]; onConfirm: (val: string) => void; value: string }) {
   const countSteps = steps.filter(s => s.stepId.startsWith("count-") && s.value);
@@ -157,6 +159,8 @@ export function WorkflowExecutor({
   const [submitting, setSubmitting] = React.useState(false);
   const [aiVerification, setAIVerification] = React.useState<AIVerificationStatusProps['status'] | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [cameraOpen, setCameraOpen] = React.useState(false);
+  const { uploadPhotos, uploading: uploadingPhotos } = usePhotoUpload();
 
   const steps = execution.template.steps;
   const currentStep = steps[currentStepIndex];
@@ -187,9 +191,20 @@ export function WorkflowExecutor({
     }
   };
 
-  const { uploadFiles } = {
-    uploadFiles: async (files: File[]) => {
-      return files.map(file => ({ url: '', name: file.name }));
+  const uploadFiles = async (files: File[]): Promise<{ url: string; name: string }[]> => {
+    const results = await uploadPhotos(files);
+    return results.map((r) => ({ url: r.url, name: r.name }));
+  };
+
+  const handleCameraConfirm = async (files: File[]) => {
+    try {
+      const results = await uploadPhotos(files);
+      const newFiles = results.map((r) => {
+        return new File([], r.name);
+      });
+      setEvidenceFiles((prev) => [...(Array.isArray(prev) ? prev : []), ...newFiles]);
+    } catch {
+      toast.error("Error al subir las fotos");
     }
   };
 
@@ -397,10 +412,19 @@ export function WorkflowExecutor({
                   multiple
                   onChange={handleFileSelect}
                 />
-              </label>
-            </div>
+          </label>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Button variant="outline" className="w-full gap-2" onClick={() => setCameraOpen(true)} disabled={uploadingPhotos}>
+            <Camera className="w-4 h-4" />
+            Abrir Cámara
+          </Button>
+        </div>
+        {uploadingPhotos && (
+          <p className="text-sm text-muted-foreground text-center">Subiendo fotos...</p>
+        )}
 
-            {evidenceFiles.length > 0 && (
+        {evidenceFiles.length > 0 && (
               <div className="space-y-2">
                 <Label>Archivos seleccionados:</Label>
                 {evidenceFiles.map((file, index) => (
@@ -442,11 +466,12 @@ export function WorkflowExecutor({
                   })()}
                 </div>
               </div>
-            )}
-          </div>
-        );
+        )}
+        <CameraCapture open={cameraOpen} onOpenChange={setCameraOpen} onConfirm={handleCameraConfirm} maxPhotos={10} />
+      </div>
+    );
 
-      case 'INFO':
+  case 'INFO':
         return (
           <Alert>
             <AlertCircle className="h-4 w-4" />

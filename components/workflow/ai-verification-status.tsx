@@ -1,12 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { CheckCircle2, XCircle, AlertTriangle, Clock, RefreshCw, Upload, Image as ImageIcon } from "lucide-react";
+import { CheckCircle2, XCircle, AlertTriangle, Clock, RefreshCw, Upload, Image as ImageIcon, Camera } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { CameraCapture } from "@/components/shared/camera-capture";
+import { usePhotoUpload } from "@/components/shared/use-photo-upload";
 
 export interface AIVerificationStatus {
     verificationId?: string;
@@ -36,13 +38,29 @@ export function AIVerificationStatus({
     className
 }: AIVerificationStatusProps) {
     const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [cameraOpen, setCameraOpen] = React.useState(false);
+  const { uploadPhotos } = usePhotoUpload();
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file && onUpload) {
-            onUpload(file);
-        }
-    };
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && onUpload) {
+      onUpload(file);
+    }
+  };
+
+  const handleCameraConfirm = async (files: File[]) => {
+    try {
+      const results = await uploadPhotos(files);
+      if (results.length > 0 && onUpload) {
+        const response = await fetch(results[0].url);
+        const blob = await response.blob();
+        const file = new File([blob], results[0].name, { type: blob.type });
+        onUpload(file);
+      }
+    } catch {
+      // Upload error handled by hook error state
+    }
+  };
 
     const getStatusIcon = () => {
         switch (status.status) {
@@ -161,29 +179,32 @@ export function AIVerificationStatus({
                     </div>
                 )}
 
-                {/* Upload Button (if pending) */}
-                {status.status === 'pending' && onUpload && (
-                    <div className="flex flex-col items-center justify-center gap-4 py-8">
-                        <div className="text-center text-sm text-muted-foreground">
-                            Sube una foto para verificación
-                        </div>
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            capture="environment"
-                            className="hidden"
-                            onChange={handleFileChange}
-                        />
-                        <Button
-                            onClick={() => fileInputRef.current?.click()}
-                            className="gap-2"
-                        >
-                            <Upload className="h-4 w-4" />
-                            Subir Foto
-                        </Button>
-                    </div>
-                )}
+        {/* Upload Button (if pending) */}
+        {status.status === 'pending' && onUpload && (
+          <div className="flex flex-col items-center justify-center gap-4 py-8">
+            <div className="text-center text-sm text-muted-foreground">
+              Sube una foto para verificación
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <div className="flex gap-2">
+              <Button onClick={() => setCameraOpen(true)} variant="outline" className="gap-2">
+                <Camera className="h-4 w-4" />
+                Abrir Cámara
+              </Button>
+              <Button onClick={() => fileInputRef.current?.click()} className="gap-2">
+                <Upload className="h-4 w-4" />
+                Subir Foto
+              </Button>
+            </div>
+            <CameraCapture open={cameraOpen} onOpenChange={setCameraOpen} onConfirm={handleCameraConfirm} maxPhotos={1} />
+          </div>
+        )}
 
                 {/* AI Analysis Result */}
                 {status.reason && status.status !== 'pending' && (
