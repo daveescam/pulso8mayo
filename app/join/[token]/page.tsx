@@ -15,7 +15,7 @@ export default function JoinPage() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
-    const [branchInfo, setBranchInfo] = useState<{ branchName: string; companyName: string } | null>(null);
+    const [branchInfo, setBranchInfo] = useState<{ branchName: string; companyName: string; role: string } | null>(null);
     const [error, setError] = useState("");
 
     // Form state
@@ -141,11 +141,18 @@ export default function JoinPage() {
         <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
             <Card className="w-full max-w-md">
                 <CardHeader>
-                    <CardTitle>Únete al equipo</CardTitle>
+                    <CardTitle>
+                        {branchInfo.role === "GERENTE"
+                            ? "Únete como Gerente"
+                            : "Únete al equipo"}
+                    </CardTitle>
                     <CardDescription>
-                        Has sido invitado a unirte como gerente de{" "}
-                        <strong>{branchInfo.branchName}</strong>
-                        {branchInfo.companyName && ` en ${branchInfo.companyName}`}.
+                        {branchInfo.role === "GERENTE"
+                            ? <>Has sido invitado como gerente de <strong>{branchInfo.branchName}</strong>{branchInfo.companyName && ` en ${branchInfo.companyName}`}.
+                            </>
+                            : <>Has sido invitado a unirte al equipo de <strong>{branchInfo.branchName}</strong>{branchInfo.companyName && ` en ${branchInfo.companyName}`}.
+                            </>
+                        }
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -164,7 +171,7 @@ export default function JoinPage() {
 
                     <Button className="w-full" onClick={handleJoin} disabled={loading}>
                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Registrarse y Unirse
+                        {branchInfo.role === "GERENTE" ? "Registrarse como Gerente" : "Registrarse y Unirse"}
                     </Button>
                 </CardContent>
             </Card>
