@@ -31,19 +31,19 @@ export async function POST(req: NextRequest) {
             return ApiHandler.error(new Error("Unauthorized"));
         }
 
-        // Generate or get existing invite token
-        const inviteToken = branch.inviteToken || crypto.randomUUID();
+        // Generate or get existing manager invite token
+        const managerInviteToken = branch.managerInviteToken || crypto.randomUUID();
 
-        if (!branch.inviteToken) {
+        if (!branch.managerInviteToken) {
             await db.update(branches)
-                .set({ inviteToken })
+                .set({ managerInviteToken })
                 .where(eq(branches.id, branchId));
         }
 
         // Send email via Resend
         const resend = new Resend(process.env.RESEND_KEY);
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-        const inviteUrl = `${baseUrl}/join/${inviteToken}?email=${encodeURIComponent(email)}`;
+        const inviteUrl = `${baseUrl}/join/${managerInviteToken}?email=${encodeURIComponent(email)}`;
 
         console.log('[Invite Manager] Sending email to:', email);
         console.log('[Invite Manager] RESEND_KEY exists:', !!process.env.RESEND_KEY);
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
 
         return ApiHandler.success({ 
             message: "Invitation sent successfully",
-            inviteToken 
+            managerInviteToken 
         });
     } catch (error) {
         return ApiHandler.error(error);
