@@ -25,11 +25,13 @@ export const branches = pgTable("branches", {
   location: jsonb("location"),
   managerId: text("manager_id"),
   inviteToken: uuid("invite_token").default(sql`gen_random_uuid()`),
+  managerInviteToken: uuid("manager_invite_token").default(sql`gen_random_uuid()`),
   active: boolean("active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => {
   return {
     branchesInviteTokenUnique: uniqueIndex("branches_invite_token_unique").on(table.inviteToken),
+    branchesManagerInviteTokenUnique: uniqueIndex("branches_manager_invite_token_unique").on(table.managerInviteToken),
     branchesManagerIdFk: foreignKey({
       columns: [table.managerId],
       foreignColumns: [users.id],
