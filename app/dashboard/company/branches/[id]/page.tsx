@@ -31,6 +31,7 @@ interface Branch {
     location: any;
     managerId: string | null;
     inviteToken: string;
+    managerInviteToken: string;
     active: boolean;
 manager?: {
     id: string;
