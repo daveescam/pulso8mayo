@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { users, branches } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { ApiHandler } from "@/lib/api/response";
 import { ApiError } from "@/lib/api/error";
@@ -25,12 +25,21 @@ export async function POST(req: NextRequest) {
             throw ApiError.badRequest(`Invalid invite token format. Expected UUID, got: ${inviteToken}`);
         }
 
-        // 1. Validate Token
-        const branch = await db.query.branches.findFirst({
-            where: eq(branches.inviteToken, inviteToken)
+        // 1. Validate Token - check both employee and manager invite tokens
+        const branchesFound = await db.query.branches.findMany({
+            where: or(
+                eq(branches.inviteToken, inviteToken),
+                eq(branches.managerInviteToken, inviteToken)
+            )
         });
 
-        if (!branch) throw ApiError.badRequest("Invalid invite link");
+        if (branchesFound.length === 0) throw ApiError.badRequest("Invalid invite link");
+
+        const branch = branchesFound[0];
+
+        // Determine role based on which token matched
+        const isManagerInvite = branch.managerInviteToken === inviteToken;
+        const role = isManagerInvite ? "GERENTE" : "EMPLEADO";
 
         // 2. Check if user already exists
         const existingUser = await db.query.users.findFirst({
@@ -42,17 +51,19 @@ export async function POST(req: NextRequest) {
             await db.update(users).set({
                 companyId: branch.companyId,
                 branchId: branch.id,
-                role: "GERENTE",
+                role: role,
                 emailVerified: true,
                 name: name || existingUser.name
             }).where(eq(users.id, existingUser.id));
 
-            // Update branch managerId to point to this user
-            await db.update(branches).set({
-                managerId: existingUser.id
-            }).where(eq(branches.id, branch.id));
+            // Only update branch managerId if this is a manager invite
+            if (isManagerInvite) {
+                await db.update(branches).set({
+                    managerId: existingUser.id
+                }).where(eq(branches.id, branch.id));
+            }
 
-            return ApiHandler.success({ userId: existingUser.id, existing: true });
+            return ApiHandler.success({ userId: existingUser.id, existing: true, role });
         }
 
         // 3. Create new user via Auth
@@ -71,16 +82,18 @@ export async function POST(req: NextRequest) {
         await db.update(users).set({
             companyId: branch.companyId,
             branchId: branch.id,
-            role: "GERENTE",
+            role: role,
             emailVerified: true
         }).where(eq(users.id, newUserRes.user.id));
 
-        // Update branch managerId to point to this new user
-        await db.update(branches).set({
-            managerId: newUserRes.user.id
-        }).where(eq(branches.id, branch.id));
+        // Only update branch managerId if this is a manager invite
+        if (isManagerInvite) {
+            await db.update(branches).set({
+                managerId: newUserRes.user.id
+            }).where(eq(branches.id, branch.id));
+        }
 
-        return ApiHandler.success({ userId: newUserRes.user.id, existing: false });
+        return ApiHandler.success({ userId: newUserRes.user.id, existing: false, role });
 
     } catch (error) {
         return ApiHandler.error(error);
