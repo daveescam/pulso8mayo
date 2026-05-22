@@ -1,23 +1,18 @@
 /**
  * WhatsApp Client Factory
- * 
- * Feature flag para migración gradual de WasenderAPI a WAHA NOWEB
- * 
+ *
+ * Usa WAHA (WhatsApp HTTP API) con motor NOWEB.
+ * Singleton lazy-loading para todo el sistema de mensajería WhatsApp.
+ *
  * Uso:
- * - Establecer USE_WAHA=true en .env para usar WAHA
- * - Sin la variable o USE_WAHA=false usa WasenderAPI (legacy)
- * 
- * Esto permite:
- * 1. Migración gradual
- * 2. Rollback instantáneo si hay problemas
- * 3. Testing A/B comparando ambos motores
+ * import { whatsappClient } from '@/lib/whatsapp/client-factory';
+ * await whatsappClient.sendMessage({ sessionId, to, message });
  */
 
-import type { WasenderSession, SendMessageOptions, SendMediaOptions, RateLimitConfig } from './wasender-client';
+import type { SendMessageOptions, SendMediaOptions, RateLimitConfig } from './waha-client';
 import type { WAHASession } from './waha-client';
 
-// Tipo unificado para ambos clientes
-export type WhatsAppSession = WasenderSession | WAHASession;
+export type WhatsAppSession = WAHASession;
 
 export interface WhatsAppClient {
   sendMessage(options: SendMessageOptions): Promise<{ messageId: string; id?: string }>;
@@ -50,167 +45,43 @@ export interface WhatsAppClient {
   getChats(sessionId: string): Promise<any[]>;
 }
 
-// Cache de clientes
-let wasenderClientInstance: WhatsAppClient | null = null;
-let wahaClientInstance: WhatsAppClient | null = null;
+let clientInstance: WhatsAppClient | null = null;
 
-/**
- * Verificar si WAHA está habilitado
- */
-export function isWAHAEnabled(): boolean {
-  return process.env.USE_WAHA === 'true';
-}
-
-/**
- * Obtener cliente de WhatsApp según feature flag
- * @returns Cliente activo (Wasender o WAHA)
- */
 export async function getWhatsAppClient(): Promise<WhatsAppClient> {
-  if (isWAHAEnabled()) {
-    return getWAHAClient();
+  if (!clientInstance) {
+    const { getWAHAClient } = await import('./waha-client');
+    clientInstance = getWAHAClient();
   }
-  return getWasenderClient();
+  return clientInstance;
 }
 
-/**
- * Obtener cliente WasenderAPI (Legacy)
- */
-export async function getWasenderClient(): Promise<WhatsAppClient> {
-  if (!wasenderClientInstance) {
-    const { getWasenderClient: getWasender, WasenderClient } = await import('./wasender-client');
-    wasenderClientInstance = getWasender();
-  }
-  return wasenderClientInstance;
-}
-
-/**
- * Obtener cliente WAHA NOWEB
- */
-export async function getWAHAClient(): Promise<WhatsAppClient> {
-  if (!wahaClientInstance) {
-    const { getWAHAClient: getWAHA, WAHAClient } = await import('./waha-client');
-    wahaClientInstance = getWAHA();
-  }
-  return wahaClientInstance;
-}
-
-/**
- * Resetear caché de clientes
- * Útil para tests o cambios en runtime
- */
 export function resetClients(): void {
-  wasenderClientInstance = null;
-  wahaClientInstance = null;
+  clientInstance = null;
 }
 
-/**
- * Cambiar cliente en runtime
- * @param useWAHA - true para WAHA, false para Wasender
- */
-export function setClientMode(useWAHA: boolean): void {
-  process.env.USE_WAHA = useWAHA ? 'true' : 'false';
-  resetClients();
-}
-
-/**
- * Obtener información de ambos clientes
- * Útil para debugging y monitoreo
- */
-export function getClientInfo(): {
-  active: 'wasender' | 'waha';
-  wasenderConfigured: boolean;
-  wahaConfigured: boolean;
-  wasenderUrl: string | undefined;
-  wahaUrl: string | undefined;
-} {
+export function getClientInfo(): { active: string; wahaConfigured: boolean; wahaUrl: string | undefined } {
   return {
-    active: isWAHAEnabled() ? 'waha' : 'wasender',
-    wasenderConfigured: !!process.env.WASENDER_API_KEY,
+    active: 'waha',
     wahaConfigured: !!process.env.WAHA_API_URL,
-    wasenderUrl: process.env.WASENDER_API_URL,
     wahaUrl: process.env.WAHA_API_URL,
   };
 }
 
-/**
- * Cliente estático para backward compatibility
- * 
- * Este objeto exporta los métodos más comunes para uso directo
- * sin necesidad de llamar async getWhatsAppClient()
- * 
- * Ejemplo:
- * import { whatsappClient } from '@/lib/whatsapp/client-factory';
- * await whatsappClient.sendMessage({ sessionId, to, message });
- */
 export const whatsappClient = {
-  sendMessage: async (opts: SendMessageOptions) => {
-    const client = await getWhatsAppClient();
-    return client.sendMessage(opts);
-  },
-  sendMedia: async (opts: SendMediaOptions) => {
-    const client = await getWhatsAppClient();
-    return client.sendMedia(opts);
-  },
-  sendImage: async (sessionId: string, to: string, imageUrl: string, caption?: string) => {
-    const client = await getWhatsAppClient();
-    return client.sendImage(sessionId, to, imageUrl, caption);
-  },
-  sendDocument: async (sessionId: string, to: string, documentUrl: string, caption?: string) => {
-    const client = await getWhatsAppClient();
-    return client.sendDocument(sessionId, to, documentUrl, caption);
-  },
-  sendWorkflowAssignment: async (
-    sessionId: string,
-    phone: string,
-    workflowName: string,
-    link: string,
-    type?: 'ASSIGNED' | 'REMINDER'
-  ) => {
-    const client = await getWhatsAppClient();
-    return client.sendWorkflowAssignment(sessionId, phone, workflowName, link, type);
-  },
-  createSession: async (companyId: string) => {
-    const client = await getWhatsAppClient();
-    return client.createSession(companyId);
-  },
-  getSessions: async () => {
-    const client = await getWhatsAppClient();
-    return client.getSessions();
-  },
-  getSession: async (sessionId: string) => {
-    const client = await getWhatsAppClient();
-    return client.getSession(sessionId);
-  },
-  deleteSession: async (sessionId: string) => {
-    const client = await getWhatsAppClient();
-    return client.deleteSession(sessionId);
-  },
-  getQRCode: async (sessionId: string) => {
-    const client = await getWhatsAppClient();
-    return client.getQRCode(sessionId);
-  },
-  checkRateLimit: async (sessionId: string) => {
-    const client = await getWhatsAppClient();
-    return client.checkRateLimit(sessionId);
-  },
-  setRateLimits: async (config: Partial<RateLimitConfig>) => {
-    const client = await getWhatsAppClient();
-    return client.setRateLimits(config);
-  },
-  verifyWebhookSignature: async (payload: string, signature: string) => {
-    const client = await getWhatsAppClient();
-    return client.verifyWebhookSignature(payload, signature);
-  },
-  sendBulkMessages: async (sessionId: string, messages: Array<{ to: string; message: string }>) => {
-    const client = await getWhatsAppClient();
-    return client.sendBulkMessages(sessionId, messages);
-  },
-  getChatHistory: async (params: { sessionId: string; chatId: string; limit?: number; cursor?: string }) => {
-    const client = await getWhatsAppClient();
-    return client.getChatHistory(params);
-  },
-  getChats: async (sessionId: string) => {
-    const client = await getWhatsAppClient();
-    return client.getChats(sessionId);
-  },
+  sendMessage: async (opts: SendMessageOptions) => { const c = await getWhatsAppClient(); return c.sendMessage(opts); },
+  sendMedia: async (opts: SendMediaOptions) => { const c = await getWhatsAppClient(); return c.sendMedia(opts); },
+  sendImage: async (sessionId: string, to: string, imageUrl: string, caption?: string) => { const c = await getWhatsAppClient(); return c.sendImage(sessionId, to, imageUrl, caption); },
+  sendDocument: async (sessionId: string, to: string, documentUrl: string, caption?: string) => { const c = await getWhatsAppClient(); return c.sendDocument(sessionId, to, documentUrl, caption); },
+  sendWorkflowAssignment: async (sessionId: string, phone: string, workflowName: string, link: string, type?: 'ASSIGNED' | 'REMINDER') => { const c = await getWhatsAppClient(); return c.sendWorkflowAssignment(sessionId, phone, workflowName, link, type); },
+  createSession: async (companyId: string) => { const c = await getWhatsAppClient(); return c.createSession(companyId); },
+  getSessions: async () => { const c = await getWhatsAppClient(); return c.getSessions(); },
+  getSession: async (sessionId: string) => { const c = await getWhatsAppClient(); return c.getSession(sessionId); },
+  deleteSession: async (sessionId: string) => { const c = await getWhatsAppClient(); return c.deleteSession(sessionId); },
+  getQRCode: async (sessionId: string) => { const c = await getWhatsAppClient(); return c.getQRCode(sessionId); },
+  checkRateLimit: async (sessionId: string) => { const c = await getWhatsAppClient(); return c.checkRateLimit(sessionId); },
+  setRateLimits: async (config: Partial<RateLimitConfig>) => { const c = await getWhatsAppClient(); return c.setRateLimits(config); },
+  verifyWebhookSignature: async (payload: string, signature: string) => { const c = await getWhatsAppClient(); return c.verifyWebhookSignature(payload, signature); },
+  sendBulkMessages: async (sessionId: string, messages: Array<{ to: string; message: string }>) => { const c = await getWhatsAppClient(); return c.sendBulkMessages(sessionId, messages); },
+  getChatHistory: async (params: { sessionId: string; chatId: string; limit?: number; cursor?: string }) => { const c = await getWhatsAppClient(); return c.getChatHistory(params); },
+  getChats: async (sessionId: string) => { const c = await getWhatsAppClient(); return c.getChats(sessionId); },
 };

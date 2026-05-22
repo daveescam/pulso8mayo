@@ -340,10 +340,10 @@ export function AppSidebar({ user, company, branches, currentBranchId, ...props 
   const userRole = user.role || 'EMPLEADO';
 
   const filteredNavMain = navMain.filter(section => {
-    if (userRole === 'EMPLEADO' || userRole === 'READONLY') {
-      if (userRole === 'EMPLEADO') {
-        return section.title === 'Operación' || section.title === 'Personal';
-      }
+    if (userRole === 'EMPLEADO') {
+      return section.title === 'Flujos de Trabajo' || section.title === 'Perfil';
+    }
+    if (userRole === 'READONLY') {
       return section.title === 'Tablero' || section.title === 'Cumplimiento' || section.title === 'Desempeño' || section.title === 'Perfil';
     }
     if (userRole === 'SUPERVISOR') {
@@ -356,7 +356,8 @@ export function AppSidebar({ user, company, branches, currentBranchId, ...props 
   }).map(section => {
     const filteredItems = section.items?.filter(item => {
       if (userRole === 'EMPLEADO') {
-        return !item.url.includes('/schedules') && !item.url.includes('/builder') && !item.url.includes('/employees');
+        return !item.url.includes('/builder') &&
+        !item.url.includes('/history');
       }
       if (userRole === 'READONLY') {
         return !item.url.includes('/builder') && !item.url.includes('/employees/onboarding') && !item.url.includes('/employees/offboarding');

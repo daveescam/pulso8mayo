@@ -1,10 +1,12 @@
-import { requireManagementRole } from "@/lib/rbac/require-role"
-import OperationsClient from "./operations-client"
+"use client";
 
-export default async function OperationsPage() {
-  await requireManagementRole();
-  return <OperationsClient />
-}
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { OperationsTabs } from "@/components/dashboard/operations/operations-tabs";
+import { DashboardFilters } from "@/components/dashboard/dashboard-filters";
+import { TemperatureMonitor } from "@/components/dashboard/operations/temperature-monitor";
+
+export default function OperationsClient() {
   const searchParams = useSearchParams();
   const branchId = searchParams.get("branch") || "all";
   const startDate = searchParams.get("startDate");

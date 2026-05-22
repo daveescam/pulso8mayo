@@ -796,8 +796,8 @@ export const whatsappSessions = pgTable("whatsapp_sessions", {
     id: uuid("id").default(sql`gen_random_uuid()`).primaryKey().notNull(),
     companyId: uuid("company_id").notNull().references(() => companies.id),
 
-    // WasenderAPI session info
-    sessionId: text("session_id").notNull().unique(), // External session ID from WasenderAPI
+    // WhatsApp session info
+    sessionId: text("session_id").notNull().unique(), // External session ID from WhatsApp API
     phoneNumber: text("phone_number"), // Connected WhatsApp number
 
     // Status
@@ -870,7 +870,7 @@ export const whatsappMessages = pgTable("whatsapp_messages", {
     updatedAt: timestamp("updated_at").defaultNow(),
 
     // Metadata
-    externalMessageId: text("external_message_id"), // WasenderAPI message ID
+    externalMessageId: text("external_message_id"), // External WhatsApp message ID
     timestamp: timestamp("timestamp").defaultNow().notNull(),
 });
 

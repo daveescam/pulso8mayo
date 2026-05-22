@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Clock, Users, MapPin, TrendingUp, FileText, ArrowLeftRight, Flag, CheckSquare, Coffee, FolderOpen, UserCheck, AlertTriangle, CheckCircle, BarChart3, ClipboardList, Shield, Zap } from "lucide-react"
 import Link from "next/link"
+import { requireManagementRole } from "@/lib/rbac/require-role"
 
 export default async function LaborManagementPage() {
+  await requireManagementRole();
   const tenant = await getCurrentTenant();
   const companyId = tenant.id;
   const branchId = tenant.branchId;

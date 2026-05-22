@@ -101,3 +101,36 @@ export function useRequireAuth(redirectUrl = "/sign-in") {
         isAuthenticated: !!session,
     };
 }
+
+// Roles hierarchy - higher roles include lower role permissions
+const ROLE_HIERARCHY: Record<string, number> = {
+  'SUPER_ADMIN': 6,
+  'ADMIN': 5,
+  'GERENTE': 4,
+  'SUPERVISOR': 3,
+  'READONLY': 2,
+  'EMPLEADO': 1,
+};
+
+export function useRequireRole(requiredRoles: string[], redirectTo = "/dashboard") {
+  const { session, loading } = useSession();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (!loading && session) {
+      const userRole = session.user.role || 'EMPLEADO';
+      const hasAccess = requiredRoles.includes(userRole);
+
+      if (!hasAccess) {
+        router.push(redirectTo);
+      }
+    }
+  }, [session, loading, router, redirectTo, pathname, requiredRoles]);
+
+  return {
+    session,
+    loading,
+    hasAccess: !loading && session ? requiredRoles.includes(session.user.role || 'EMPLEADO') : false,
+  };
+}

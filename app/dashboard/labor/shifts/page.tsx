@@ -6,7 +6,14 @@
  */
 
 import { ShiftSchedulerContainer } from "@/components/labor/shifts";
+import { useRequireRole } from "@/hooks/use-session";
 
 export default function ShiftsPage() {
+  const { loading } = useRequireRole(['SUPER_ADMIN', 'ADMIN', 'GERENTE', 'SUPERVISOR']);
+
+  if (loading) {
+    return null;
+  }
+
   return <ShiftSchedulerContainer />;
 }

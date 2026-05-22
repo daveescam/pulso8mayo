@@ -10,7 +10,7 @@ import { eq } from 'drizzle-orm';
 import { whatsappClient } from '@/lib/whatsapp/client-factory';
 
 function isWhatsAppConfigured(): boolean {
-  return !!(process.env.WASENDER_API_KEY || process.env.WAHA_API_URL);
+  return !!process.env.WAHA_API_URL;
 }
 
 let resend: any = null;

@@ -1,8 +1,10 @@
 import { HolidayCalendar } from "@/components/labor/holiday-calendar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Flag, Calendar, Info } from "lucide-react"
+import { requireManagementRole } from "@/lib/rbac/require-role"
 
-export default function HolidaysPage() {
+export default async function HolidaysPage() {
+  await requireManagementRole();
     return (
         <div className="space-y-6">
             {/* Header */}

@@ -1,9 +1,18 @@
+"use client";
+
 import { ShiftChangeRequestList } from "@/components/labor/shift-change-request-list"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ArrowLeftRight, Info } from "lucide-react"
+import { useRequireRole } from "@/hooks/use-session"
 
 export default function ShiftChangeRequestsPage() {
+    const { loading } = useRequireRole(['SUPER_ADMIN', 'ADMIN', 'GERENTE', 'SUPERVISOR']);
+
+    if (loading) {
+        return null;
+    }
+
     return (
         <div className="space-y-6">
             {/* Header */}

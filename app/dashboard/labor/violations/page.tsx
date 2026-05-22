@@ -4,13 +4,10 @@ import { LFTViolationsTable } from '@/components/reports/lft-violations-table';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { requireManagementRole } from '@/lib/rbac/require-role';
 
 export default async function LFTViolationsPage() {
-    const session = await auth.api.getSession();
-
-    if (!session?.user) {
-        redirect('/sign-in');
-    }
+  await requireManagementRole();
 
     return (
         <div className="container mx-auto py-8">

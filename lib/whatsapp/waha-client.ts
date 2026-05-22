@@ -1,13 +1,12 @@
 /**
  * WAHA WhatsApp Client
- * Reemplazo para wasender-client.ts
- * Compatible con motor NOWEB (sin navegador)
- * 
+ * Cliente WhatsApp HTTP API con motor NOWEB (sin navegador)
+ *
  * Ventajas de NOWEB:
  * - Sin Chromium/Chrome requerido
  * - Menor consumo de CPU (~50-100MB vs ~300-500MB)
  * - WebSocket directo a WhatsApp
- * 
+ *
  * @see https://waha.devlike.pro/docs/engines/noweb/
  */
 
@@ -15,7 +14,7 @@ import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios';
 import { wahaConfig, WAHA_ENDPOINTS, mapWAHAStatusToInternal } from '@/config/waha-config';
 
 // ============================================================================
-// INTERFACES (Compatibles con wasender-client.ts)
+// INTERFACES
 // ============================================================================
 
 export interface WAHASession {
@@ -586,7 +585,7 @@ export function isWhatsAppConfigured(): boolean {
 }
 
 // ============================================================================
-// COMPATIBILIDAD CON wasender-client.ts
+// CLIENTE DE CONVENIENCIA
 // ============================================================================
 
 export const wahaClient = {
@@ -609,6 +608,3 @@ export async function sendWhatsAppMessage(to: string, message: string): Promise<
     message,
   });
 }
-
-// Re-exportar tipos para compatibilidad
-export type { WAHASession as WasenderSession };

@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Plus, Users, Clock, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { useSession } from "@/hooks/use-session";
+import { useSession, useRequireRole } from "@/hooks/use-session";
 import { toast } from "sonner";
 
 interface Onboarding {
@@ -28,8 +28,13 @@ interface Onboarding {
 }
 
 export default function OnboardingDashboard() {
+  const { loading } = useRequireRole(['SUPER_ADMIN', 'ADMIN', 'GERENTE', 'SUPERVISOR']);
   const { session } = useSession();
   const router = useRouter();
+
+  if (loading) {
+    return null;
+  }
   const [onboardings, setOnboardings] = useState<Onboarding[]>([]);
   const [loading, setLoading] = useState(true);
 

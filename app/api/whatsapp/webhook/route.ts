@@ -1,11 +1,8 @@
 /**
  * WhatsApp Webhook Handler
- * 
- * Soporta ambos formatos:
- * - WasenderAPI (Legacy): { event, sessionId, data }
- * - WAHA NOWEB: { event, session, payload }
- * 
- * Esto permite migración gradual y rollback si es necesario.
+ *
+ * Recibe eventos de WAHA (WhatsApp HTTP API) con motor NOWEB.
+ * Maneja mensajes entrantes, cambios de estado, QR codes y ACKs.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -18,29 +15,6 @@ import { eq, and } from 'drizzle-orm';
 // ============================================================================
 // TIPOS DE PAYLOAD
 // ============================================================================
-
-/** Payload de WasenderAPI (Legacy) */
-interface WasenderWebhookPayload {
-  event: string;
-  sessionId: string;
-  data: {
-    from: string;
-    to?: string;
-    message?: string;
-    text?: string;
-    type?: string;
-    messageId?: string;
-    mediaUrl?: string;
-    fromMe?: boolean;
-    phoneNumber?: string;
-    qrCode?: string;
-    timestamp?: number;
-    latitude?: number;
-    longitude?: number;
-    loc?: { latitude: number; longitude: number };
-    accuracy?: number;
-  };
-}
 
 /** Payload de WAHA NOWEB */
 interface WAHAWebhookPayload {
@@ -55,15 +29,12 @@ interface WAHAWebhookPayload {
     type: string;
     hasMedia: boolean;
     ack?: number;
-    // Media
     mediaUrl?: string;
     caption?: string;
-    // Location
     location?: {
       latitude: number;
       longitude: number;
     };
-    // Status
     status?: string;
     error?: string;
   };
@@ -86,70 +57,33 @@ interface NormalizedPayload {
     longitude: number;
     accuracy?: number;
   };
-  isWAHA: boolean;
 }
 
 // ============================================================================
-// DETECTAR Y NORMALIZAR PAYLOAD
+// NORMALIZAR PAYLOAD
 // ============================================================================
 
-function detectPayloadType(body: any): 'wasender' | 'waha' {
-  if (body.session !== undefined && body.payload !== undefined) {
-    return 'waha';
-  }
-  return 'wasender';
-}
+function normalizePayload(body: WAHAWebhookPayload): NormalizedPayload {
+  const { event, session, payload } = body;
 
-function normalizePayload(body: WasenderWebhookPayload | WAHAWebhookPayload): NormalizedPayload {
-  const type = detectPayloadType(body);
-  
-  if (type === 'waha') {
-    const wahaBody = body as WAHAWebhookPayload;
-    const { payload, session } = wahaBody;
-    
-    // Extraer número de teléfono del formato "5215512345678@c.us"
-    const from = payload.from.replace(/@c\.us$|@s\.whatsapp\.net$/, '');
-    
-    return {
-      event: wahaBody.event,
-      sessionId: session,
-      from,
-      to: undefined,
-      message: payload.body || '',
-      type: payload.type === 'chat' ? 'text' : payload.type,
-      messageId: payload.id,
-      timestamp: new Date(payload.timestamp * 1000), // WAHA envía segundos
-      fromMe: payload.fromMe,
-      mediaUrl: payload.mediaUrl,
-      location: payload.location ? {
-        latitude: payload.location.latitude,
-        longitude: payload.location.longitude,
-      } : undefined,
-      isWAHA: true,
-    };
-  } else {
-    const wasenderBody = body as WasenderWebhookPayload;
-    const { event, sessionId, data } = wasenderBody;
-    
-    return {
-      event,
-      sessionId,
-      from: data.from,
-      to: data.to,
-      message: data.message || data.text || '',
-      type: data.type || 'text',
-      messageId: data.messageId || '',
-      timestamp: new Date(data.timestamp || Date.now()),
-      fromMe: data.fromMe || false,
-      mediaUrl: data.mediaUrl,
-      location: data.latitude ? {
-        latitude: data.latitude,
-        longitude: data.longitude || data.loc?.longitude,
-        accuracy: data.accuracy,
-      } : undefined,
-      isWAHA: false,
-    };
-  }
+  const from = payload.from.replace(/@c\.us$|@s\.whatsapp\.net$/, '');
+
+  return {
+    event,
+    sessionId: session,
+    from,
+    to: undefined,
+    message: payload.body || '',
+    type: payload.type === 'chat' ? 'text' : payload.type,
+    messageId: payload.id,
+    timestamp: new Date(payload.timestamp * 1000),
+    fromMe: payload.fromMe,
+    mediaUrl: payload.mediaUrl,
+    location: payload.location ? {
+      latitude: payload.location.latitude,
+      longitude: payload.location.longitude,
+    } : undefined,
+  };
 }
 
 // ============================================================================
@@ -158,29 +92,12 @@ function normalizePayload(body: WasenderWebhookPayload | WAHAWebhookPayload): No
 
 async function handleQR(normalized: NormalizedPayload) {
   await sessionManager.updateSessionStatus(normalized.sessionId, 'CONNECTING');
-  
-  // Para WAHA, el QR se obtiene por separado vía API
-  // Para Wasender, viene en el webhook
-  if (!normalized.isWAHA) {
-    const wasenderData = (normalized as any).wasenderData;
-    if (wasenderData?.qrCode) {
-      await db.update(whatsappSessions)
-        .set({
-          qrCode: wasenderData.qrCode,
-          qrCodeExpiresAt: new Date(Date.now() + 60000),
-          updatedAt: new Date(),
-        })
-        .where(eq(whatsappSessions.sessionId, normalized.sessionId));
-    }
-  }
 }
 
 async function handleReady(normalized: NormalizedPayload) {
-  const wasenderData = (normalized as any).wasenderData;
   await sessionManager.updateSessionStatus(
     normalized.sessionId,
-    'CONNECTED',
-    wasenderData?.phoneNumber
+    'CONNECTED'
   );
   console.log(`[WhatsApp Webhook] Session ${normalized.sessionId} connected`);
 }
@@ -191,11 +108,8 @@ async function handleDisconnected(normalized: NormalizedPayload) {
 }
 
 async function handleMessageAck(normalized: NormalizedPayload) {
-  // WAHA envía message.ack para confirmar estado de mensajes enviados
-  // ack: 1 = Enviado, 2 = Recibido, 3 = Leído
   console.log('[WAHA] Message ACK:', normalized.messageId, normalized.event);
-  
-  // Actualizar estado del mensaje en base de datos
+
   await db.update(whatsappMessages)
     .set({
       status: mapAckToStatus((normalized as any).ack),
@@ -204,21 +118,18 @@ async function handleMessageAck(normalized: NormalizedPayload) {
 }
 
 async function handleSessionStatus(normalized: NormalizedPayload) {
-  // WAHA envía session.status para cambios de estado
   const status = (normalized as any).status;
   console.log('[WAHA] Session status:', normalized.sessionId, status);
-  
+
   const mappedStatus = mapWAHASessionStatus(status);
   await sessionManager.updateSessionStatus(normalized.sessionId, mappedStatus);
 }
 
-async function handleMessage(normalized: NormalizedPayload, req: NextRequest) {
-  // Ignorar mensajes propios
+async function handleMessage(normalized: NormalizedPayload) {
   if (normalized.fromMe) {
     return;
   }
 
-  // Log message to database
   await db.insert(whatsappMessages).values({
     sessionId: (await sessionManager.getSession(normalized.sessionId))?.id || '',
     direction: 'INBOUND',
@@ -231,7 +142,6 @@ async function handleMessage(normalized: NormalizedPayload, req: NextRequest) {
     processed: false,
   });
 
-  // Check for opt-out/opt-in commands
   if (normalized.type === 'text') {
     const messageText = normalized.message.toLowerCase().trim();
     const isOptOut = ['stop', 'alto', 'parar', 'no notificar', 'opt-out', 'unsubscribe'].some(cmd =>
@@ -252,7 +162,6 @@ async function handleMessage(normalized: NormalizedPayload, req: NextRequest) {
         });
 
         if (user) {
-          // Update notification preferences
           await db.insert(notificationPreferences)
             .values({
               userId: user.id,
@@ -266,33 +175,21 @@ async function handleMessage(normalized: NormalizedPayload, req: NextRequest) {
               },
             });
 
-          // Enviar confirmación usando el cliente apropiado
           const confirmationMessage = isOptIn
             ? `✅ *Notificaciones Activadas*\n\nHas activado las notificaciones de WhatsApp.\n\nEscribe *ayuda* para ver los comandos disponibles.`
             : `🛑 *Notificaciones Desactivadas*\n\nHas desactivado las notificaciones de WhatsApp.\n\nPara reactivarlas, escribe *inicio*.`;
 
-          // Importar cliente dinámicamente según configuración
-          if (process.env.USE_WAHA === 'true') {
-            const { wahaClient } = await import('@/lib/whatsapp/waha-client');
-            await wahaClient.sendMessage({
-              sessionId: normalized.sessionId,
-              to: normalized.from,
-              message: confirmationMessage,
-            });
-          } else {
-            const { wasenderClient } = await import('@/lib/whatsapp/wasender-client');
-            await wasenderClient.sendMessage({
-              sessionId: normalized.sessionId,
-              to: normalized.from,
-              message: confirmationMessage,
-            });
-          }
+          const { whatsappClient } = await import('@/lib/whatsapp/client-factory');
+          await whatsappClient.sendMessage({
+            sessionId: normalized.sessionId,
+            to: normalized.from,
+            message: confirmationMessage,
+          });
 
           console.log(`[WhatsApp Webhook] User ${user.id} ${isOptIn ? 'opted-in' : 'opted-out'} WhatsApp notifications`);
         }
       }
 
-      // Mark as processed and skip command routing
       await db.update(whatsappMessages)
         .set({ processed: true })
         .where(eq(whatsappMessages.externalMessageId, normalized.messageId));
@@ -301,7 +198,6 @@ async function handleMessage(normalized: NormalizedPayload, req: NextRequest) {
     }
   }
 
-  // Route message to command handler
   const result = await messageRouter.routeMessage({
     sessionId: normalized.sessionId,
     from: normalized.from,
@@ -317,7 +213,6 @@ async function handleMessage(normalized: NormalizedPayload, req: NextRequest) {
     await sessionManager.recordError(normalized.sessionId, result.error || 'Unknown error');
   }
 
-  // Mark message as processed
   await db.update(whatsappMessages)
     .set({ processed: true })
     .where(eq(whatsappMessages.externalMessageId, normalized.messageId));
@@ -351,23 +246,16 @@ function mapWAHASessionStatus(status: string): 'DISCONNECTED' | 'CONNECTING' | '
 // API ROUTES
 // ============================================================================
 
-/**
- * POST /api/whatsapp/webhook
- * Handle incoming WhatsApp messages from WasenderAPI or WAHA
- */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    
-    // Log incoming webhook for debugging
+
     console.log('[WhatsApp Webhook] Received:', JSON.stringify(body, null, 2));
 
-    // Detectar y normalizar payload
-    const normalized = normalizePayload(body as any);
-    
-    console.log(`[WhatsApp Webhook] Detected ${normalized.isWAHA ? 'WAHA' : 'Wasender'} format, event: ${normalized.event}`);
+    const normalized = normalizePayload(body as WAHAWebhookPayload);
 
-    // Manejar diferentes tipos de eventos
+    console.log(`[WhatsApp Webhook] WAHA event: ${normalized.event}`);
+
     switch (normalized.event) {
       case 'qr':
         await handleQR(normalized);
@@ -382,16 +270,14 @@ export async function POST(req: NextRequest) {
         break;
 
       case 'message':
-        await handleMessage(normalized, req);
+        await handleMessage(normalized);
         break;
 
       case 'message.ack':
-        // WAHA específico: acknowledgement de mensajes
         await handleMessageAck(normalized);
         break;
 
       case 'session.status':
-        // WAHA específico: cambios de estado de sesión
         await handleSessionStatus(normalized);
         break;
 
@@ -409,14 +295,10 @@ export async function POST(req: NextRequest) {
   }
 }
 
-/**
- * GET /api/whatsapp/webhook
- * Health check endpoint
- */
-export async function GET(req: NextRequest) {
-  return NextResponse.json({ 
-    status: 'alive', 
+export async function GET(_req: NextRequest) {
+  return NextResponse.json({
+    status: 'alive',
     service: 'whatsapp-webhook',
-    supports: ['wasender', 'waha']
+    supports: ['waha']
   });
 }

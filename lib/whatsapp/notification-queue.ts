@@ -160,7 +160,7 @@ export class NotificationQueue {
             
             // Use the dispatcher to send based on template type
             // This is a simplified version - in production you'd map templates to specific methods
-            const { wasenderClient } = await import('@/lib/whatsapp/wasender-client');
+            const { whatsappClient } = await import('@/lib/whatsapp/client-factory');
             const { sessionManager } = await import('@/lib/whatsapp/session-manager');
 
             // Get user's company to find session
@@ -180,7 +180,7 @@ export class NotificationQueue {
             }
 
             // Send message
-            const result = await wasenderClient.sendMessage({
+            const result = await whatsappClient.sendMessage({
                 sessionId: session.sessionId,
                 to: options.recipientAddress,
                 message: this.formatMessage(options.template, options.payload),

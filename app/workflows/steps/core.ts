@@ -106,7 +106,7 @@ export async function getWorkflowStatus(instanceId: string) {
 
 /**
  * Sends a WhatsApp notification to the user.
- * Wraps the WasenderClient to be used as a workflow step.
+ * Wraps the WhatsApp client to be used as a workflow step.
  */
 export async function sendWhatsAppNotification(userId: string, message: string) {
     "use step";

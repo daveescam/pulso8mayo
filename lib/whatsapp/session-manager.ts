@@ -3,9 +3,7 @@
  * 
  * Maneja sesiones de WhatsApp para empresas, incluyendo creación,
  * seguimiento de estado y persistencia en base de datos.
- * 
- * Soporte dual: WasenderAPI (Legacy) y WAHA NOWEB
- * Usa feature flag USE_WAHA para migración gradual
+ * Usa WAHA (WhatsApp HTTP API) con motor NOWEB.
  */
 
 import { db } from '@/lib/db';
@@ -28,24 +26,11 @@ export interface SessionInfo {
 }
 
 /**
- * Cliente WhatsApp dinámico
- * Selecciona WasenderAPI o WAHA según feature flag
+ * Cliente WhatsApp - WAHA (NOWEB)
  */
 async function getWhatsAppClient() {
-  if (process.env.USE_WAHA === 'true') {
-    const { wahaClient, getWAHAClient } = await import('./waha-client');
-    return { client: getWAHAClient(), legacy: wahaClient };
-  } else {
-    const { wasenderClient, getWasenderClient } = await import('./wasender-client');
-    return { client: getWasenderClient(), legacy: wasenderClient };
-  }
-}
-
-/**
- * Verificar si WAHA está configurado
- */
-function isWAHAEnabled(): boolean {
-  return process.env.USE_WAHA === 'true';
+  const { getWAHAClient } = await import('./waha-client');
+  return { client: getWAHAClient() };
 }
 
 export class SessionManager {

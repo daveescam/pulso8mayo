@@ -1,35 +1,31 @@
+"use client";
+
 import { VacationManager } from "@/components/labor/vacation-manager"
-import { auth } from "@/lib/auth"
-import { headers } from "next/headers"
-import { redirect } from "next/navigation"
-import { db } from "@/lib/db"
-import { users } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
+import { useRequireRole } from "@/hooks/use-session"
 
-export default async function VacationsPage() {
-  const session = await auth.api.getSession({ headers: await headers() })
+export default function VacationsPage() {
+  const { loading, session } = useRequireRole(['SUPER_ADMIN', 'ADMIN', 'GERENTE', 'SUPERVISOR'])
 
-  if (!session?.user?.id) {
-    redirect("/sign-in")
+  if (loading) {
+    return null
   }
 
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, session.user.id))
+  const userId = session?.user?.id
+  const companyId = session?.user?.companyId
+  const userRole = session?.user?.role
 
-  if (!user || !user.companyId) {
-    redirect("/onboarding")
+  if (!userId || !companyId) {
+    return null
   }
 
-  const canApprove = ["ADMIN", "GERENTE", "SUPER_ADMIN"].includes(user.role || "")
+  const canApprove = ["ADMIN", "GERENTE", "SUPER_ADMIN"].includes(userRole || "")
 
   return (
     <div className="space-y-6">
       <VacationManager
-        companyId={user.companyId}
-        branchId={(user as any).branchId || undefined}
-        userId={user.id}
+        companyId={companyId}
+        branchId={session?.user?.branchId}
+        userId={userId}
         canApprove={canApprove}
       />
     </div>

@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Plus, LogOut, Clock, CheckCircle, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { useSession } from "@/hooks/use-session";
+import { useSession, useRequireRole } from "@/hooks/use-session";
 import { toast } from "sonner";
 
 interface Offboarding {
@@ -29,8 +29,13 @@ interface Offboarding {
 }
 
 export default function OffboardingDashboard() {
+  const { loading } = useRequireRole(['SUPER_ADMIN', 'ADMIN', 'GERENTE', 'SUPERVISOR']);
   const { session } = useSession();
   const router = useRouter();
+
+  if (loading) {
+    return null;
+  }
   const [offboardings, setOffboardings] = useState<Offboarding[]>([]);
   const [loading, setLoading] = useState(true);
 

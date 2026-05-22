@@ -1,18 +1,13 @@
-import { auth } from '@/lib/auth';
-import { redirect } from 'next/navigation';
 import { OvertimeApprovalList } from '@/components/labor/overtime-approval-list';
 import { OvertimeRequestForm } from '@/components/labor/overtime-request-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Plus } from 'lucide-react';
 import Link from 'next/link';
+import { requireManagementRole } from '@/lib/rbac/require-role';
 
 export default async function OvertimeRequestsPage() {
-    const session = await auth.api.getSession();
-
-    if (!session?.user) {
-        redirect('/sign-in');
-    }
+  const { session } = await requireManagementRole();
 
     return (
         <div className="container mx-auto py-8">

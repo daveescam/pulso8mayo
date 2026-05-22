@@ -145,7 +145,7 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(new URL("/dashboard", request.url));
       }
 
-      const userRole = user.role as 'SUPER_ADMIN' | 'ADMIN' | 'GERENTE' | 'SUPERVISOR' | 'EMPLEADO' | 'READONLY';
+      const userRole = (user.role || 'EMPLEADO') as 'SUPER_ADMIN' | 'ADMIN' | 'GERENTE' | 'SUPERVISOR' | 'EMPLEADO' | 'READONLY';
       const requestedPath = request.nextUrl.pathname;
 
       if (!requestedPath.startsWith('/api') && !requestedPath.startsWith('/join')) {

@@ -1,10 +1,24 @@
-import { requireManagementRole } from "@/lib/rbac/require-role"
-import GeolocationClient from "./geolocation-client"
+"use client"
 
-export default async function GeolocationPage() {
-  await requireManagementRole();
-  return <GeolocationClient />
+import * as React from "react"
+import { GeolocationVerify } from "@/components/labor/geolocation-verify"
+import { ClockInMap, type ClockInLocation, type BranchLocation } from "@/components/labor/clock-in-map"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { toast } from "sonner"
+import { MapPin, Loader2 } from "lucide-react"
+import { authClient } from "@/lib/auth-client"
+
+interface BranchWithLocation {
+  id: string
+  name: string
+  latitude: number | null
+  longitude: number | null
+  radius: number
 }
+
+export default function GeolocationClient() {
   const { data: session } = authClient.useSession()
   const [branches, setBranches] = React.useState<BranchWithLocation[]>([])
   const [selectedBranchId, setSelectedBranchId] = React.useState<string>("")
@@ -106,12 +120,12 @@ export default async function GeolocationPage() {
 
   const branchLocation: BranchLocation | undefined = selectedBranch?.latitude && selectedBranch?.longitude
     ? {
-        id: selectedBranch.id,
-        name: selectedBranch.name,
-        latitude: selectedBranch.latitude,
-        longitude: selectedBranch.longitude,
-        radius: selectedBranch.radius,
-      }
+      id: selectedBranch.id,
+      name: selectedBranch.name,
+      latitude: selectedBranch.latitude,
+      longitude: selectedBranch.longitude,
+      radius: selectedBranch.radius,
+    }
     : undefined
 
   if (loadingBranches) {

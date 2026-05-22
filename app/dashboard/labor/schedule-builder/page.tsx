@@ -1,6 +1,15 @@
+"use client";
+
 import { UnifiedShiftScheduler } from "@/components/labor/unified-shift-scheduler";
+import { useRequireRole } from "@/hooks/use-session";
 
 export default function ScheduleBuilderPage() {
+  const { loading } = useRequireRole(['SUPER_ADMIN', 'ADMIN', 'GERENTE', 'SUPERVISOR']);
+
+  if (loading) {
+    return null;
+  }
+
   return (
     <div className="flex flex-col gap-6 p-6">
       <div className="flex flex-col gap-2">

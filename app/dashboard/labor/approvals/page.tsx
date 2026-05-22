@@ -1,27 +1,19 @@
-import { getSession } from '@/lib/auth';
-import { redirect } from 'next/navigation';
-import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+"use client";
+
+import { useRequireRole } from "@/hooks/use-session"
 import { ApprovalManager } from "@/components/labor/approval-manager"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Clock, CheckCircle, XCircle, AlertTriangle } from "lucide-react"
+import { Clock, CheckCircle, AlertTriangle } from "lucide-react"
 
-export default async function LaborApprovalsPage() {
-  const session = await getSession();
+export default function LaborApprovalsPage() {
+  const { loading, session } = useRequireRole(['SUPER_ADMIN', 'ADMIN', 'GERENTE', 'SUPERVISOR']);
 
-  if (!session?.user?.id) {
-    redirect('/sign-in');
+  if (loading) {
+    return null;
   }
 
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, session.user.id));
-
-  if (!user || !user.companyId) {
-    redirect('/onboarding');
-  }
+  const companyId = session?.user?.companyId;
+  const userRole = session?.user?.role;
 
   return (
     <div className="space-y-6">
@@ -32,7 +24,7 @@ export default async function LaborApprovalsPage() {
         </p>
       </div>
 
-      <ApprovalManager companyId={user.companyId} userRole={user.role} />
+      <ApprovalManager companyId={companyId} userRole={userRole} />
 
       <Card>
         <CardHeader>

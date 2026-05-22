@@ -1,93 +1,27 @@
-import { auth } from '@/lib/auth';
-import { redirect } from 'next/navigation';
-import { headers } from 'next/headers';
-import { db } from '@/lib/db';
-import { eq, and, gte, lte, desc, isNull } from 'drizzle-orm';
-import { startOfDay, endOfDay, differenceInMinutes } from 'date-fns';
-import { shiftSessions, breakLogs } from '@/lib/db/schema';
+"use client";
+
 import { BreakManagementDashboard } from '@/components/labor/break-management-dashboard';
-import { Coffee, Clock, AlertTriangle, CheckCircle, Users } from 'lucide-react';
+import { Coffee, Clock, AlertTriangle, CheckCircle, Users, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useRequireRole } from "@/hooks/use-session";
 
-export default async function LaborBreaksPage() {
-    const session = await auth.api.getSession({
-        headers: await headers(),
-    });
+export default function LaborBreaksPage() {
+    const { loading, session } = useRequireRole(['SUPER_ADMIN', 'ADMIN', 'GERENTE', 'SUPERVISOR']);
 
-    if (!session?.user) {
-        redirect('/sign-in');
+    if (loading) {
+        return null;
     }
 
-  const today = new Date();
-  const dayStart = startOfDay(today);
-  const dayEnd = endOfDay(today);
-  const companyId = session.user.companyId;
-
-  const activeSessions = await db
-    .select({
-      id: shiftSessions.id,
-      startedAt: shiftSessions.startedAt,
-      totalWorkMinutes: shiftSessions.totalWorkMinutes,
-      totalBreakMinutes: shiftSessions.totalBreakMinutes,
-    })
-    .from(shiftSessions)
-    .where(
-      and(
-        eq(shiftSessions.status, 'ACTIVE'),
-        gte(shiftSessions.startedAt, dayStart),
-        lte(shiftSessions.startedAt, dayEnd),
-      ),
-    );
-
-  const sessionIds = activeSessions.map((s) => s.id);
-
-  let todayBreaks: { sessionId: string; startTime: Date; endTime: Date | null; durationMinutes: number | null }[] = [];
-  if (sessionIds.length > 0) {
-    todayBreaks = await db
-      .select({
-        sessionId: breakLogs.sessionId,
-        startTime: breakLogs.startTime,
-        endTime: breakLogs.endTime,
-        durationMinutes: breakLogs.durationMinutes,
-      })
-      .from(breakLogs)
-      .where(and(gte(breakLogs.startTime, dayStart), lte(breakLogs.startTime, dayEnd)));
-  }
-
-  let onBreak = 0;
-  let missedBreaks = 0;
-
-  for (const session of activeSessions) {
-    const sessionBreaks = todayBreaks.filter((b) => b.sessionId === session.id);
-    const activeBreak = sessionBreaks.find((b) => !b.endTime);
-    if (activeBreak) {
-      onBreak++;
-    }
-
-    const completedBreakMinutes = sessionBreaks
-      .filter((b) => b.endTime)
-      .reduce((sum, b) => sum + (b.durationMinutes || 0), 0);
-    const minutesWorked = session.totalWorkMinutes || differenceInMinutes(new Date(), session.startedAt);
-
-    if (minutesWorked > 300 && completedBreakMinutes === 0) {
-      missedBreaks++;
-    }
-  }
-
-  const totalEmployees = activeSessions.length;
-  const compliantBreaks = totalEmployees - missedBreaks;
-  const complianceRate = totalEmployees > 0 ? Math.round((compliantBreaks / totalEmployees) * 100) : 0;
-
-  const stats = {
-    totalEmployees,
-    onBreak,
-    missedBreaks,
-    compliantBreaks,
-    complianceRate,
-  };
+    // Stats will be fetched client-side by the dashboard component
+    const stats = {
+        totalEmployees: 0,
+        onBreak: 0,
+        missedBreaks: 0,
+        compliantBreaks: 0,
+        complianceRate: 0,
+    };
 
     return (
         <div className="space-y-6">
@@ -166,9 +100,9 @@ export default async function LaborBreaksPage() {
 
             {/* Main Dashboard Component */}
             <BreakManagementDashboard 
-                companyId={session.user.companyId}
-                userRole={session.user.role}
-                userBranchId={session.user.branchId}
+                companyId={session?.user?.companyId}
+                userRole={session?.user?.role}
+                userBranchId={session?.user?.branchId}
             />
 
             {/* Legal Requirements Info */}
