@@ -8,10 +8,10 @@ import { SUAGenerator } from "@/components/compliance/imss/sua-generator";
 import { IDSEGenerator } from "@/components/compliance/imss/idse-generator";
 import { PayrollExport } from "@/components/compliance/payroll-export";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Shield, TrendingUp, AlertTriangle, ClipboardCheck, Brain, Building2, DollarSign, ShieldCheck } from "lucide-react";
+import { PageHeader, PageContainer } from "@/components/shared";
+import { FileText, Shield, TrendingUp, ClipboardCheck, Brain, Building2, DollarSign, ShieldCheck } from "lucide-react";
 
 interface Branch {
   id?: string;
@@ -24,7 +24,6 @@ export default function CompliancePage() {
     const [selectedBranch, setSelectedBranch] = useState<string>("");
 
     useEffect(() => {
-        // Fetch branches
         const fetchBranches = async () => {
             try {
                 const res = await fetch("/api/branches");
@@ -44,26 +43,13 @@ export default function CompliancePage() {
     }, []);
 
     return (
-        <div className="container mx-auto py-8 space-y-8">
-            {/* Header */}
-            <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <Shield className="h-8 w-8 text-primary" />
-                        <div>
-                            <h1 className="text-3xl font-bold">Compliance</h1>
-                            <p className="text-muted-foreground">
-                                Gestión de reportes de cumplimiento normativo
-                            </p>
-                        </div>
-                    </div>
-                    <Badge variant="outline" className="text-sm">
-                        <FileText className="h-3 w-3 mr-1" />
-                        NOM-251 & NOM-035
-                    </Badge>
-                </div>
-
-                {/* Branch Selector */}
+        <PageContainer>
+            <PageHeader
+                title="Compliance"
+                description="Gestión de reportes de cumplimiento normativo"
+                icon={Shield}
+                badge="NOM-251 & NOM-035"
+            >
                 {branches.length > 0 && (
                     <div className="flex items-center gap-2">
                         <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -81,9 +67,8 @@ export default function CompliancePage() {
                         </Select>
                     </div>
                 )}
-            </div>
+            </PageHeader>
 
-            {/* Main Dashboard Tabs */}
             <Tabs defaultValue="dashboard" className="space-y-4">
                 <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
                     <TabsTrigger value="dashboard">
@@ -112,12 +97,10 @@ export default function CompliancePage() {
                     </TabsTrigger>
                 </TabsList>
 
-                {/* Dashboard Tab */}
                 <TabsContent value="dashboard" className="space-y-4">
                     <ComplianceDashboard />
                 </TabsContent>
 
-                {/* NOM-251 Report Tab */}
                 <TabsContent value="nom251" className="space-y-4">
                     <section className="space-y-4">
                         <div className="flex items-center gap-2">
@@ -144,7 +127,6 @@ export default function CompliancePage() {
                     </section>
                 </TabsContent>
 
-                {/* NOM-035 Report Tab */}
                 <TabsContent value="nom035" className="space-y-4">
                     <section className="space-y-4">
                         <div className="flex items-center gap-2">
@@ -171,7 +153,6 @@ export default function CompliancePage() {
                     </section>
                 </TabsContent>
 
-                {/* IMSS Tab */}
                 <TabsContent value="imss" className="space-y-6">
                     <section className="space-y-4">
                         <div className="flex items-center gap-2">
@@ -197,14 +178,11 @@ export default function CompliancePage() {
                     </Tabs>
                 </TabsContent>
 
-                {/* Nómina Tab */}
                 <TabsContent value="nomina" className="space-y-4">
                     <PayrollExport companyId={selectedBranch ? '' : ''} />
                 </TabsContent>
 
-                {/* Info Tab */}
                 <TabsContent value="info">
-                    {/* Info Cards */}
                     <div className="grid gap-4 md:grid-cols-4">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -267,9 +245,7 @@ export default function CompliancePage() {
                         </Card>
                     </div>
 
-                    {/* Compliance Info */}
                     <div className="grid gap-6 md:grid-cols-2 mt-6">
-                        {/* NOM-251 Info */}
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
@@ -299,7 +275,6 @@ export default function CompliancePage() {
                             </CardContent>
                         </Card>
 
-                        {/* NOM-035 Info */}
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
@@ -330,7 +305,6 @@ export default function CompliancePage() {
                         </Card>
                     </div>
 
-                    {/* General Compliance Info */}
                     <Card className="mt-6">
                         <CardHeader>
                             <CardTitle>Importancia del Compliance</CardTitle>
@@ -363,6 +337,6 @@ export default function CompliancePage() {
                     </Card>
                 </TabsContent>
             </Tabs>
-        </div>
+        </PageContainer>
     );
 }

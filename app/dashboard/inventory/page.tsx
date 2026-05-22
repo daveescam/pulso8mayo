@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Loader2, Package, PackagePlus, ArrowRight, AlertTriangle, Building2, ClipboardList } from "lucide-react";
+import { Plus, Search, Loader2, Package, PackagePlus, ArrowRight, AlertTriangle, ClipboardList } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useBranch } from "@/lib/branch-context";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PageHeader, PageContainer, EmptyState } from "@/components/shared";
+import { useInventory, useCreateProduct } from "@/hooks/queries";
 
 const CATEGORIES = [
   { value: "Materia Prima", label: "Materia Prima" },
@@ -32,11 +33,8 @@ const UNITS = [
 ];
 
 export default function InventoryPage() {
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const [formName, setFormName] = useState("");
   const [formSku, setFormSku] = useState("");
   const [formCategory, setFormCategory] = useState("");
@@ -44,29 +42,8 @@ export default function InventoryPage() {
   const [formMinLevel, setFormMinLevel] = useState("");
   const { selectedBranchId, selectedBranch } = useBranch();
 
-  useEffect(() => {
-    fetchProducts();
-  }, [selectedBranchId]);
-
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
-      const url = selectedBranchId
-        ? `/api/inventory/products?branchId=${selectedBranchId}`
-        : "/api/inventory/products";
-
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
-        setProducts(data);
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("Error al cargar productos");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: products = [], isLoading: loading } = useInventory(selectedBranchId || undefined);
+  const createProduct = useCreateProduct();
 
   const resetForm = () => {
     setFormName("");
@@ -81,35 +58,24 @@ export default function InventoryPage() {
       toast.error("El nombre es requerido");
       return;
     }
-    try {
-      setSubmitting(true);
-      const body: Record<string, any> = {
-        name: formName.trim(),
-        unit: formUnit,
-      };
-      if (formSku.trim()) body.sku = formSku.trim();
-      if (formCategory) body.category = formCategory;
-      if (formMinLevel && Number(formMinLevel) > 0) body.minLevel = Number(formMinLevel);
+    const body: Record<string, unknown> = {
+      name: formName.trim(),
+      unit: formUnit,
+    };
+    if (formSku.trim()) body.sku = formSku.trim();
+    if (formCategory) body.category = formCategory;
+    if (formMinLevel && Number(formMinLevel) > 0) body.minLevel = Number(formMinLevel);
 
-      const res = await fetch("/api/inventory/products", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (res.ok) {
+    createProduct.mutate(body, {
+      onSuccess: () => {
         toast.success("Producto creado");
         setDialogOpen(false);
         resetForm();
-        fetchProducts();
-      } else {
-        const data = await res.json();
-        toast.error(data.error || "Error al crear producto");
-      }
-    } catch (error) {
-      toast.error("Error al crear producto");
-    } finally {
-      setSubmitting(false);
-    }
+      },
+      onError: (error) => {
+        toast.error(error instanceof Error ? error.message : "Error al crear producto");
+      },
+    });
   };
 
   const filteredProducts = products.filter((product) => {
@@ -123,32 +89,26 @@ export default function InventoryPage() {
   });
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold md:text-2xl">Gestión de Inventario</h1>
-          <p className="text-muted-foreground text-sm">
-            Gestiona productos, niveles de stock y recepciones
-          </p>
-          {selectedBranch && (
-            <Badge variant="outline" className="mt-2 gap-1">
-              <Building2 className="h-3 w-3" />
-              {selectedBranch.name}
-            </Badge>
-          )}
-        </div>
-        <div className="flex gap-2">
-          <Link href="/dashboard/inventory/receiving">
-            <Button variant="outline" className="gap-2">
-              <PackagePlus className="h-4 w-4" />
-              Recepción
+    <PageContainer>
+      <PageHeader
+        title="Gestión de Inventario"
+        description="Gestiona productos, niveles de stock y recepciones"
+        icon={Package}
+        branchName={selectedBranch?.name}
+        actions={
+          <>
+            <Link href="/dashboard/inventory/receiving">
+              <Button variant="outline" className="gap-2">
+                <PackagePlus className="h-4 w-4" />
+                Recepción
+              </Button>
+            </Link>
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" /> Agregar Producto
             </Button>
-          </Link>
-          <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Agregar Producto
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Link href="/dashboard/inventory/receiving">
@@ -274,8 +234,13 @@ export default function InventoryPage() {
               <TableBody>
                 {filteredProducts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={selectedBranchId ? 6 : 5} className="text-center py-8 text-muted-foreground">
-                      No se encontraron productos. Agrega uno para comenzar.
+                    <TableCell colSpan={selectedBranchId ? 6 : 5} className="text-center py-16">
+                      <EmptyState
+                        icon={Package}
+                        title="No se encontraron productos"
+                        description="Agrega tu primer producto para comenzar a gestionar el inventario."
+                        action={{ label: "Agregar Producto", onClick: () => setDialogOpen(true) }}
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -389,13 +354,13 @@ export default function InventoryPage() {
             <Button variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>
               Cancelar
             </Button>
-            <Button onClick={handleCreateProduct} disabled={submitting}>
-              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button onClick={handleCreateProduct} disabled={createProduct.isPending}>
+              {createProduct.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Crear Producto
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }

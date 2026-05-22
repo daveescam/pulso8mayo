@@ -2,13 +2,11 @@
 
 import * as React from "react"
 import {
-  BookOpen,
   SquareTerminal,
   Building2,
   Users,
   Layout,
   ShieldCheck,
-  User2,
   Package,
   TrendingUp,
   Wrench,
@@ -26,7 +24,6 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 
-// Keep static nav data for now, but dynamic user/company data
 const navMain = [
   {
     title: "Tablero",
@@ -35,7 +32,7 @@ const navMain = [
     isActive: true,
     items: [
       {
-        title: "General",
+        title: "Vista General",
         url: "/dashboard",
       },
       {
@@ -43,35 +40,8 @@ const navMain = [
         url: "/dashboard/analytics",
       },
       {
-        title: "Sucursales",
-        url: "/dashboard/branches",
-      },
-      {
         title: "Constructor KPIs",
         url: "/dashboard/analytics/kpi-builder",
-      },
-    ],
-  },
-  {
-    title: "Organización",
-    url: "/dashboard/company",
-    icon: Building2,
-    items: [
-      {
-        title: "Sucursales",
-        url: "/dashboard/company/branches",
-      },
-      {
-        title: "Equipo",
-        url: "/dashboard/team",
-      },
-      {
-        title: "WhatsApp Bot",
-        url: "/dashboard/company/whatsapp",
-      },
-      {
-        title: "Comunicaciones",
-        url: "/dashboard/company/communications",
       },
     ],
   },
@@ -85,50 +55,28 @@ const navMain = [
         url: "/dashboard/workflows",
       },
       {
+        title: "Ejecución Rápida",
+        url: "/dashboard/execute",
+      },
+      {
         title: "Constructor",
         url: "/dashboard/builder",
       },
       {
         title: "Plantillas",
         url: "/dashboard/builder/templates",
-      }, {
-        title: "Indidentes",
-        url: "/dashboard/incidents",
-      },
-      {
-        title: "Evidencias",
-        url: "/dashboard/evidence",
       },
       {
         title: "Historial",
         url: "/dashboard/workflows/history",
-      },
-    ],
-  },
-  {
-    title: "Operación",
-    url: "/dashboard/operations",
-    icon: BookOpen,
-    items: [
-      {
-        title: "Dashboard",
-        url: "/dashboard/operations",
-      },
-      {
-        title: "Ejecución Rápida",
-        url: "/dashboard/execute",
-      },
-      {
-        title: "Evidencias",
-        url: "/dashboard/evidence",
       },
       {
         title: "Incidentes",
         url: "/dashboard/incidents",
       },
       {
-        title: "Programación",
-        url: "/dashboard/labor/schedule-builder",
+        title: "Evidencias",
+        url: "/dashboard/evidence",
       },
     ],
   },
@@ -223,20 +171,8 @@ const navMain = [
         url: "/dashboard/employees",
       },
       {
-        title: "Onboarding",
-        url: "/dashboard/employees/onboarding",
-      },
-      {
-        title: "Offboarding",
-        url: "/dashboard/employees/offboarding",
-      },
-      {
         title: "Asistencia",
         url: "/dashboard/labor/attendance",
-      },
-      {
-        title: "Horas Extras",
-        url: "/dashboard/labor/overtime",
       },
       {
         title: "Turnos",
@@ -251,6 +187,10 @@ const navMain = [
         url: "/dashboard/labor/schedule-builder",
       },
       {
+        title: "Horas Extras",
+        url: "/dashboard/labor/overtime",
+      },
+      {
         title: "Aprobaciones",
         url: "/dashboard/labor/approvals",
       },
@@ -263,16 +203,8 @@ const navMain = [
         url: "/dashboard/labor/vacations",
       },
       {
-        title: "Geolocalización",
-        url: "/dashboard/labor/geolocation",
-      },
-      {
         title: "Días Festivos",
         url: "/dashboard/labor/holidays",
-      },
-      {
-        title: "Expediente Laboral",
-        url: "/dashboard/labor/documents",
       },
     ],
   },
@@ -296,21 +228,25 @@ const navMain = [
     ],
   },
   {
-    title: "Perfil",
-    url: "/dashboard/profile",
-    icon: User2,
+    title: "Organización",
+    url: "/dashboard/company",
+    icon: Building2,
     items: [
       {
-        title: "Configuración",
-        url: "/dashboard/profile",
+        title: "Sucursales",
+        url: "/dashboard/company/branches",
       },
       {
-        title: "Mi Onboarding",
-        url: "/dashboard/profile/onboarding",
+        title: "Equipo",
+        url: "/dashboard/team",
       },
       {
-        title: "Notificaciones",
-        url: "/dashboard/profile/notifications",
+        title: "WhatsApp Bot",
+        url: "/dashboard/company/whatsapp",
+      },
+      {
+        title: "Comunicaciones",
+        url: "/dashboard/company/communications",
       },
     ],
   },
@@ -341,10 +277,10 @@ export function AppSidebar({ user, company, branches, currentBranchId, ...props 
 
   const filteredNavMain = navMain.filter(section => {
     if (userRole === 'EMPLEADO') {
-      return section.title === 'Flujos de Trabajo' || section.title === 'Perfil';
+      return section.title === 'Flujos de Trabajo';
     }
     if (userRole === 'READONLY') {
-      return section.title === 'Tablero' || section.title === 'Cumplimiento' || section.title === 'Desempeño' || section.title === 'Perfil';
+      return section.title === 'Tablero' || section.title === 'Cumplimiento' || section.title === 'Desempeño';
     }
     if (userRole === 'SUPERVISOR') {
       return section.title !== 'Organización';
@@ -360,7 +296,7 @@ export function AppSidebar({ user, company, branches, currentBranchId, ...props 
         !item.url.includes('/history');
       }
       if (userRole === 'READONLY') {
-        return !item.url.includes('/builder') && !item.url.includes('/employees/onboarding') && !item.url.includes('/employees/offboarding');
+        return !item.url.includes('/builder');
       }
       return true;
     });

@@ -11,6 +11,12 @@ import { ComplianceReportGenerator } from "@/components/compliance/report-genera
 import { getTranslations } from "next-intl/server";
 import { KpiSummaryCards } from "@/components/dashboard/kpi-summary-cards"
 import { ExecutiveSummary } from "@/components/dashboard/executive-summary"
+import { Suspense } from "react"
+import {
+  KpiCardsSkeleton,
+  ChartSkeleton,
+  DataTableSkeleton,
+} from "@/components/shared"
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ branch?: string; startDate?: string; endDate?: string }> }) {
   const params = await searchParams;
@@ -106,23 +112,32 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ b
             )}
 
       {/* KPI Cards section */}
-      <ComplianceMetrics />
+      <Suspense fallback={<KpiCardsSkeleton />}>
+        <ComplianceMetrics />
+      </Suspense>
 
       {/* Executive Summary: Alerts + Branch Overview + Cost Trends */}
-      <ExecutiveSummary />
+      <Suspense fallback={<KpiCardsSkeleton count={2} />}>
+        <ExecutiveSummary />
+      </Suspense>
 
       {/* KPI Summary Cards */}
       <div className="px-4 lg:px-6">
-        <KpiSummaryCards />
+        <Suspense fallback={<KpiCardsSkeleton />}>
+          <KpiSummaryCards />
+        </Suspense>
       </div>
 
       {/* Charts Section */}
             <div className="px-4 lg:px-6">
+              <Suspense fallback={<ChartSkeleton />}>
                 <DashboardCharts />
+              </Suspense>
             </div>
 
             {/* Recent Activity Section */}
             <div className="px-4 lg:px-6">
+              <Suspense fallback={<DataTableSkeleton columns={5} rows={5} />}>
             <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b bg-muted/30">
                 <h3 className="text-lg font-bold">{t("recentActivity")}</h3>
@@ -131,6 +146,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ b
                   <RecentWorkflowsTable workflows={formattedWorkflows} />
                 </div>
               </div>
+              </Suspense>
             </div>
           </div>
         </div>

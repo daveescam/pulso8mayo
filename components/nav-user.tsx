@@ -4,11 +4,11 @@ import {
   BadgeCheck,
   Bell,
   ChevronsUpDown,
-  CreditCard,
   LogOut,
-  Sparkles,
+  Settings,
 } from "lucide-react"
 import { useTranslations } from "next-intl"
+import Link from "next/link"
 
 import {
   Avatar,
@@ -86,24 +86,23 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
           <DropdownMenuGroup>
-            <DropdownMenuItem>
-              <Sparkles className="mr-2" />
-              {t("upgradeToPro")}
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/profile" className="cursor-pointer">
+                <Settings className="mr-2" />
+                {t("settings")}
+              </Link>
             </DropdownMenuItem>
-          </DropdownMenuGroup>
-          <DropdownMenuSeparator />
-          <DropdownMenuGroup>
-            <DropdownMenuItem>
-              <BadgeCheck className="mr-2" />
-              {t("account")}
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/profile" className="cursor-pointer">
+                <BadgeCheck className="mr-2" />
+                {t("account")}
+              </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              <CreditCard className="mr-2" />
-              {t("billing")}
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Bell className="mr-2" />
-              {t("notifications")}
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/profile/notifications" className="cursor-pointer">
+                <Bell className="mr-2" />
+                {t("notifications")}
+              </Link>
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />

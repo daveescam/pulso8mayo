@@ -36,6 +36,7 @@ import {
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
+import { exportToCSV } from "@/lib/utils";
 import Link from "next/link";
 
 interface AuditLog {
@@ -153,8 +154,16 @@ export default function AuditPage() {
     const hasFilters = Object.values(filters).some(v => v !== undefined && v !== "");
 
     const handleExport = () => {
-        toast.info("Exportando logs de auditoría a CSV...");
-        // TODO: Implement CSV export
+        exportToCSV(logs, [
+            { key: "action", label: "Acción" },
+            { key: "resource", label: "Recurso" },
+            { key: "resourceType", label: "Tipo" },
+            { key: "userName", label: "Usuario" },
+            { key: "branchName", label: "Sucursal" },
+            { key: "ipAddress", label: "IP" },
+            { key: "createdAt", label: "Fecha" },
+        ], `auditoria-${Date.now()}`);
+        toast.success("CSV exportado correctamente");
     };
 
     const stats = {

@@ -29,6 +29,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  PageHeader,
+  PageContainer,
+} from "@/components/shared";
 import { 
   Plus, 
   Search, 
@@ -171,29 +175,28 @@ export default function EquipmentPage() {
   };
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Equipos y Activos</h1>
-          <p className="text-muted-foreground">
-            Gestión de equipos, mantenimientos y servicios de cumplimiento
-          </p>
-        </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="w-4 h-4" />
-              Agregar Equipo
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Nuevo Equipo</DialogTitle>
-            </DialogHeader>
-            <EquipmentForm onSuccess={handleEquipmentCreated} />
-          </DialogContent>
-        </Dialog>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Equipos y Activos"
+        description="Gestión de equipos, mantenimientos y servicios de cumplimiento"
+        icon={Wrench}
+        actions={
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="w-4 h-4" />
+                Agregar Equipo
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Nuevo Equipo</DialogTitle>
+              </DialogHeader>
+              <EquipmentForm onSuccess={handleEquipmentCreated} />
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
       <Tabs defaultValue="equipment" className="space-y-6">
         <TabsList className="grid w-full grid-cols-4 lg:w-auto">
@@ -378,6 +381,6 @@ export default function EquipmentPage() {
           <EquipmentAlerts />
         </TabsContent>
       </Tabs>
-    </div>
+    </PageContainer>
   );
 }

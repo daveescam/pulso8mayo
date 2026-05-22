@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PageHeader, PageContainer } from "@/components/shared";
 import { Plus, Download, Filter, RefreshCw, Store, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
@@ -250,47 +251,44 @@ export default function AnalyticsDashboard() {
     const categories = ["all", ...Array.from(new Set(kpis.map((k) => k.category)))];
 
     return (
-        <div className="container mx-auto py-6 space-y-6">
-            {/* Header */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
-                    <p className="text-muted-foreground">
-                        Track your key performance indicators in real-time
-                    </p>
-                </div>
-                <div className="flex gap-2 items-center">
-                    {/* Auto-refresh indicator */}
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mr-2">
-                        <RefreshCw className={`h-4 w-4 ${isAutoRefreshing && !userActive ? 'animate-spin' : ''}`} />
-                        <span className="hidden md:inline">
-                            {lastRefresh.toLocaleTimeString('es-MX')}
-                        </span>
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-6 px-2 text-xs"
-                            onClick={() => setIsAutoRefreshing(!isAutoRefreshing)}
-                        >
-                            {isAutoRefreshing ? 'Pause' : 'Resume'}
+        <PageContainer>
+            <PageHeader
+                title="Analytics Dashboard"
+                description="Track your key performance indicators in real-time"
+                icon={TrendingUp}
+                actions={
+                    <>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <RefreshCw className={`h-4 w-4 ${isAutoRefreshing && !userActive ? 'animate-spin' : ''}`} />
+                            <span className="hidden md:inline">
+                                {lastRefresh.toLocaleTimeString('es-MX')}
+                            </span>
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-6 px-2 text-xs"
+                                onClick={() => setIsAutoRefreshing(!isAutoRefreshing)}
+                            >
+                                {isAutoRefreshing ? 'Pause' : 'Resume'}
+                            </Button>
+                        </div>
+                        
+                        <Button variant="outline" size="icon" onClick={fetchKpis} disabled={isLoading}>
+                            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
                         </Button>
-                    </div>
-                    
-                    <Button variant="outline" size="icon" onClick={fetchKpis} disabled={isLoading}>
-                        <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-                    </Button>
-                    <Button variant="outline" onClick={handleExport}>
-                        <Download className="h-4 w-4 mr-2" />
-                        Export PDF
-                    </Button>
-                    <Button asChild>
-                        <Link href="/dashboard/analytics/kpi-builder">
-                            <Plus className="h-4 w-4 mr-2" />
-                            New KPI
-                        </Link>
-                    </Button>
-                </div>
-            </div>
+                        <Button variant="outline" onClick={handleExport}>
+                            <Download className="h-4 w-4 mr-2" />
+                            Export PDF
+                        </Button>
+                        <Button asChild>
+                            <Link href="/dashboard/analytics/kpi-builder">
+                                <Plus className="h-4 w-4 mr-2" />
+                                New KPI
+                            </Link>
+                        </Button>
+                    </>
+                }
+            />
 
             {/* Filters */}
             <Card>
@@ -445,6 +443,6 @@ export default function AnalyticsDashboard() {
                 </TabsContent>
             </Tabs>
 
-    </div>
+    </PageContainer>
     );
 }

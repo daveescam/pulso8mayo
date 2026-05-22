@@ -15,6 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useSession } from "@/hooks/use-session";
+import { exportToCSV } from "@/lib/utils";
 
 interface VerificationData {
     id: string;
@@ -99,8 +100,17 @@ export default function AIVerificationsPage() {
     }, [verifications]);
 
     const handleExport = () => {
-        // TODO: Implement export to CSV
-        toast.info('Función de exportación en desarrollo');
+        exportToCSV(verifications, [
+            { key: "workflowName", label: "Workflow" },
+            { key: "instanceId", label: "Instancia" },
+            { key: "stepId", label: "Paso" },
+            { key: "status", label: "Estado" },
+            { key: "confidence", label: "Confianza" },
+            { key: "reason", label: "Motivo" },
+            { key: "provider", label: "Proveedor" },
+            { key: "timestamp", label: "Fecha" },
+        ], `verificaciones-ai-${Date.now()}`);
+        toast.success("CSV exportado correctamente");
     };
 
     return (
