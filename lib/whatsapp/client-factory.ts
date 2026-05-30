@@ -1,16 +1,5 @@
-/**
- * WhatsApp Client Factory
- *
- * Usa WAHA (WhatsApp HTTP API) con motor NOWEB.
- * Singleton lazy-loading para todo el sistema de mensajería WhatsApp.
- *
- * Uso:
- * import { whatsappClient } from '@/lib/whatsapp/client-factory';
- * await whatsappClient.sendMessage({ sessionId, to, message });
- */
-
-import type { SendMessageOptions, SendMediaOptions, RateLimitConfig } from './waha-client';
-import type { WAHASession } from './waha-client';
+import type { SendMessageOptions, SendMediaOptions, RateLimitConfig } from './whapi-client';
+import type { WAHASession } from './whapi-client';
 
 export type WhatsAppSession = WAHASession;
 
@@ -49,8 +38,8 @@ let clientInstance: WhatsAppClient | null = null;
 
 export async function getWhatsAppClient(): Promise<WhatsAppClient> {
   if (!clientInstance) {
-    const { getWAHAClient } = await import('./waha-client');
-    clientInstance = getWAHAClient();
+    const { getWhapiClient } = await import('./whapi-client');
+    clientInstance = getWhapiClient();
   }
   return clientInstance;
 }
@@ -59,11 +48,11 @@ export function resetClients(): void {
   clientInstance = null;
 }
 
-export function getClientInfo(): { active: string; wahaConfigured: boolean; wahaUrl: string | undefined } {
+export function getClientInfo(): { active: string; whapiConfigured: boolean; whapiToken: string | undefined } {
   return {
-    active: 'waha',
-    wahaConfigured: !!process.env.WAHA_API_URL,
-    wahaUrl: process.env.WAHA_API_URL,
+    active: 'whapi',
+    whapiConfigured: !!process.env.WHAPI_API_TOKEN,
+    whapiToken: process.env.WHAPI_API_TOKEN ? 'configured' : undefined,
   };
 }
 

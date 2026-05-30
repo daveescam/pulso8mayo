@@ -1,7 +1,8 @@
 import { db } from "@/lib/db";
-import { shiftSessions, users, branches, shiftApprovals } from "@/lib/db/schema";
+import { shiftSessions, users, branches, shiftApprovals, notifications } from "@/lib/db/schema";
 import { eq, and, gte, lte, gt, inArray } from "drizzle-orm";
 import { whatsappClient } from "@/lib/whatsapp/client-factory";
+import { NotificationDispatcher } from "./notification-dispatcher";
 
 export interface OvertimeAlert {
     userId: string;
@@ -143,7 +144,6 @@ export class OvertimeAlertService {
      * Notify managers about overtime alert
      */
     private static async notifyManagers(alert: OvertimeAlert, branchId?: string): Promise<void> {
-        // Get managers for the branch (users with ADMIN, GERENTE, or SUPERVISOR roles)
         const managers = await db.query.users.findMany({
             where: and(
                 eq(users.branchId, branchId || ''),
@@ -151,23 +151,38 @@ export class OvertimeAlertService {
             )
         });
 
+        const payloads = managers.map((manager) => ({
+            userId: manager.id,
+            title: `Alerta de Horas Extra: ${alert.userName}`,
+            message: alert.message,
+            type: 'warning' as const,
+            eventType: 'incident' as const,
+            actionUrl: `/dashboard/labor/overtime`,
+            actionLabel: 'Ver horas extra',
+            metadata: {
+                incidentTitle: `Horas extra de ${alert.userName}`,
+                severity: alert.alertType === 'EXCESSIVE' ? 'CRITICA' : alert.alertType === 'DAILY_LIMIT' ? 'ALTA' : 'MEDIA',
+                description: alert.message,
+            },
+        }));
+
+        if (payloads.length > 0) {
+            await NotificationDispatcher.sendBatchNotifications(payloads);
+        }
+
         for (const manager of managers) {
             if (manager.whatsappPhone) {
                 try {
-		await whatsappClient.sendMessage({
-			sessionId: process.env.WHATSAPP_SESSION_ID || 'default',
-			to: manager.whatsappPhone,
-			message: alert.message
-		});
-                    console.log(`Overtime alert sent to manager ${manager.id}`);
+                    await whatsappClient.sendMessage({
+                        sessionId: 'default',
+                        to: manager.whatsappPhone,
+                        message: alert.message
+                    });
                 } catch (error) {
                     console.error(`Error sending overtime alert to manager ${manager.id}:`, error);
                 }
             }
         }
-
-        // Also create in-app notification
-        // TODO: Implement in-app notification
     }
 
     /**
@@ -184,9 +199,14 @@ export class OvertimeAlertService {
 
         if (existing) return;
 
-        // Create approval request
+        const branch = await db.query.branches.findFirst({
+            where: eq(branches.id, session.branchId),
+            columns: { companyId: true }
+        });
+        const companyId = branch?.companyId || session.branchId;
+
         await db.insert(shiftApprovals).values({
-            companyId: session.branchId, // Would need to get from branch
+            companyId,
             branchId: session.branchId,
             approvalType: 'OVERTIME',
             requestedBy: session.userId,

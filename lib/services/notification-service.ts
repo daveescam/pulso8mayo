@@ -10,7 +10,7 @@ import { eq } from 'drizzle-orm';
 import { whatsappClient } from '@/lib/whatsapp/client-factory';
 
 function isWhatsAppConfigured(): boolean {
-  return !!process.env.WAHA_API_URL;
+  return !!process.env.WHAPI_API_TOKEN;
 }
 
 let resend: any = null;
@@ -263,9 +263,8 @@ export class NotificationService {
                 return;
             }
 
-            const sessionId = process.env.WHATSAPP_SESSION_ID || `pulso_${userData.companyId || 'default'}`;
 	const result = await whatsappClient.sendMessage({
-                sessionId,
+                sessionId: 'default',
                 to: userData.phone,
                 message,
             });

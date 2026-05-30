@@ -11,7 +11,7 @@ import { ConversationState } from './workflow-state-manager';
 import { whatsappClient } from './client-factory';
 
 function isWhatsAppConfigured(): boolean {
-  return !!process.env.WAHA_API_URL;
+  return !!process.env.WHAPI_API_TOKEN;
 }
 import { r2Client } from '@/lib/r2-client';
 

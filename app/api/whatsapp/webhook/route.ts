@@ -1,10 +1,3 @@
-/**
- * WhatsApp Webhook Handler
- *
- * Recibe eventos de WAHA (WhatsApp HTTP API) con motor NOWEB.
- * Maneja mensajes entrantes, cambios de estado, QR codes y ACKs.
- */
-
 import { NextRequest, NextResponse } from 'next/server';
 import { messageRouter } from '@/lib/whatsapp/message-router';
 import { sessionManager } from '@/lib/whatsapp/session-manager';
@@ -12,35 +5,33 @@ import { db } from '@/lib/db';
 import { whatsappMessages, whatsappSessions, users, notificationPreferences } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 
-// ============================================================================
-// TIPOS DE PAYLOAD
-// ============================================================================
-
-/** Payload de WAHA NOWEB */
-interface WAHAWebhookPayload {
-  event: string;
-  session: string;
-  payload: {
-    id: string;
-    timestamp: number;
-    from: string;
-    fromMe: boolean;
-    body: string;
-    type: string;
-    hasMedia: boolean;
-    ack?: number;
-    mediaUrl?: string;
-    caption?: string;
-    location?: {
-      latitude: number;
-      longitude: number;
-    };
-    status?: string;
-    error?: string;
-  };
+interface WhapiMessage {
+  id: string;
+  from_me: boolean;
+  type: string;
+  chat_id: string;
+  timestamp: number;
+  source?: string;
+  text?: { body: string };
+  caption?: string;
+  from?: string;
+  from_name?: string;
+  media?: string;
+  location?: { latitude: number; longitude: number };
 }
 
-/** Payload normalizado para procesamiento interno */
+interface WhapiWebhookPayload {
+  messages?: WhapiMessage[];
+  event?: { type: string; event: string };
+  channel_id?: string;
+  statuses?: Array<{
+    id: string;
+    status: string;
+    chat_id: string;
+    timestamp: number;
+  }>;
+}
+
 interface NormalizedPayload {
   event: string;
   sessionId: string;
@@ -55,83 +46,41 @@ interface NormalizedPayload {
   location?: {
     latitude: number;
     longitude: number;
-    accuracy?: number;
   };
 }
 
-// ============================================================================
-// NORMALIZAR PAYLOAD
-// ============================================================================
+const SESSION_ID = 'default';
 
-function normalizePayload(body: WAHAWebhookPayload): NormalizedPayload {
-  const { event, session, payload } = body;
-
-  const from = payload.from.replace(/@c\.us$|@s\.whatsapp\.net$/, '');
+function normalizePayload(msg: WhapiMessage): NormalizedPayload {
+  const from = (msg.from || msg.chat_id || '').replace(/@.*$/, '');
 
   return {
-    event,
-    sessionId: session,
+    event: 'message',
+    sessionId: SESSION_ID,
     from,
     to: undefined,
-    message: payload.body || '',
-    type: payload.type === 'chat' ? 'text' : payload.type,
-    messageId: payload.id,
-    timestamp: new Date(payload.timestamp * 1000),
-    fromMe: payload.fromMe,
-    mediaUrl: payload.mediaUrl,
-    location: payload.location ? {
-      latitude: payload.location.latitude,
-      longitude: payload.location.longitude,
+    message: msg.text?.body || msg.caption || '',
+    type: msg.type === 'text' ? 'text' : msg.type,
+    messageId: msg.id,
+    timestamp: new Date(msg.timestamp * 1000),
+    fromMe: msg.from_me,
+    mediaUrl: msg.media,
+    location: msg.location ? {
+      latitude: msg.location.latitude,
+      longitude: msg.location.longitude,
     } : undefined,
   };
 }
 
-// ============================================================================
-// HANDLERS
-// ============================================================================
+async function handleMessagePayload(msg: WhapiMessage): Promise<void> {
+  const normalized = normalizePayload(msg);
 
-async function handleQR(normalized: NormalizedPayload) {
-  await sessionManager.updateSessionStatus(normalized.sessionId, 'CONNECTING');
-}
-
-async function handleReady(normalized: NormalizedPayload) {
-  await sessionManager.updateSessionStatus(
-    normalized.sessionId,
-    'CONNECTED'
-  );
-  console.log(`[WhatsApp Webhook] Session ${normalized.sessionId} connected`);
-}
-
-async function handleDisconnected(normalized: NormalizedPayload) {
-  await sessionManager.updateSessionStatus(normalized.sessionId, 'DISCONNECTED');
-  console.log(`[WhatsApp Webhook] Session ${normalized.sessionId} disconnected`);
-}
-
-async function handleMessageAck(normalized: NormalizedPayload) {
-  console.log('[WAHA] Message ACK:', normalized.messageId, normalized.event);
-
-  await db.update(whatsappMessages)
-    .set({
-      status: mapAckToStatus((normalized as any).ack),
-    })
-    .where(eq(whatsappMessages.externalMessageId, normalized.messageId));
-}
-
-async function handleSessionStatus(normalized: NormalizedPayload) {
-  const status = (normalized as any).status;
-  console.log('[WAHA] Session status:', normalized.sessionId, status);
-
-  const mappedStatus = mapWAHASessionStatus(status);
-  await sessionManager.updateSessionStatus(normalized.sessionId, mappedStatus);
-}
-
-async function handleMessage(normalized: NormalizedPayload) {
   if (normalized.fromMe) {
     return;
   }
 
   await db.insert(whatsappMessages).values({
-    sessionId: (await sessionManager.getSession(normalized.sessionId))?.id || '',
+    sessionId: SESSION_ID,
     direction: 'INBOUND',
     from: normalized.from,
     to: normalized.to || '',
@@ -152,7 +101,7 @@ async function handleMessage(normalized: NormalizedPayload) {
     );
 
     if (isOptOut || isOptIn) {
-      const session = await sessionManager.getSession(normalized.sessionId);
+      const session = await sessionManager.getSession(SESSION_ID);
       if (session) {
         const user = await db.query.users.findFirst({
           where: and(
@@ -181,12 +130,10 @@ async function handleMessage(normalized: NormalizedPayload) {
 
           const { whatsappClient } = await import('@/lib/whatsapp/client-factory');
           await whatsappClient.sendMessage({
-            sessionId: normalized.sessionId,
+            sessionId: SESSION_ID,
             to: normalized.from,
             message: confirmationMessage,
           });
-
-          console.log(`[WhatsApp Webhook] User ${user.id} ${isOptIn ? 'opted-in' : 'opted-out'} WhatsApp notifications`);
         }
       }
 
@@ -210,7 +157,7 @@ async function handleMessage(normalized: NormalizedPayload) {
 
   if (!result.success) {
     console.error('[WhatsApp Webhook] Message routing failed:', result.error);
-    await sessionManager.recordError(normalized.sessionId, result.error || 'Unknown error');
+    await sessionManager.recordError(SESSION_ID, result.error || 'Unknown error');
   }
 
   await db.update(whatsappMessages)
@@ -218,71 +165,36 @@ async function handleMessage(normalized: NormalizedPayload) {
     .where(eq(whatsappMessages.externalMessageId, normalized.messageId));
 }
 
-// ============================================================================
-// HELPERS
-// ============================================================================
-
-function mapAckToStatus(ack: number): string {
-  switch (ack) {
-    case 1: return 'sent';
-    case 2: return 'delivered';
-    case 3: return 'read';
-    default: return 'unknown';
-  }
-}
-
-function mapWAHASessionStatus(status: string): 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'FAILED' {
-  const statusMap: Record<string, 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'FAILED'> = {
-    'STARTING': 'DISCONNECTED',
-    'SCAN_QR': 'CONNECTING',
-    'WORKING': 'CONNECTED',
-    'FAILED': 'FAILED',
-    'STOPPED': 'DISCONNECTED',
+async function handleStatusUpdate(status: { id: string; status: string }): Promise<void> {
+  const statusMap: Record<string, string> = {
+    sent: 'sent',
+    delivered: 'delivered',
+    read: 'read',
+    failed: 'failed',
   };
-  return statusMap[status] || 'DISCONNECTED';
-}
 
-// ============================================================================
-// API ROUTES
-// ============================================================================
+  const mapped = statusMap[status.status] || 'unknown';
+  await db.update(whatsappMessages)
+    .set({ status: mapped })
+    .where(eq(whatsappMessages.externalMessageId, status.id));
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const body: WhapiWebhookPayload = await req.json();
 
-    console.log('[WhatsApp Webhook] Received:', JSON.stringify(body, null, 2));
+    console.log('[WhatsApp Webhook] Received WHAPI event:', body.event?.type);
 
-    const normalized = normalizePayload(body as WAHAWebhookPayload);
+    if (body.statuses) {
+      for (const status of body.statuses) {
+        await handleStatusUpdate(status);
+      }
+    }
 
-    console.log(`[WhatsApp Webhook] WAHA event: ${normalized.event}`);
-
-    switch (normalized.event) {
-      case 'qr':
-        await handleQR(normalized);
-        break;
-
-      case 'ready':
-        await handleReady(normalized);
-        break;
-
-      case 'disconnected':
-        await handleDisconnected(normalized);
-        break;
-
-      case 'message':
-        await handleMessage(normalized);
-        break;
-
-      case 'message.ack':
-        await handleMessageAck(normalized);
-        break;
-
-      case 'session.status':
-        await handleSessionStatus(normalized);
-        break;
-
-      default:
-        console.log(`[WhatsApp Webhook] Unknown event type: ${normalized.event}`);
+    if (body.messages) {
+      for (const msg of body.messages) {
+        await handleMessagePayload(msg);
+      }
     }
 
     return NextResponse.json({ status: 'ok' });
@@ -299,6 +211,6 @@ export async function GET(_req: NextRequest) {
   return NextResponse.json({
     status: 'alive',
     service: 'whatsapp-webhook',
-    supports: ['waha']
+    supports: ['whapi'],
   });
 }
