@@ -34,8 +34,23 @@ export const users = pgTable("users", {
   companyId: uuid("company_id"),
   branchId: uuid("branch_id"),
   phone: text("phone"),
+  pinCode: text("pin_code"), // Legacy column
+  status: text("status").default('ACTIVE'), // Legacy column
+  active: boolean("active").default(true), // Legacy column
   whatsappPhone: text("whatsapp_phone"), // WhatsApp phone number for notifications
   deletedAt: timestamp("deleted_at"),
+});
+
+// Session table (better-auth legacy format, preserved for existing data)
+export const session = pgTable("session", {
+  id: text("id").primaryKey().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  token: text("token").notNull(),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  userId: text("user_id").notNull(),
 });
 
 // Sessions table (session tracking from better-auth)

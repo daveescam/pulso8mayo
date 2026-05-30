@@ -45,7 +45,7 @@ export const holidays = pgTable("holidays", {
   id: uuid("id").default(sql`gen_random_uuid()`).primaryKey().notNull(),
   companyId: uuid("company_id").notNull(),
   name: text("name").notNull(),
-  date: timestamp("date").notNull(),
+  date: text("date").notNull(),
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

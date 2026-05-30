@@ -9,6 +9,7 @@ import { users, whatsappSessions, workflowAssignments } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { commandParser } from './command-parser';
 import { laborHandler, GeolocationData } from './handlers/labor-handler';
+import { registerHandler } from './handlers/register-handler';
 import { workflowConversationHandler } from './workflow-conversation-handler';
 import { whatsappClient } from './client-factory';
 import { sessionManager } from './session-manager';
@@ -61,6 +62,22 @@ export class MessageRouter {
             });
 
             if (!user) {
+                // Check if this is an invite token for WhatsApp-first registration
+                const parsedCommand = commandParser.parse(message.message);
+                if (parsedCommand.type === 'REGISTER' && parsedCommand.inviteToken) {
+                    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+                    const registerResult = await registerHandler.processInviteToken(
+                        message.from,
+                        parsedCommand.inviteToken,
+                        baseUrl
+                    );
+
+                    return {
+                        success: registerResult.success,
+                        reply: registerResult.message,
+                    };
+                }
+
                 // User not found - send registration message
                 return {
                     success: true,

@@ -7,6 +7,7 @@ import { plannedShifts, users, branches } from "@/lib/db/schema";
 import { eq, and, gte, lte, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { addDays, parseISO, format, isWithinInterval } from "date-fns";
+import { NotificationDispatcher } from "@/lib/services/notification-dispatcher";
 
 // Schema para crear un turno individual
 const createShiftSchema = z.object({
@@ -94,6 +95,7 @@ export async function GET(req: NextRequest) {
 
                 return {
                     id: shift.id,
+                    companyId: shift.companyId,
                     userId: shift.userId,
                     userName: user?.name || 'Unknown User',
                     branchId: shift.branchId,
@@ -219,6 +221,7 @@ export async function POST(req: NextRequest) {
 
             validatedShifts.push({
                 ...shiftData,
+                companyId: tenant.id!,
                 status: "DRAFT" as const,
                 createdBy: tenant.userId,
             });
@@ -337,6 +340,12 @@ export async function PUT(req: NextRequest) {
             updatedShifts.push(updated);
         }
 
+        // Send notifications for newly published shifts
+        const newlyPublished = updatedShifts.filter(s => s.status === "PUBLISHED");
+        if (newlyPublished.length > 0) {
+            await notifyEmployeesOfPublishedShifts(newlyPublished);
+        }
+
         return ApiHandler.success({
             shifts: updatedShifts,
             count: updatedShifts.length,
@@ -391,4 +400,35 @@ export async function DELETE(req: NextRequest) {
         console.error("Error deleting shift:", error);
         return ApiHandler.error(error);
     }
+}
+
+/**
+ * Send notifications to employees when their shifts are published
+ */
+async function notifyEmployeesOfPublishedShifts(shifts: any[]) {
+    const payloads = await Promise.all(
+        shifts.map(async (shift) => {
+            const user = await db.query.users.findFirst({
+                where: eq(users.id, shift.userId),
+            });
+            const branch = await db.query.branches.findFirst({
+                where: eq(branches.id, shift.branchId),
+            });
+
+            return {
+                userId: shift.userId,
+                title: 'Nuevo Turno Asignado',
+                message: `Se te ha asignado un turno: ${shift.role} el ${shift.shiftDate} de ${shift.startTime} a ${shift.endTime}`,
+                type: 'info' as const,
+                eventType: 'schedule_change' as const,
+                actionUrl: `/dashboard/labor/shifts`,
+                actionLabel: 'Ver turnos',
+                metadata: {
+                    changeDescription: `Nuevo turno asignado: ${shift.role} el ${shift.shiftDate} de ${shift.startTime} a ${shift.endTime} en ${branch?.name || 'Sucursal'}`,
+                },
+            };
+        })
+    );
+
+    await NotificationDispatcher.sendBatchNotifications(payloads);
 }

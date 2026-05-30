@@ -22,11 +22,15 @@ export default function JoinPage() {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [phone, setPhone] = useState("");
 
     useEffect(() => {
-        // Pre-fill email from query param if exists
+        // Pre-fill email and phone from query params if exists
         const emailParam = searchParams.get("email");
         if (emailParam) setEmail(emailParam);
+
+        const phoneParam = searchParams.get("phone");
+        if (phoneParam) setPhone(phoneParam);
 
         // Fetch branch info from token
         async function fetchBranchInfo() {
@@ -70,7 +74,8 @@ export default function JoinPage() {
                     name,
                     email,
                     password,
-                    inviteToken: token
+                    inviteToken: token,
+                    phone: phone || undefined,
                 })
             });
 

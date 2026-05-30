@@ -10,6 +10,7 @@
  */
 export interface Shift {
   id: string
+  companyId: string
   userId: string
   userName: string
   userEmail?: string
@@ -61,6 +62,7 @@ export interface ShiftFilters {
  * Input for creating a new shift
  */
 export interface CreateShiftInput {
+  companyId: string
   userId: string
   branchId: string
   role: string

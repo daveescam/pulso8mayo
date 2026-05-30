@@ -6,13 +6,17 @@
  */
 
 export interface ParsedCommand {
-    type: 'CLOCK_IN' | 'CLOCK_OUT' | 'BREAK_START' | 'BREAK_END' | 'STATUS' | 'TASKS' | 'HELP' | 'WORKFLOW' | 'UNKNOWN';
+    type: 'CLOCK_IN' | 'CLOCK_OUT' | 'BREAK_START' | 'BREAK_END' | 'STATUS' | 'TASKS' | 'HELP' | 'WORKFLOW' | 'REGISTER' | 'UNKNOWN';
     params?: Record<string, any>;
     originalMessage: string;
     workflowName?: string;
+    inviteToken?: string;
 }
 
 export class CommandParser {
+    // UUID pattern for invite token detection
+    private readonly uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
     // Command patterns (Spanish and English)
     private patterns = {
         CLOCK_IN: [
@@ -52,6 +56,16 @@ export class CommandParser {
     parse(message: string): ParsedCommand {
         // Normalize message
         const normalized = message.trim().toLowerCase();
+        const rawMessage = message.trim();
+
+        // Check for UUID / invite token first (registration flow)
+        if (this.uuidPattern.test(rawMessage)) {
+            return {
+                type: 'REGISTER',
+                originalMessage: message,
+                inviteToken: rawMessage,
+            };
+        }
 
         // Try to match against patterns
         for (const [commandType, patterns] of Object.entries(this.patterns)) {

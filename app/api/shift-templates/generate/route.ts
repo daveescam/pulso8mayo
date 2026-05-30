@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
                 const dateStr = format(date, "yyyy-MM-dd");
 
       shiftsToCreate.push({
+        companyId: tenant.id,
         userId,
         branchId: template.branchId || tenant.id!, // Fallback a company si no hay branch
         shiftDate: dateStr,

@@ -8,7 +8,7 @@ import { pgTable, text, timestamp, boolean, uuid, jsonb, integer, uniqueIndex, f
 import { sql } from "drizzle-orm";
 
 // Import auth tables and enums for internal use within this file
-import { account, users, sessions, verifications, magicLinks, roleEnum } from './schema/auth';
+import { account, users, session, sessions, verifications, magicLinks, roleEnum } from './schema/auth';
 
 // Import core tables for foreign key references
 import { companies, branches } from './schema/core';
@@ -85,7 +85,7 @@ export const workflowTemplates = pgTable("workflow_templates", {
     id: uuid("id").default(sql`gen_random_uuid()`).primaryKey().notNull(),
     companyId: uuid("company_id").notNull(),
     branchId: uuid("branch_id"), // Optional, if template is branch-specific
-    name: text("name").notNull(),
+    name: text("name"),
     description: text("description"),
     steps: jsonb("steps").notNull().default(sql`'[]'::jsonb`), // Stores the form builder elements
     category: text("category").default('GENERAL'),
@@ -97,6 +97,12 @@ export const workflowTemplates = pgTable("workflow_templates", {
     isCritical: boolean("is_critical").default(false),
 
   active: boolean("active").default(true),
+
+  // Legacy columns (preserved from older schema versions)
+  jsonSchema: jsonb("json_schema"), // Legacy
+  originalTemplateId: text("original_template_id"), // Legacy
+  title: text("title"), // Legacy
+  isCustom: boolean("is_custom").default(false), // Legacy
 
   // Advanced Configuration (per TEMPLATE_SCHEMA.md)
   version: integer("version").default(1),
@@ -255,6 +261,7 @@ export const shiftTemplates = pgTable("shift_templates", {
 // Turnos planificados (instancias concretas para fechas específicas)
 export const plannedShifts = pgTable("planned_shifts", {
     id: uuid("id").default(sql`gen_random_uuid()`).primaryKey().notNull(),
+    companyId: uuid("company_id").notNull(),
     userId: text("user_id").notNull(),
     branchId: uuid("branch_id").notNull(),
 
@@ -284,6 +291,31 @@ export const plannedShifts = pgTable("planned_shifts", {
         table.startTime
     ),
 }));
+
+// Legacy: Shift assignments (preserved from older schema version)
+export const shiftAssignments = pgTable("shift_assignments", {
+    id: uuid("id").default(sql`gen_random_uuid()`).primaryKey().notNull(),
+    userId: text("user_id").notNull(),
+    branchId: uuid("branch_id").notNull(),
+    dayOfWeek: integer("day_of_week"),
+    specificDate: text("specific_date"),
+    shiftName: text("shift_name"),
+    startTime: text("start_time").notNull(),
+    endTime: text("end_time").notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Legacy: Schedule configs (preserved from older schema version)
+export const scheduleConfigs = pgTable("schedule_configs", {
+    id: uuid("id").default(sql`gen_random_uuid()`).primaryKey().notNull(),
+    branchId: uuid("branch_id").notNull(),
+    templateId: text("template_id").notNull(),
+    cronExpression: text("cron_expression").notNull(),
+    targetRoles: text("target_roles").array().notNull(),
+    enabled: boolean("enabled").default(true),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+});
 
 // Sesiones reales de trabajo (cuando el empleado hace check-in/out)
 export const shiftSessions = pgTable("shift_sessions", {

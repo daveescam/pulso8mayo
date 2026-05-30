@@ -397,9 +397,14 @@ export class ShiftService {
         const now = new Date();
         const workMinutes = Math.floor((now.getTime() - startTime.getTime()) / 60000);
 
-        // Get break rules
+        // Get break rules — first look up the branch to get its companyId
+        const branch = await db.query.branches.findFirst({
+            where: eq(branches.id, activeSession.branchId),
+            columns: { companyId: true }
+        });
+
         const rules = await db.query.breakComplianceRules.findFirst({
-            where: eq(breakComplianceRules.companyId, activeSession.branchId)
+            where: eq(breakComplianceRules.companyId, branch?.companyId || activeSession.branchId)
         });
 
         const maxContinuousWork = rules?.maxContinuousWork || 300; // 5 hours default

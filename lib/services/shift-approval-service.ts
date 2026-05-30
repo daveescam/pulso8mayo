@@ -1,7 +1,9 @@
 import { db } from "@/lib/db";
 import { shiftApprovals, shiftSessions, users, branches } from "@/lib/db/schema";
-import { eq, and, or, desc } from "drizzle-orm";
+import { eq, and, or, desc, inArray } from "drizzle-orm";
 import { NotificationDispatcher } from "./notification-dispatcher";
+
+const MANAGER_ROLES = ['ADMIN', 'GERENTE', 'SUPERVISOR'] as const;
 
 export type ApprovalType = 'OVERTIME' | 'SCHEDULE_CHANGE' | 'TIME_OFF' | 'SHIFT_SWAP' | 'EARLY_DEPARTURE';
 export type ApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
@@ -247,9 +249,16 @@ export class ShiftApprovalService {
             return existingApproval;
         }
 
+        // Get branch to resolve companyId
+        const branch = await db.query.branches.findFirst({
+            where: eq(branches.id, session.branchId),
+            columns: { companyId: true }
+        });
+        const companyId = branch?.companyId || session.branchId;
+
         // Create approval request
         const approval = await this.createApproval({
-            companyId: session.branchId, // Would need to get from branch
+            companyId,
             branchId: session.branchId,
             approvalType: 'OVERTIME',
             requestedBy: session.userId,
@@ -306,19 +315,93 @@ export class ShiftApprovalService {
     }
 
     /**
-     * Notify managers about pending approvals (placeholder)
+     * Notify managers about pending approval requests
      */
     private static async notifyManagers(approval: any): Promise<void> {
-        // TODO: Implement notification logic
-        // Could send WhatsApp, email, or in-app notifications
-        console.log(`Notifying managers about approval request ${approval.id}`);
+        try {
+            const [requester, employee, managers] = await Promise.all([
+                db.query.users.findFirst({ where: eq(users.id, approval.requestedBy) }),
+                db.query.users.findFirst({ where: eq(users.id, approval.requestedFor) }),
+                db.query.users.findMany({
+                    where: and(
+                        eq(users.branchId, approval.branchId),
+                        inArray(users.role, MANAGER_ROLES as readonly string[])
+                    )
+                }),
+            ]);
+
+            const requesterName = requester?.name || 'Usuario';
+            const employeeName = employee?.name || 'Empleado';
+            const approvalTypeLabel: Record<string, string> = {
+                OVERTIME: 'Horas extra',
+                SCHEDULE_CHANGE: 'Cambio de horario',
+                TIME_OFF: 'Tiempo libre',
+                SHIFT_SWAP: 'Intercambio de turno',
+                EARLY_DEPARTURE: 'Salida temprana',
+            };
+
+            const payloads = managers.map((manager) => ({
+                userId: manager.id,
+                title: `Solicitud de aprobación: ${approvalTypeLabel[approval.approvalType] || approval.approvalType}`,
+                message: `${requesterName} solicita aprobación para ${employeeName}: ${approval.title}`,
+                type: 'info' as const,
+                eventType: 'shift_approval_request' as const,
+                actionUrl: `/dashboard/labor/approvals?approvalId=${approval.id}`,
+                actionLabel: 'Revisar solicitud',
+                metadata: {
+                    requesterName,
+                    employeeName,
+                    approvalType: approvalTypeLabel[approval.approvalType] || approval.approvalType,
+                    description: approval.description || approval.title,
+                },
+            }));
+
+            if (payloads.length > 0) {
+                await NotificationDispatcher.sendBatchNotifications(payloads);
+            }
+        } catch (error) {
+            console.error("Error notifying managers about approval:", error);
+        }
     }
 
     /**
-     * Notify requester about decision (placeholder)
+     * Notify requester about decision on their approval
      */
     private static async notifyDecision(approval: any, decision: ApprovalDecision): Promise<void> {
-        // TODO: Implement notification logic
-        console.log(`Notifying ${approval.requestedBy} about ${decision.status} decision`);
+        try {
+            const [requester, approver] = await Promise.all([
+                db.query.users.findFirst({ where: eq(users.id, approval.requestedBy) }),
+                db.query.users.findFirst({ where: eq(users.id, decision.approvedBy) }),
+            ]);
+
+            const decisionLabel = decision.status === 'APPROVED' ? 'aprobada' : 'rechazada';
+            const approvalTypeLabel: Record<string, string> = {
+                OVERTIME: 'Horas extra',
+                SCHEDULE_CHANGE: 'Cambio de horario',
+                TIME_OFF: 'Tiempo libre',
+                SHIFT_SWAP: 'Intercambio de turno',
+                EARLY_DEPARTURE: 'Salida temprana',
+            };
+
+            await NotificationDispatcher.sendNotification({
+                userId: approval.requestedBy,
+                title: `Solicitud ${decisionLabel}`,
+                message: `Tu solicitud de ${approvalTypeLabel[approval.approvalType] || approval.approvalType} fue ${decisionLabel}` + (decision.rejectionReason ? `: ${decision.rejectionReason}` : ''),
+                type: decision.status === 'APPROVED' ? 'success' : 'error',
+                eventType: 'shift_approval_decision',
+                actionUrl: `/dashboard/labor/approvals?approvalId=${approval.id}`,
+                actionLabel: 'Ver detalles',
+                metadata: {
+                    approvalType: approvalTypeLabel[approval.approvalType] || approval.approvalType,
+                    decision: decisionLabel,
+                    approverName: approver?.name || 'Manager',
+                    rejectionReasonSection: decision.rejectionReason
+                        ? `<p><strong>Razón:</strong> ${decision.rejectionReason}</p>`
+                        : '',
+                },
+            });
+        } catch (error) {
+            console.error("Error notifying about approval decision:", error);
+        }
     }
 }

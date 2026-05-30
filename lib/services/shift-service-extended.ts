@@ -92,6 +92,7 @@ export class PlannedShiftServiceImpl implements PlannedShiftService {
     // Transform to Shift type with user and branch names
     const shiftsWithNames: Shift[] = shifts.map((shift) => ({
       ...shift,
+      companyId: shift.companyId,
       userName: shift.userId, // Will be populated by separate query or join
       branchName: shift.branchId, // Will be populated
       status: shift.status as 'DRAFT' | 'PUBLISHED' | 'CANCELLED',
@@ -141,6 +142,7 @@ export class PlannedShiftServiceImpl implements PlannedShiftService {
     const [shift] = await db
       .insert(plannedShifts)
       .values({
+        companyId: data.companyId,
         userId: data.userId,
         branchId: data.branchId,
         role: data.role,
@@ -154,6 +156,7 @@ export class PlannedShiftServiceImpl implements PlannedShiftService {
 
     return {
       ...shift,
+      companyId: shift.companyId,
       userName: '',
       userEmail: '',
       branchName: '',
@@ -192,6 +195,7 @@ export class PlannedShiftServiceImpl implements PlannedShiftService {
 
     return {
       ...shift,
+      companyId: shift.companyId,
       userName: '',
       userEmail: '',
       branchName: '',
@@ -279,6 +283,7 @@ export class PlannedShiftServiceImpl implements PlannedShiftService {
       const newDateStr = format(newDate, 'yyyy-MM-dd');
 
       const shiftData: CreateShiftInput = {
+        companyId: existing.companyId,
         userId: existing.userId,
         branchId: existing.branchId,
         role: existing.role,

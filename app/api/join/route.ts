@@ -9,7 +9,7 @@ import { ApiError } from "@/lib/api/error";
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { name, email, password, inviteToken } = body;
+        const { name, email, password, inviteToken, phone } = body;
 
         console.log('Join API - Received inviteToken:', inviteToken);
         console.log('Join API - Token length:', inviteToken?.length);
@@ -47,14 +47,19 @@ export async function POST(req: NextRequest) {
         });
 
         if (existingUser) {
-            // User exists, update their role and branch assignment
-            await db.update(users).set({
+            // User exists, update their role, branch assignment, and phone
+            const updateData: Record<string, any> = {
                 companyId: branch.companyId,
                 branchId: branch.id,
                 role: role,
                 emailVerified: true,
-                name: name || existingUser.name
-            }).where(eq(users.id, existingUser.id));
+                name: name || existingUser.name,
+            };
+            if (phone) {
+                updateData.whatsappPhone = phone;
+            }
+
+            await db.update(users).set(updateData).where(eq(users.id, existingUser.id));
 
             // Only update branch managerId if this is a manager invite
             if (isManagerInvite) {
@@ -79,12 +84,16 @@ export async function POST(req: NextRequest) {
         if (!newUserRes?.user) throw new Error("Failed to create user");
 
         // 4. Update User with Role and Branch
-        await db.update(users).set({
+        const newUserUpdateData: Record<string, any> = {
             companyId: branch.companyId,
             branchId: branch.id,
             role: role,
-            emailVerified: true
-        }).where(eq(users.id, newUserRes.user.id));
+            emailVerified: true,
+        };
+        if (phone) {
+            newUserUpdateData.whatsappPhone = phone;
+        }
+        await db.update(users).set(newUserUpdateData).where(eq(users.id, newUserRes.user.id));
 
         // Only update branch managerId if this is a manager invite
         if (isManagerInvite) {

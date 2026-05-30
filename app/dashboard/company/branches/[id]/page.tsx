@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, MapPin, Users, UserCog, Calendar, Clock, QrCode, Mail, Send } from "lucide-react";
+import { Loader2, MapPin, Users, UserCog, Calendar, Clock, QrCode, Mail, Send, MessageCircle, Copy } from "lucide-react";
 import { updateBranchSchema } from "@/lib/validations/branch";
 import { QRCodeGenerator } from "@/components/qr-code-generator";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -62,6 +62,7 @@ export default function BranchDetailsPage({ params }: { params: Promise<{ id: st
     const [inviteManagerOpen, setInviteManagerOpen] = useState(false);
     const [inviteEmail, setInviteEmail] = useState("");
     const [invitePhone, setInvitePhone] = useState("");
+    const [whatsappPulsoPhone, setWhatsappPulsoPhone] = useState<string | null>(null);
 
     const form = useForm<z.infer<typeof updateBranchSchema>>({
         resolver: zodResolver(updateBranchSchema),
@@ -125,6 +126,25 @@ export default function BranchDetailsPage({ params }: { params: Promise<{ id: st
             }
         }
         loadEmployees();
+    }, [resolvedParams]);
+
+    useEffect(() => {
+        async function loadWhatsappPhone() {
+            try {
+                const res = await fetch("/api/whatsapp/session");
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.session?.phoneNumber) {
+                        setWhatsappPulsoPhone(data.session.phoneNumber);
+                    }
+                }
+            } catch (e) {
+                console.error("Error fetching WhatsApp phone:", e);
+            }
+        }
+        if (resolvedParams?.id !== 'new') {
+            loadWhatsappPhone();
+        }
     }, [resolvedParams]);
 
     async function onSubmit(data: z.infer<typeof updateBranchSchema>) {
@@ -377,12 +397,90 @@ export default function BranchDetailsPage({ params }: { params: Promise<{ id: st
 
                 <TabsContent value="onboarding" className="space-y-4">
                     {!isCreating && branch ? (
-                        <QRCodeGenerator
-                            value={smartLink}
-                            title="Onboarding de Empleados"
-                            description="Comparte este código QR o link con tus empleados para que se unan a esta sucursal"
-                            filename={`onboarding-${branch.name?.toLowerCase().replace(/\s+/g, '-')}`}
-                        />
+                        <>
+                            <QRCodeGenerator
+                                value={smartLink}
+                                title="Onboarding de Empleados"
+                                description="Comparte este código QR o link con tus empleados para que se unan a esta sucursal"
+                                filename={`onboarding-${branch.name?.toLowerCase().replace(/\s+/g, '-')}`}
+                            />
+                            {branch.inviteToken && (
+                                <Card className="bg-muted/50 border-dashed">
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <MessageCircle className="h-5 w-5" />
+                                            Invitar por WhatsApp
+                                        </CardTitle>
+                                        <CardDescription>
+                                            El empleado envía el código por WhatsApp y recibe automáticamente el link de registro
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        {whatsappPulsoPhone ? (
+                                            <>
+                                                <div className="bg-white p-4 rounded-lg border">
+                                                    <p className="text-sm text-muted-foreground mb-2">
+                                                        Comparte este enlace con el empleado. Al abrirlo, se enviará automáticamente el código de invitación a Pulso.
+                                                    </p>
+                                                    <a
+                                                        href={`https://wa.me/${whatsappPulsoPhone.replace(/\D/g, '')}?text=${encodeURIComponent(branch.inviteToken)}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                                                    >
+                                                        <MessageCircle className="h-4 w-4" />
+                                                        Abrir en WhatsApp
+                                                    </a>
+                                                </div>
+                                                <div className="bg-white p-3 rounded-lg border">
+                                                    <p className="text-xs font-medium text-muted-foreground mb-1">O copia el código para compartir:</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <code className="text-sm p-2 font-mono bg-gray-50 rounded border flex-1 break-all">
+                                                            {branch.inviteToken}
+                                                        </code>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => {
+                                                                navigator.clipboard.writeText(
+                                                                    whatsappPulsoPhone
+                                                                        ? `Envía este código al WhatsApp de Pulso (${whatsappPulsoPhone}): ${branch.inviteToken}`
+                                                                        : branch.inviteToken
+                                                                );
+                                                                toast.success("Copiado al portapapeles");
+                                                            }}
+                                                        >
+                                                            <Copy className="h-3 w-3 mr-1" />
+                                                            Copiar
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                                <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded">
+                                                    <p className="font-medium mb-1">¿Cómo funciona?</p>
+                                                    <ol className="list-decimal list-inside space-y-1">
+                                                        <li>El empleado abre el enlace de WhatsApp o envía el código</li>
+                                                        <li>Pulso recibe el código y vincula su número</li>
+                                                        <li>Recibe automáticamente el link de registro</li>
+                                                        <li>Completa su perfil y queda asignado a esta sucursal</li>
+                                                    </ol>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="text-center py-4 text-muted-foreground">
+                                                <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                                <p className="text-sm">No hay una sesión de WhatsApp activa</p>
+                                                <p className="text-xs mt-1">
+                                                    Configura WhatsApp en{" "}
+                                                    <Button variant="link" size="sm" className="h-auto p-0" onClick={() => router.push("/dashboard/company/whatsapp")}>
+                                                        Configuración
+                                                    </Button>
+                                                </p>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </>
                     ) : (
                         <Card>
                             <CardHeader>
